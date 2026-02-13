@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN } from "../constants";
-import useDocumentTitle from '../../utils/useDocumentTitle';
+import useDocumentTitle from "../utils/useDocumentTitle";
 
 const Home = () => {
     useDocumentTitle('Home | Astraea');
