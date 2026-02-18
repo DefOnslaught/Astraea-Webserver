@@ -43,13 +43,18 @@ BACKGROUND_WHITE   = \033[47m
 
 RESET = \033[0m
 
+# Helper for Python in Venv
+VENV_PYTHON = backend/venv/bin/python
+VENV_PIP = backend/venv/bin/pip
+
 ### Greeting message
 define GREETING
 	@echo "$(GREEN)$(VERSION)$(RESET)"
 	@echo "================================================================="
 	@echo "$(YELLOW)*****************" $(PROJECT_NAME) "*******************$(RESET)"
-	@echo "=================================================================\n";
+	@echo "=================================================================\n"
 endef
+
 
 ### Show greeting message
 greeting:
@@ -57,85 +62,55 @@ greeting:
 
 ### Builds Frontend
 buildFrontend:
-	@echo "$(GREEN)Starting frontend build at $(BOLD_BLUE)$$(date +"%T")$(RESET)"
-
-	@echo "$(BLUE)Deleting old static files$(RESET)"
-	@cd frontend/dist/assets && find . -name 'index-*.js' -delete && find . -name 'index-*.css' -delete || \
-	(echo "$(RED)Error: Deleting old static files failed$(RESET)" && exit 1)
-	
-	@echo "$(BLUE)Building Front-end$(RESET)"
-	@cd frontend && npm run build || \
-	(echo "$(RED)Error: Building frontend failed$(RESET)" && exit 1)
-
-### @echo "$(BLUE)Collecting Static$(RESET)"
-###	@cd backend && python manage.py collectstatic --noinput || \
-	(echo "$(RED)Error: Collecting Static failed$(RESET)" && exit 1)
-
-	@echo "$(GREEN)Finished frontend build"
-
+	@echo "$(GREEN)Starting frontend build...$(RESET)"
+	@mkdir -p frontend/dist/assets
+	@echo "$(BLUE)Cleaning old assets...$(RESET)"
+	@rm -f frontend/dist/assets/index-*.js frontend/dist/assets/index-*.css
+	@cd frontend && npm install && npm run build || (echo "$(RED)Frontend build failed$(RESET)"; exit 1)
 
 
 ### Deploy project, clears any cache, restarts the service
-deploy:
+deploy: buildFrontend
+	@echo "$(GREEN)Deploying Django...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput || (echo "$(RED)Static collection failed$(RESET)"; exit 1)
+	@echo "$(BLUE)Restarting Services...$(RESET)"
+	@sudo systemctl restart gunicorn
+	@sudo systemctl restart nginx
+	@$(VENV_PYTHON) backend/manage.py clear_cache || echo "$(YELLOW)Cache clear failed, skipping...$(RESET)"
+	@echo "$(GREEN)Deployment Complete!$(RESET)"
 
-	@echo "$(GREEN)Starting deployment at $(BOLD_BLUE)$$(date +"%T")$(RESET)"
-
-	@echo "$(BLUE)Deleting old static files$(RESET)"
-	@cd frontend/dist/assets && find . -name 'index-*.js' -delete && find . -name 'index-*.css' -delete || \
-	(echo "$(RED)Error: Deleting old static files failed$(RESET)" && exit 1)
-	
-	@echo "$(BLUE)Building Front-end$(RESET)"
-	@cd frontend && npm run build || \
-	(echo "$(RED)Error: Building frontend failed$(RESET)" && exit 1)
-
-	@echo "$(BLUE)Collecting Static$(RESET)"
-	@cd backend && python manage.py collectstatic --noinput || \
-	(echo "$(RED)Error: Collecting Static failed$(RESET)" && exit 1)
-
-	@echo "$(BLUE)Restarting Guinicon$(RESET)"
-	@sudo systemctl restart gunicorn || \
-	(echo "$(RED)Error: Restarting Guinicon failed$(RESET)" && exit 1)
-
-	@echo "$(BLUE)Restarting NGINX$(RESET)"
-	@sudo systemctl restart nginx || \
-	(echo "$(RED)Error: Restarting NGINX failed$(RESET)" && exit 1)
-
-	@echo "$(BLUE)Clearing Cache$(RESET)"
-	@cd backend && python manage.py clear_cache || \
-	(echo "$(RED)Error: Clearing Cache failed$(RESET)" && exit 1)
-
-	@echo "$(GREEN)Finished deploying"
 
 ### Restarts core system web services
 restart:
-	@echo "$(BLUE)Restarting Guinicon$(RESET)"
-	@sudo systemctl restart gunicorn || \
-	(echo "$(RED)Error: Restarting Guinicon failed$(RESET)" && exit 1)
-
+	@echo "$(BLUE)Restarting Gunicorn$(RESET)"
+	@sudo systemctl restart gunicorn || exit 1
 	@echo "$(BLUE)Restarting NGINX$(RESET)"
-	@sudo systemctl restart nginx || \
-	(echo "$(RED)Error: Restarting NGINX failed$(RESET)" && exit 1)
-
+	@sudo systemctl restart nginx || exit 1
 	@echo "$(BLUE)Clearing Cache$(RESET)"
-	@cd backend && python manage.py clear_cache || \
-	(echo "$(RED)Error: Clearing Cache failed$(RESET)" && exit 1)
+	@$(VENV_PYTHON) backend/manage.py clear_cache || exit 1
+
 
 ### Handles creating any migrations, groups, or folders
 initialSetup: virtualenv
-	@echo "$(BLUE)Creating initial setup$(RESET)"
-	@cd backend && source venv/bin/activate && \
-	python manage.py wait_for_db && \
-	python manage.py makemigrations && \
-    python manage.py migrate && \
-	(echo "$(RED)Error: Initial setup failed$(RESET)" && exit 1)
-	@echo "$(GREEN)Finished initial setup$(RESET)$(BLUE) IMPORTANT - Run 'python manage.py generate_secret_key' to for the Secret_Key to enter into `.env`"
+	@echo "$(BLUE)Running Migrations...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py wait_for_db || exit 1
+	@$(VENV_PYTHON) backend/manage.py makemigrations || exit 1
+	@$(VENV_PYTHON) backend/manage.py migrate || exit 1
+	@echo "$(GREEN)Finished initial setup$(RESET)"
+	@echo "$(BOLD_CYAN)IMPORTANT:$(RESET) Run '$(VENV_PYTHON) backend/manage.py generate_secret_key' to get your key for .env"
+
+
+virtualenv:
+	@echo "$(BLUE)Setting up Virtualenv...$(RESET)"
+	@python3 -m venv backend/venv
+	@$(VENV_PYTHON) -m pip install --upgrade pip
+	@$(VENV_PYTHON) -m pip install -r backend/requirements.txt || (echo "$(RED)Pip install failed$(RESET)"; exit 1)
+
 
 ### Clears the cache
 clearCache:
-	
-	@echo "$(BLUE)Clearing Cache$(RESET)"
-	@cd backend && python manage.py clear_cache || \
-	(echo "$(RED)Error: Clearing cache failed$(RESET)" && exit 1)
+	@$(VENV_PYTHON) backend/manage.py clear_cache || (echo "$(RED)Clear cache failed$(RESET)"; exit 1)
+
 
 ### Display help information
 help:
@@ -144,14 +119,5 @@ help:
 	@echo "$(BLUE)buildFrontend$(RESET) - Builds Frontend"
 	@echo "$(BLUE)deploy$(RESET) - Deploy project to gunicorn"
 	@echo "$(BLUE)initialSetup$(RESET) - Configures any migrates, creates needed folders"
-	@echo "$(BLUE)update$(RESET) - Updates the site after new data has been pulled down"
 	@echo "$(BLUE)restart$(RESET) - Restarts core system web services"
 	@echo "$(BLUE)clearCache$(RESET) - Clears the cache"
-
-
-virtualenv:
-	@echo "$(BLUE)Creating virtual environment$(RESET)"
-	@cd backend && python -m venv venv
-	@echo "$(BLUE)Activating virtual environment$(RESET)"
-	@source venv/bin/activate && \
-	pip install -r requirements.txt
