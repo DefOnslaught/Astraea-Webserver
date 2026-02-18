@@ -2,8 +2,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom"
 import { jwtDecode } from "jwt-decode"
 import { useState, useEffect } from "react"
 
-import api from "../../api"
-import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../constants"
+import api from "../../utils/api"
+import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../utils/constants"
 import FullScreenLoader from "../FullScreenLoader"
 
 function ProtectedRoute() {

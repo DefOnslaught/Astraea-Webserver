@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
-import { ACCESS_TOKEN } from "../constants";
+import { ACCESS_TOKEN } from "../utils/constants";
 import useDocumentTitle from "../utils/useDocumentTitle";
 
 const Home = () => {

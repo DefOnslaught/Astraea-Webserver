@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { ACCESS_TOKEN } from "../../constants";
+import { ACCESS_TOKEN } from "../../utils/constants";
 
 function PublicRoute() {
     const token = localStorage.getItem(ACCESS_TOKEN);

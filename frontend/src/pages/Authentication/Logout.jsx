@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import api from "../../api";
-import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../constants";
+import api from "../../utils/api";
+import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../utils/constants";
 import SuccessToast from '../../components/SuccessToast';
 import FullScreenLoader from "../../components/FullScreenLoader";
 
