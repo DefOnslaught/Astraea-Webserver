@@ -1,0 +1,60 @@
+server {
+    listen 80;
+    server_name astraea.wickedworlds.ca astraea.teflon.lan localhost;
+    error_log  /var/log/nginx/astraea/error.log;
+    access_log /var/log/nginx/astraea/access.log;
+
+    include mime.types;
+
+    # Obtains the client IP, not the IP of the reverse proxy server
+    real_ip_header X-Real-IP;
+    # Set the IP of the Reverse Proxy the connection is coming from
+    set_real_ip_from 192.168.5.77;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+    # Used so I can make easily readable headers
+    underscores_in_headers on;
+
+
+    location = /favicon.ico { 
+        access_log off; 
+        log_not_found off;   
+    }
+	
+
+    # This is used to make sure the website is online via management software installed on the host.
+    location = /basic_status {
+        stub_status on;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+        access_log off;
+    }
+	
+	
+	location /static/ {
+		alias /opt/Astraea-Webserver/backend/staticfiles/;
+		expires 30d;
+		add_header Cache-Control "public, no-transform";
+		access_log off;
+	}
+
+
+	location /assets/ {
+		alias /opt/Astraea-Webserver/backend/staticfiles/assets/;
+		expires 30d;
+		access_log off;
+	}
+
+
+	location / {
+		include proxy_params;
+		proxy_pass http://unix:/run/gunicorn.sock;
+		
+		# These are vital for Django's CSRF and Secure Cookie logic
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+	}
+}
