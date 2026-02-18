@@ -24,12 +24,14 @@ function ProtectedRoute() {
                 const now = Date.now() / 1000
 
                 if (tokenExpiration < now) {
-                    await refresh(); // Internal helper
+                    await refresh();
                 } else {
                     setIsAuthorized(true)
                 }
             } catch (e) {
-                console.error("Token decode failed", e)
+                // If the token is malformed, clear everything
+                localStorage.removeItem(ACCESS_TOKEN);
+                localStorage.removeItem(REFRESH_TOKEN);
                 setIsAuthorized(false)
             }
         }
@@ -49,10 +51,13 @@ function ProtectedRoute() {
                     localStorage.setItem(ACCESS_TOKEN, response.data.access)
                     setIsAuthorized(true)
                 } else {
-                    setIsAuthorized(false)
+                    throw new Error("Failed to refresh");
                 }
             } catch (error) {
                 console.log("Refresh failed", error)
+                // CRITICAL: Clear tokens so PublicRoute doesn't redirect back here
+                localStorage.removeItem(ACCESS_TOKEN);
+                localStorage.removeItem(REFRESH_TOKEN);
                 setIsAuthorized(false)
             }
         }

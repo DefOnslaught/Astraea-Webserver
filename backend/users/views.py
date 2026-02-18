@@ -55,10 +55,10 @@ class LogoutView(APIView):
                 
             token = RefreshToken(refresh_token)
             token.blacklist() # Adds the jti to the BlacklistedToken table
-            return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            # If the token is already expired or invalid, we consider it "logged out"
-            return Response({"error": "Token is invalid or already blacklisted"}, status=status.HTTP_400_BAD_REQUEST)
+            # If token is invalid/expired, they are effectively logged out anyway
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BasicUserInfoView(APIView):
