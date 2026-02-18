@@ -1,0 +1,17 @@
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=darren
+Group=www-data
+WorkingDirectory=/opt/Astraea-Webserver/backend
+ExecStart=/opt/Astraea-Webserver/backend/venv/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/gunicorn.sock \
+          backend.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
