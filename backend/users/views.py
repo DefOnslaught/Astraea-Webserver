@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer
 
@@ -59,6 +60,18 @@ class LogoutView(APIView):
         except Exception as e:
             # If token is invalid/expired, they are effectively logged out anyway
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LogoutAllDevicesView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        tokens = OutstandingToken.objects.filter(user=request.user)
+
+        for token in tokens:
+            BlacklistedToken.objects.get_or_create(token=token)
+        
+        return Response({"message": "Successfully logged out of all devices"}, status=status.HTTP_205_RESET_CONTENT)
 
 
 class BasicUserInfoView(APIView):
