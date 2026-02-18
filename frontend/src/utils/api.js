@@ -1,5 +1,5 @@
 import axios from "axios"
-import { ACCESS_TOKEN } from "./constants"
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "./constants"
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -47,7 +47,7 @@ api.interceptors.response.use(
                 }
             } catch (refreshError) {
                 // If refresh fails, the user must log in again
-                console.error("Refresh token expired or invalid");
+                console.log("Refresh token expired or invalid");
                 localStorage.removeItem(ACCESS_TOKEN);
                 localStorage.removeItem(REFRESH_TOKEN);
 

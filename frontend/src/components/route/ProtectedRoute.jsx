@@ -29,17 +29,15 @@ function ProtectedRoute() {
                     setIsAuthorized(true)
                 }
             } catch (e) {
-                // If the token is malformed, clear everything
-                localStorage.removeItem(ACCESS_TOKEN);
-                localStorage.removeItem(REFRESH_TOKEN);
-                setIsAuthorized(false)
+                console.error("Auth check failed", e);
+                handleLogout();
             }
         }
 
         const refresh = async () => {
             const rToken = localStorage.getItem(REFRESH_TOKEN)
             if (!rToken) {
-                setIsAuthorized(false)
+                handleLogout();
                 return
             }
 
@@ -51,19 +49,25 @@ function ProtectedRoute() {
                     localStorage.setItem(ACCESS_TOKEN, response.data.access)
                     setIsAuthorized(true)
                 } else {
-                    throw new Error("Failed to refresh");
+                    handleLogout();
                 }
             } catch (error) {
-                console.log("Refresh failed", error)
-                // CRITICAL: Clear tokens so PublicRoute doesn't redirect back here
-                localStorage.removeItem(ACCESS_TOKEN);
-                localStorage.removeItem(REFRESH_TOKEN);
-                setIsAuthorized(false)
+                if (error.response?.status === 401) {
+                    handleLogout();
+                } else {
+                    console.log("Refresh failed", error);
+                }
             }
         }
 
+        const handleLogout = () => {
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(REFRESH_TOKEN);
+            setIsAuthorized(false);
+        };
+
         auth();
-    }, []);
+    }, [location.pathname]);
 
     if (isAuthorized === null) {
         return <FullScreenLoader />
