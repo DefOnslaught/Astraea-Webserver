@@ -1,4 +1,6 @@
 import logging
+from django.views.decorators.debug import sensitive_post_parameters
+from django.utils.decorators import method_decorator
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -22,14 +24,17 @@ class RegisterView(generics.CreateAPIView):
         if serializer.is_valid():
             user = serializer.save()
             refresh = RefreshToken.for_user(user)
+            logger.info(f"New user '{request.data.get('email')}' has been created successfully")
             return Response({
                 'message': "User created successfully",
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
             }, status=status.HTTP_201_CREATED)
+        logger.error(f"Error creating new user '{request.data.get('email')}': {str(serializer.errors)}")
         return Response({'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(sensitive_post_parameters('password'), name='dispatch')
 class TokenOPView(TokenObtainPairView):
     serializer_class = TokenOPSerializer
 
@@ -62,7 +67,6 @@ class LogoutView(APIView):
             logger.info(f"User '{request.user.email}' logged out successfully.")
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            logger.error(f"Logout failed for user '{request.user}': {str(e)}")
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -75,6 +79,7 @@ class LogoutAllDevicesView(APIView):
         for token in tokens:
             BlacklistedToken.objects.get_or_create(token=token)
         
+        logger.info(f"User '{request.user.email}' logged out of all devices successfully.")
         return Response({"message": "Successfully logged out of all devices"}, status=status.HTTP_205_RESET_CONTENT)
 
 
@@ -100,5 +105,8 @@ class UserProfileView(APIView):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"User '{request.user.email}' successfully updated profile.")
             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        logger.error(f"Failed to update profile for '{request.user}': {str(serializer.errors)}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
