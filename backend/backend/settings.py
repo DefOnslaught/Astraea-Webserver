@@ -16,18 +16,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = ["*"] # Update for prod
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1").split(",")
 
 CORS_ALLOW_CREDENTIALS = True # Update for prod
 CORS_ALLOW_ALL_ORIGINS = False  # Switch to False to use the specific list below
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "http://astraea.teflon.lan:8000",
-    "https://astraea.wickedworlds.ca",
-]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
+
+# Only send cookies over HTTPS
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
+
+# Prevent the site from being rendered in an <iframe> (Prevents Clickjacking)
+X_FRAME_OPTIONS = 'DENY'
+
+# Tell Django it is behind a proxy and to trust the X-Forwarded-Proto header
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Browser-side security headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Application definition
 
