@@ -1,3 +1,4 @@
+import logging
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -9,6 +10,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, Bl
 
 from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer
 
+logger = logging.getLogger('django')
 
 class RegisterView(generics.CreateAPIView):
     queryset = None
@@ -36,6 +38,7 @@ class TokenOPView(TokenObtainPairView):
 
         try:
             serializer.is_valid(raise_exception=True)
+            logger.info(f"User '{request.data.get('email')}' has logged in successfully")
         except (InvalidToken, TokenError, Exception):
             return Response(
                 {"message": "Invalid email or password"}, 
@@ -56,15 +59,16 @@ class LogoutView(APIView):
                 
             token = RefreshToken(refresh_token)
             token.blacklist() # Adds the jti to the BlacklistedToken table
+            logger.info(f"User '{request.user.email}' logged out successfully.")
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            # If token is invalid/expired, they are effectively logged out anyway
+            logger.error(f"Logout failed for user '{request.user}': {str(e)}")
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LogoutAllDevicesView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request):
         tokens = OutstandingToken.objects.filter(user=request.user)
 
