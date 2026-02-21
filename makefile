@@ -187,7 +187,7 @@ help:
 	@echo "$(BLUE)test$(RESET) - $(CYAN)Runs all backend test$(RESET)"
 	@echo "$(BLUE)test-only$(RESET) - $(CYAN)Runs specific app tests: make test-only app=servers.tests.PatchingSystemTests$(RESET)"
 	@echo "$(BLUE)deploy$(RESET) - $(CYAN)Deploy project, to skip unit testing: make deploy skip=yes$(RESET)"
-	@echo "$(BLUE)initialSetup$(RESET) - $(CYAN)Configures any migrates, creates needed folders$(RESET)"
+	@echo "$(BLUE)initialSetup$(RESET) - $(CYAN)Configures any migrates$(RESET)"
 	@echo "$(BLUE)restart$(RESET) - $(CYAN)Restarts core system web services$(RESET)"
 	@echo "$(BLUE)clearCache$(RESET) - $(CYAN)Clears the cache$(RESET)"
 	@echo "$(BLUE)clean$(RESET) - $(CYAN)Cleans up python cache, test artifacts, and build files$(RESET)"
