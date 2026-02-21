@@ -125,6 +125,40 @@ The Makefile is the primary way to interact with the Astraea environment, below 
 | make test | skip=yes | Executes the Django test suite. *arg used to skip test -Optional |
 | make test-only | app=app.tests | Runs specific app tests. *arg usage: app=servers.tests.PatchingSystemTests |
 | make clearCache | | Clears the cache. |
+| make docker-up | | Builds and Starts the Docker Container. |
+| make docker-down | | Brings down the containers. |
+| make docker-status | | Shows status of the containers. |
+| make docker-logs | | Shows the logs. |
 
-## Installing With Docker
-Status: Development in progress. Dockerfile and docker-compose configurations are coming in v1.1.0.
+## 🐳 Installing With Docker
+> [!WARNING]
+> This requires you to install the `docker-compose-plugin`, find how to install it at [Docker Docs](https://docs.docker.com/compose/install/linux/)
+
+Ensure you update `DB_HOST` within `backend/.env` to the new value of `DB_HOST=db`, also ensure `DB_PASSWORD` is configured
+
+### Before Running Commands!
+Before running the command below, ensure your `backend/.env` is updated for the container network
+
+```bash
+DB_HOST=db
+REDIS_URL=redis://redis:6379/1
+DB_PASSWORD=your_secure_password - Must match with the docker-compose.yml `MYSQL_ROOT_PASSWORD`
+```
+
+**Build and Start**
+
+```bash
+make docker-up
+```
+> [!WARNING]
+> **Security:** Change the password of the default admin account immediately upon first login!
+
+**Default Admin Credentials**
+```bash
+Username = 'admin@astraea.local'
+Password = 'AstraeaAdmin123!'
+```
+
+**Accessing the Administrator Dashboard**
+
+The Administrator Dashboard is available at `http://localhost/admin/`

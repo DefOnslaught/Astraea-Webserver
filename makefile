@@ -1,4 +1,4 @@
-.PHONY: buildBackend buildFrontend test test-only deploy initialSetup restart clearCache status help
+.PHONY: buildBackend buildFrontend test test-only deploy initialSetup restart clearCache status docker-up docker-down docker-status docker-logs help
 
 ### Unique variables per project
 PROJECT_NAME = "Astraea"
@@ -202,6 +202,21 @@ status:
 		printf "$(YELLOW)Pending Migrations Found!$(RESET)\n" || printf "$(GREEN)Up to date$(RESET)\n"
 	@printf "$(BOLD_CYAN)-----------------------------$(RESET)\n"
 
+docker-up:
+	@echo "$(BOLD_GREEN)Starting Astraea Docker Stack...$(RESET)"
+	@docker compose up --build -d
+	@echo "$(BOLD_YELLOW)Astraea is starting at http://localhost$(RESET)"
+	@echo "$(CYAN)Default Admin: admin / AstraeaAdmin123!$(RESET)"
+
+docker-down:
+	@docker compose down
+
+docker-logs:
+	@docker compose logs -f
+
+docker-status:
+	@docker compose ps
+
 ### Display help information
 help:
 	@echo "$(GREEN)Available commands:$(RESET)"
@@ -215,3 +230,7 @@ help:
 	@echo "$(BLUE)clearCache$(RESET) - $(CYAN)Clears the cache$(RESET)"
 	@echo "$(BLUE)clean$(RESET) - $(CYAN)Cleans up python cache, test artifacts, and build files$(RESET)"
 	@echo "$(BLUE)status$(RESET) - $(CYAN)Shows status of all core services$(RESET)"
+	@echo "$(BLUE)docker-up$(RESET) - $(CYAN)Builds and Starts the Docker Container$(RESET)"
+	@echo "$(BLUE)docker-down$(RESET) - $(CYAN)Brings down the containers$(RESET)"
+	@echo "$(BLUE)docker-status$(RESET) - $(CYAN)Shows status of the containers$(RESET)"
+	@echo "$(BLUE)docker-logs$(RESET) - $(CYAN)Shows the logs$(RESET)"
