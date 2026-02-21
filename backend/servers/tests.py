@@ -108,39 +108,43 @@ class PatchingSystemTests(APITestCase):
 
 
     def test_bulk_patching_simulation(self):
-        """Simulates 5 different VMs checking in with patching data."""
+        """Simulates 10 different VMs checking in with patching data."""
         url = reverse('save_patching_data')
         from .utils import refresh_dashboard_stats
         refresh_dashboard_stats()
 
-        # We will loop 5 times to simulate 5 different servers reporting in
-        for i in range(5):
+        # We will loop 10 times to simulate 10 different servers reporting in
+        for i in range(10):
             vm_name = f"server-{i}"
             payload = {
                 "hostname": vm_name,
                 "ip_address": f"10.0.0.{i}",
-                "mac_address": f"00:11:22:33:44:0{i}",
+                "mac_address": f"00:11:22:33:44:00",
                 "os_version": "Ubuntu 22.04",
                 "rebooted": False,
                 "uptime": "10 days",
                 "total_packages_updated": 1,
-                "packages": [{"package_name": "kernel", "version": "5.15"}]
+                "packages": [
+                    {"package_name": "openssl", "version": "3.0.8"},
+                    {"package_name": "bash", "version": "5.2.15"},
+                    {"package_name": "darren", "version": "12.14.94"}
+                ]
             }
             response = self.client.post(url, payload, format='json', **self.headers)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # ASSERTIONS
-        # 1. Check Database has 5 servers
-        self.assertEqual(Server.objects.count(), 5)
+        # 1. Check Database has 10 servers
+        self.assertEqual(Server.objects.count(), 10)
         
-        # 2. Check Redis Dashboard accurately reflects all 5 (they are all fresh)
+        # 2. Check Redis Dashboard accurately reflects all 10
         stats = cache.get("dashboard_stats")
-        self.assertEqual(stats['total_servers'], 5)
+        self.assertEqual(stats['total_servers'], 10)
         self.assertEqual(stats['outdated_servers'], 0)
 
-        # 3. Check that the Package catalog only has 1 entry (since they all sent 'kernel 5.15')
+        # 3. Check that the Package catalog only has 3 entries
         # This proves your unique_together and get_or_create logic works!
-        self.assertEqual(Package.objects.count(), 1)
+        self.assertEqual(Package.objects.count(), 3)
 
 
     def test_software_search_grouping(self):
