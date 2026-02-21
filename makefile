@@ -1,8 +1,8 @@
-.PHONY: greeting buildFrontend deploy initialSetup restart clearCache help
+.PHONY: buildBackend buildFrontend test test-only deploy initialSetup restart clearCache status help
 
 ### Unique variables per project
 PROJECT_NAME = "Astraea"
-VERSION = "v1.0.0"
+VERSION = "1.0.0"
 
 ### Styling variables
 BLACK   = \033[0;30m
@@ -47,77 +47,148 @@ RESET = \033[0m
 VENV_PYTHON = backend/venv/bin/python
 VENV_PIP = backend/venv/bin/pip
 
-### Greeting message
-define GREETING
-	@echo "$(GREEN)$(VERSION)$(RESET)"
-	@echo "================================================================="
-	@echo "$(YELLOW)*****************" $(PROJECT_NAME) "*******************$(RESET)"
-	@echo "=================================================================\n"
+# Timing Tool - We capture the time to a temp file, then echo it with colors
+# The -p flag gives us simple 'real X.XX' output
+TIME_CMD = /usr/bin/time -p
+
+# Silenced Recursive Make
+M_SILENT = $(MAKE) --no-print-directory
+
+# Updated helper to print the time with colors
+# This reads the 'real' time from the output and wraps it in your CYAN styling
+define PRINT_TIME
+    @if [ -f $(1) ]; then \
+        printf "$(BOLD_CYAN)Finished in: $$(grep real $(1) | awk '{print $$2}')s$(RESET)\n"; \
+        rm -f $(1); \
+    fi
 endef
 
+# --- AUTOMATIC GREETING ---
+# We only print if MAKELEVEL is 0 (the first call)
+ifeq ($(MAKELEVEL),0)
+  _GREETING := $(shell printf "=================================================================\n" >&2; \
+                     printf "                            $(YELLOW)$(PROJECT_NAME)$(RESET)\n" >&2; \
+                     printf "                             $(GREEN)$(VERSION)$(RESET)\n" >&2; \
+                     printf "=================================================================\n" >&2)
+endif
 
-### Show greeting message
-greeting:
-	$(GREETING)
+# --- TIMED TARGETS ---
 
-### Builds Frontend
+test:
+ifeq ("$(skip)", "yes")
+	@echo "$(RED)!WARNING! $(RESET)$(BOLD_MAGENTA)Skipping Unit Tests...$(RESET)"
+else
+	@$(TIME_CMD) -o .test_time $(M_SILENT) run-tests-internal
+	$(call PRINT_TIME,.test_time)
+endif
+
+buildBackend: test
+	@$(TIME_CMD) -o .buildBackend_time $(M_SILENT) run-buildBackend-internal
+	$(call PRINT_TIME,.buildBackend_time)
+
 buildFrontend:
-	@echo "$(GREEN)Starting frontend build...$(RESET)"
-	@mkdir -p frontend/dist/assets
-	@echo "$(BLUE)Cleaning old assets...$(RESET)"
-	@rm -f frontend/dist/assets/index-*.js frontend/dist/assets/index-*.css
-	@cd frontend && npm install && npm run build || (echo "$(RED)Frontend build failed$(RESET)"; exit 1)
+	@$(TIME_CMD) -o .buildFrontend_time $(M_SILENT) run-buildFrontend-internal
+	$(call PRINT_TIME,.buildFrontend_time)
 
+test-only:
+	@$(TIME_CMD) -o .test_only_time $(M_SILENT) run-test-only-internal app=$(app)
+	$(call PRINT_TIME,.test_only_time)
 
-### Deploy project, clears any cache, restarts the service
-deploy: buildFrontend
-	@echo "$(GREEN)Deploying Django...$(RESET)"
-	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput || (echo "$(RED)Static collection failed$(RESET)"; exit 1)
-	@echo "$(BLUE)Restarting Services...$(RESET)"
+deploy:
+	@$(TIME_CMD) -o .deploy_time $(M_SILENT) deploy-internal skip=$(skip)
+	$(call PRINT_TIME,.deploy_time)
+
+initialSetup:
+	@$(TIME_CMD) -o .initialSetup_time $(M_SILENT) initialSetup-internal
+	$(call PRINT_TIME,.initialSetup_time)
+
+restart:
+	@$(TIME_CMD) -o .restart_time $(M_SILENT) restart-internal
+	$(call PRINT_TIME,.restart_time)
+
+# --- INTERNAL LOGIC (The actual work) ---
+
+run-tests-internal:
+	@echo "$(BOLD_MAGENTA)Running Unit Tests...$(RESET)"
+	@cd backend && venv/bin/python manage.py test --noinput || ( \
+		echo "\n$(BACKGROUND_RED)$(BOLD_WHITE)  TESTS FAILED  $(RESET)"; \
+		exit 1; \
+	)
+	@echo "\n$(BACKGROUND_GREEN)$(BOLD_WHITE)  ALL TESTS PASSED  $(RESET)"
+
+run-test-only-internal:
+	@cd backend && venv/bin/python manage.py test $(app) --noinput
+
+run-buildBackend-internal:
+	@echo "$(GREEN)Deploying Django Backend...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py clear_cache || echo "$(YELLOW)Cache clear failed, skipping...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput || exit 1
 	@sudo systemctl restart gunicorn
 	@sudo systemctl restart nginx
-	@$(VENV_PYTHON) backend/manage.py clear_cache || echo "$(YELLOW)Cache clear failed, skipping...$(RESET)"
-	@echo "$(GREEN)Deployment Complete!$(RESET)"
 
+run-buildFrontend-internal:
+	@echo "$(GREEN)Starting frontend build...$(RESET)"
+	@mkdir -p frontend/dist/assets
+	@cd frontend && npm install && npm run build || exit 1
 
-### Restarts core system web services
-restart:
-	@echo "$(BLUE)Restarting Gunicorn$(RESET)"
-	@sudo systemctl restart gunicorn || exit 1
-	@echo "$(BLUE)Restarting NGINX$(RESET)"
-	@sudo systemctl restart nginx || exit 1
-	@echo "$(BLUE)Clearing Cache$(RESET)"
-	@$(VENV_PYTHON) backend/manage.py clear_cache || exit 1
+deploy-internal: test buildFrontend
+	@echo "$(GREEN)Finalizing Deployment...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput
+	@sudo systemctl restart gunicorn
+	@sudo systemctl restart nginx
+	@echo "$(BOLD_GREEN)Deployment Successful!$(RESET)"
 
+restart-internal:
+	@$(VENV_PYTHON) backend/manage.py clear_cache
+	@sudo systemctl restart gunicorn
+	@sudo systemctl restart nginx
+	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-### Handles creating any migrations, groups, or folders
-initialSetup: virtualenv
+initialSetup-internal: virtualenv
+	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
-	@$(VENV_PYTHON) backend/manage.py wait_for_db || exit 1
-	@$(VENV_PYTHON) backend/manage.py makemigrations || exit 1
-	@$(VENV_PYTHON) backend/manage.py migrate || exit 1
-	@echo "$(GREEN)Finished initial setup$(RESET)"
-	@echo "$(BOLD_CYAN)IMPORTANT:$(RESET) Run '$(VENV_PYTHON) backend/manage.py generate_secret_key' to get your key for .env"
-
+	@$(VENV_PYTHON) backend/manage.py makemigrations
+	@$(VENV_PYTHON) backend/manage.py migrate
+	@echo "$(GREEN)Setup Complete.$(RESET)"
 
 virtualenv:
-	@echo "$(BLUE)Setting up Virtualenv...$(RESET)"
 	@python3 -m venv backend/venv
-	@$(VENV_PYTHON) -m pip install --upgrade pip
-	@$(VENV_PYTHON) -m pip install -r backend/requirements.txt || (echo "$(RED)Pip install failed$(RESET)"; exit 1)
+	@backend/venv/bin/pip install -r backend/requirements.txt
 
+clean:
+	@echo "$(BOLD_RED)Cleaning up...$(RESET)"
+	@find . -type d -name "__pycache__" -exec rm -rf {} +
+	@rm -rf frontend/dist backend/staticfiles
 
-### Clears the cache
-clearCache:
-	@$(VENV_PYTHON) backend/manage.py clear_cache || (echo "$(RED)Clear cache failed$(RESET)"; exit 1)
-
+status:
+	@printf "$(BOLD_CYAN)--- Astraea System Status ---$(RESET)\n"
+	@for service in nginx gunicorn redis-server; do \
+		status=$$(systemctl is-active $$service); \
+		if [ "$$status" = "active" ]; then \
+			printf "$(BOLD_WHITE)%-12s:$(RESET) $(GREEN)ACTIVE$(RESET)\n" "$$service"; \
+		else \
+			printf "$(BOLD_WHITE)%-12s:$(RESET) $(RED)INACTIVE ($$status)$(RESET)\n" "$$service"; \
+		fi; \
+	done
+	@printf "$(BOLD_WHITE)Server Uptime:$(RESET) %s\n" "$$(uptime -p)"
+	@printf "$(BOLD_WHITE)Disk Usage:$(RESET)  %s used\n" "$$(df -h / | awk 'NR==2 {print $$5}')"
+	@printf "$(BOLD_WHITE)Memory:$(RESET)      $$(free -m | awk 'NR==2 {print $$3"MB / "$$2"MB"}')\n"
+	@$(VENV_PYTHON) backend/manage.py wait_for_db
+	@printf "$(BOLD_WHITE)Migrations:$(RESET) "
+	@$(VENV_PYTHON) backend/manage.py showmigrations | grep '\[ \]' > /dev/null && \
+		printf "$(YELLOW)Pending Migrations Found!$(RESET)\n" || printf "$(GREEN)Up to date$(RESET)\n"
+	@printf "$(BOLD_CYAN)-----------------------------$(RESET)\n"
 
 ### Display help information
 help:
-	$(GREETING)
-	@echo "Available commands:"
-	@echo "$(BLUE)buildFrontend$(RESET) - Builds Frontend"
-	@echo "$(BLUE)deploy$(RESET) - Deploy project to gunicorn"
-	@echo "$(BLUE)initialSetup$(RESET) - Configures any migrates, creates needed folders"
-	@echo "$(BLUE)restart$(RESET) - Restarts core system web services"
-	@echo "$(BLUE)clearCache$(RESET) - Clears the cache"
+	@echo "$(GREEN)Available commands:$(RESET)"
+	@echo "$(BLUE)buildBackend$(RESET) - $(CYAN)Builds Backend, to skip unit testing: make buildBackend skip=yes$(RESET)"
+	@echo "$(BLUE)buildFrontend$(RESET) - $(CYAN)Builds Frontend$(RESET)"
+	@echo "$(BLUE)test$(RESET) - $(CYAN)Runs all backend test$(RESET)"
+	@echo "$(BLUE)test-only$(RESET) - $(CYAN)Runs specific app tests: make test-only app=servers.tests.PatchingSystemTests$(RESET)"
+	@echo "$(BLUE)deploy$(RESET) - $(CYAN)Deploy project, to skip unit testing: make deploy skip=yes$(RESET)"
+	@echo "$(BLUE)initialSetup$(RESET) - $(CYAN)Configures any migrates, creates needed folders$(RESET)"
+	@echo "$(BLUE)restart$(RESET) - $(CYAN)Restarts core system web services$(RESET)"
+	@echo "$(BLUE)clearCache$(RESET) - $(CYAN)Clears the cache$(RESET)"
+	@echo "$(BLUE)clean$(RESET) - $(CYAN)Cleans up python cache, test artifacts, and build files$(RESET)"
+	@echo "$(BLUE)status$(RESET) - $(CYAN)Shows status of all core services$(RESET)"
