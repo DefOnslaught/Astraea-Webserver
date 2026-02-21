@@ -1,0 +1,15 @@
+Data captured per server:
+    hostname (unique)
+    ip (unique)
+    MAC address (Not unique, could be different if server/vm changes it)
+    os version (Not unique)
+    Rebooted (Not unique)
+    Uptime (Not unique)
+    Updated packages amount (Not unique)
+    List of updated packages + their versions (Not unique)
+
+
+
+ensure Redis is setup
+modify signals.py, warm_cache command, views, gunicorn.service
+

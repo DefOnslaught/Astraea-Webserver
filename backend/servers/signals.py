@@ -1,0 +1,49 @@
+import os
+from datetime import timedelta
+from django.db.models.signals import pre_save, post_save, post_delete
+from django.dispatch import receiver
+from django.utils import timezone
+from django.core.cache import cache
+
+from .models import Server
+from .utils import cache_individual_vms, update_dashboard_counts
+
+@receiver(pre_save, sender=Server)
+def capture_old_state(sender, instance, **kwargs):
+    """Store the old 'outdated' status on the instance before it's saved."""
+    if instance.pk:
+        try:
+            old_date = Server.objects.only('last_patch_date').get(pk=instance.pk).last_patch_date
+            days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
+            threshold = timezone.now() - timedelta(days=days)
+            instance._was_outdated = (old_date is None or old_date < threshold)
+        except Server.DoesNotExist:
+            instance._was_outdated = False
+    else:
+        instance._was_outdated = False
+
+@receiver(post_save, sender=Server)
+def sync_cache_on_save(sender, instance, created, **kwargs):
+    # Update individual cache
+    cache_individual_vms([instance])
+
+    # Calculate current state
+    days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
+    threshold = timezone.now() - timedelta(days=days)
+    is_outdated = (instance.last_patch_date is None or instance.last_patch_date < threshold)
+
+    # Incrementally update the dashboard
+    update_dashboard_counts(
+        was_outdated=getattr(instance, '_was_outdated', False),
+        is_outdated=is_outdated,
+        is_new=created
+    )
+
+@receiver(post_delete, sender=Server)
+def sync_cache_on_delete(sender, instance, **kwargs):
+    cache.delete(f"server_data:{instance.id}")
+    days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
+    is_outdated = (instance.last_patch_date is None or 
+                   instance.last_patch_date < (timezone.now() - timedelta(days=days)))
+    
+    update_dashboard_counts(was_outdated=is_outdated, is_outdated=False, is_deleted=True)
