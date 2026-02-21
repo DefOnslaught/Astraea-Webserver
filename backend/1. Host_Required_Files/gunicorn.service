@@ -1,7 +1,7 @@
 [Unit]
 Description=gunicorn daemon
 Requires=gunicorn.socket
-After=network.target
+After=network.target redis.service
 
 [Service]
 User=darren
@@ -11,14 +11,14 @@ WorkingDirectory=/opt/Astraea-Webserver/backend
 ExecStart=/opt/Astraea-Webserver/backend/venv/bin/gunicorn \
           --access-logfile - \
           --worker-class gevent \
-          --workers 3 \
+          --workers 4 \
           --bind unix:/run/gunicorn.sock \
           --timeout 500 \
           backend.wsgi:application
 
 # Warm the cache immediately after Gunicorn starts
 # The '-' prefix tells systemd NOT to fail the whole service if the cache command fails
-ExecStartPost=-/opt/Astraea-Webserver/backend/venv/bin/python manage.py warm_cache
+ExecStartPre=-/opt/Astraea-Webserver/backend/venv/bin/python manage.py warm_cache
 
 [Install]
 WantedBy=multi-user.target
