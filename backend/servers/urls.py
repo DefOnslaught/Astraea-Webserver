@@ -4,7 +4,8 @@ from .views import (
     QuickVMSearchView, 
     PackageSearchView, 
     SavePatchingData,
-    DeleteServer
+    DeleteServer,
+    CreateAPIKeyView
 )
 
 urlpatterns = [
@@ -13,4 +14,5 @@ urlpatterns = [
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
     path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
     path('patching/delete/', DeleteServer.as_view(), name='delete_server'),
+    path('patching/api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
 ]

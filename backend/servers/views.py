@@ -3,16 +3,21 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from django.core.cache import cache
 from django.db import transaction
 
-from .models import Server, Package
+from .models import Server, Package, APIKey
 from .utils import warm_cache_in_background
 from .serializers import ServerSearchSerializer, ServerPatchSerializer
+from .permissions import HasInternalAPIKey
 
 logger = logging.getLogger('django')
 
+
 class DashboardStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         stats = cache.get("dashboard_stats")
 
@@ -25,7 +30,10 @@ class DashboardStatsView(APIView):
             }, status=status.HTTP_202_ACCEPTED)
         return Response(stats)
 
+
 class QuickVMSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         # request.GET pulls from the URL params (e.g., ?q=searchterm)
         search_query = request.GET.get('q', '').lower()
@@ -65,6 +73,8 @@ class QuickVMSearchView(APIView):
 
 
 class PackageSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         query = request.GET.get('q', '').strip().lower()
         if not query:
@@ -104,10 +114,8 @@ class PackageSearchView(APIView):
         return Response(results)
 
 
-# Saving patching data
 class SavePatchingData(APIView):
-    # TODO: Will need to add some kind of API auth - can wait for future after testing
-    #       Will likely go with 'X-API-KEY' header, since this is designed to run on internal networks advanced auth is not needed. Plus this can be behind HTTPS to help add security
+    permission_classes = [HasInternalAPIKey]
 
     def post(self, request):
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
@@ -131,6 +139,8 @@ class SavePatchingData(APIView):
 
 
 class DeleteServer(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         hostname = request.data.get('hostname')
         if not hostname:
@@ -145,3 +155,23 @@ class DeleteServer(APIView):
             logger.error(f"Unable to delete server {request.data.get('hostname')}: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class CreateAPIKeyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        name = request.data.get('name', 'Unnamed Key')
+        
+        plain_key, hashed_key = APIKey.generate_key()
+        
+        APIKey.objects.create(
+            name=name,
+            key_hash=hashed_key
+        )
+        
+        # Return the PLAIN KEY to the user so they can save it in their script
+        return Response({
+            "message": "API Key created. Copy this now; you won't see it again!",
+            "plain_key": plain_key,
+            "name": name
+        }, status=status.HTTP_201_CREATED)

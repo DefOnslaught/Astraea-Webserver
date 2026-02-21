@@ -110,6 +110,7 @@ def warm_cache_in_background():
         return 
     
     def task():
+        logger.info("Background cache starting.")
         close_old_connections()
         cache.set("is_warming", True, timeout=300)
         try:

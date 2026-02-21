@@ -1,3 +1,4 @@
+import secrets, hashlib
 from django.utils import timezone
 from django.db import models
 
@@ -34,3 +35,20 @@ class PackageUpdate(models.Model):
 
     def __str__(self):
         return f"{self.server.hostname} -> {self.package}"
+
+class APIKey(models.Model):
+    name = models.CharField(max_length=100, help_text="e.g., 'Production Linux Cluster'")
+    key_hash = models.CharField(max_length=64, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    @staticmethod
+    def generate_key():
+        """Generates a random key. Returns (plain_text, hashed)."""
+        plain_key = secrets.token_urlsafe(32)
+        hashed_key = hashlib.sha256(plain_key.encode()).hexdigest()
+        return plain_key, hashed_key
+
+    def __str__(self):
+        return self.name

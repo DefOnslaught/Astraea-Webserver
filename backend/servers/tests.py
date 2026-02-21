@@ -1,18 +1,51 @@
-from django.test import TestCase
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core.cache import cache
 from rest_framework.test import APITestCase
 from rest_framework import status
-from django.utils import timezone
 
 from .factories import ServerFactory, PackageFactory
-from .models import Package, PackageUpdate, Server
+from .models import Package, PackageUpdate, Server, APIKey
+
+User = get_user_model()
 
 class PatchingSystemTests(APITestCase):
 
     def setUp(self):
-        # Clear cache before every test to ensure isolation
+        # 1. Clear cache for isolation
         cache.clear()
+
+        # 2. Setup standard user for authenticated views
+        self.user = User.objects.create_user(
+            email="test@example.com", 
+            username="testuser", 
+            password="password123"
+        )
+        self.client.force_authenticate(user=self.user)
+
+        # 3. Setup API Key for the patching views
+        # We generate the tuple: (plain_text_key, hashed_version)
+        plain_key, hashed_key = APIKey.generate_key()
+        
+        # Save the HASH to the database
+        self.api_key_obj = APIKey.objects.create(
+            name="Test Key", 
+            key_hash=hashed_key
+        )
+        
+        # Save the PLAIN TEXT to the headers for use in tests
+        self.headers = {'HTTP_X_API_KEY': plain_key}
+
+    def test_unauthenticated_access_denied(self):
+        """Verify that a user without a token gets a 403."""
+        # Manually unauthenticate for just this one test
+        self.client.force_authenticate(user=None)
+        
+        url = reverse('dashboard_stats')
+        response = self.client.get(url)
+        
+        # 403 Forbidden or 401 Unauthorized depending on your settings
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
     def test_patching_api_updates_db_and_cache(self):
@@ -36,7 +69,7 @@ class PatchingSystemTests(APITestCase):
         }
 
         # 2. Fire the request
-        response = self.client.post(url, payload, format='json')
+        response = self.client.post(url, payload, format='json', **self.headers)
         
         # 3. Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -93,7 +126,7 @@ class PatchingSystemTests(APITestCase):
                 "total_packages_updated": 1,
                 "packages": [{"package_name": "kernel", "version": "5.15"}]
             }
-            response = self.client.post(url, payload, format='json')
+            response = self.client.post(url, payload, format='json', **self.headers)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # ASSERTIONS
@@ -210,3 +243,49 @@ class PatchingSystemTests(APITestCase):
         
         # This should now be True!
         self.assertTrue(response.data['is_partial'])
+
+
+    def test_create_api_key_success(self):
+        """Verify authenticated users can generate an API key and it's hashed in DB."""
+        url = reverse('create_api_key')  # Ensure this matches your urls.py name
+        data = {"name": "Production-Cluster-01"}
+
+        # 1. Act: Create the key
+        response = self.client.post(url, data, format='json')
+
+        # 2. Assertions for Response
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('plain_key', response.data)
+        self.assertEqual(response.data['name'], "Production-Cluster-01")
+
+        # 3. Assertions for Database
+        # Verify the plain key IS NOT in the database
+        plain_key = response.data['plain_key']
+        self.assertFalse(APIKey.objects.filter(key_hash=plain_key).exists())
+
+        # Verify the hash of the plain key IS in the database
+        import hashlib
+        expected_hash = hashlib.sha256(plain_key.encode()).hexdigest()
+        self.assertTrue(APIKey.objects.filter(key_hash=expected_hash).exists())
+
+
+    def test_api_key_signal_clears_cache(self):
+        """Verify that creating an APIKey clears the Redis key_hash cache."""
+        # 1. Manually set the cache
+        cache.set('valid_api_key_hashes', ['old-hash-1', 'old-hash-2'])
+
+        # 2. Trigger the signal by creating a new key
+        _, hashed = APIKey.generate_key()
+        APIKey.objects.create(name="Signal Test", key_hash=hashed)
+
+        # 3. Assert the cache was deleted by the signal
+        self.assertIsNone(cache.get('valid_api_key_hashes'))
+
+
+    def test_create_api_key_unauthenticated_denied(self):
+        """Verify unauthenticated users cannot create API keys."""
+        self.client.force_authenticate(user=None)
+        url = reverse('create_api_key')
+        
+        response = self.client.post(url, {"name": "Hacker-Key"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

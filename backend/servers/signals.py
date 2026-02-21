@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.core.cache import cache
 
-from .models import Server
+from .models import Server, APIKey
 from .utils import cache_individual_vms, update_dashboard_counts
 
 @receiver(pre_save, sender=Server)
@@ -47,3 +47,8 @@ def sync_cache_on_delete(sender, instance, **kwargs):
                    instance.last_patch_date < (timezone.now() - timedelta(days=days)))
     
     update_dashboard_counts(was_outdated=is_outdated, is_outdated=False, is_deleted=True)
+
+
+@receiver([post_save, post_delete], sender=APIKey)
+def clear_key_cache(sender, **kwargs):
+    cache.delete('valid_api_key_hashes')
