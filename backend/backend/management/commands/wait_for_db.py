@@ -4,27 +4,32 @@ from django.db import connections
 from django.db.utils import OperationalError
 
 class Command(BaseCommand):
-    help = 'Wait for the database to be available'
+    help = 'Wait for the database to be available with exponential backoff'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE('Waiting for the database...'))
-        max_retries = 3
-        retry_interval_1 = 15
-        retry_interval_2 = 60
+        
+        # Poll settings
+        wait_time = 2  # Start with 2 seconds
+        max_retries = 10
+        db_conn = connections['default']
 
-        for retry_attempt in range(1, max_retries):
+        for i in range(max_retries):
             try:
-                db_conn = connections['default']
+                # IMPORTANT: This line actually attempts to talk to the DB
+                db_conn.ensure_connection()
+                
                 self.stdout.write(self.style.SUCCESS('Database is available!'))
-                break
+                return  # Exit the command successfully
+            
             except OperationalError:
-                if retry_attempt < max_retries:
-                    if retry_attempt == 1:
-                        self.stdout.write(self.style.NOTICE(f'Database unavailable, waiting {retry_interval_1} seconds...'))
-                        time.sleep(retry_interval_1)
-                    else:
-                        self.stdout.write(self.style.NOTICE(f'Database still unavailable, waiting {retry_interval_2} seconds...'))
-                        time.sleep(retry_interval_2)
+                if i < max_retries - 1:
+                    self.stdout.write(
+                        self.style.WARNING(f'Database unavailable (Attempt {i+1}/{max_retries}). Retrying in {wait_time}s...')
+                    )
+                    time.sleep(wait_time)
+                    # Exponential backoff: 2s, 4s, 8s, etc. (capped at 15s)
+                    wait_time = min(wait_time * 2, 15)
                 else:
-                    self.stdout.write(self.style.ERROR('Database is still unavailable after multiple attempts. Exiting.'))
+                    self.stdout.write(self.style.ERROR('\nError: Database timeout. Check MariaDB logs.'))
                     raise SystemExit(1)
