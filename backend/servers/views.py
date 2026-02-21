@@ -1,4 +1,5 @@
 import logging
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -30,11 +31,12 @@ class QuickVMSearchView(APIView):
         search_query = request.GET.get('q', '').lower()
 
         if not search_query:
-            return Response([])
+            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
         
         # 1. Try Redis first
         keys = cache.keys("server_data:*")
-        all_vms = list(cache.get_many(keys).values())
+        vm_dict = cache.get_many(keys)
+        all_vms = [v for v in vm_dict.values() if v is not None]
         
         # 2. Fallback to DB if Redis is empty
         is_partial = False
@@ -66,7 +68,7 @@ class PackageSearchView(APIView):
     def get(self, request):
         query = request.GET.get('q', '').strip().lower()
         if not query:
-            return Response([])
+            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
 
         cache_key = f"software_search:{query}"
         results = cache.get(cache_key)
@@ -80,7 +82,7 @@ class PackageSearchView(APIView):
                 if pkg.name not in grouped_data:
                     grouped_data[pkg.name] = {
                         "name": pkg.name,
-                        "version": []
+                        "versions": []
                     }
                 
                 updates = pkg.installed_on.all()
@@ -117,6 +119,7 @@ class SavePatchingData(APIView):
             with transaction.atomic():
                 serializer = ServerPatchSerializer(data=request.data)
                 if not serializer.is_valid():
+                    logger.info(f"Invalid patching data, error: {serializer.errors}")
                     return Response({'message': 'Validation failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
                 serializer.save()
                 hostname = serializer.validated_data.get('hostname')
@@ -125,3 +128,20 @@ class SavePatchingData(APIView):
         except Exception as e:
             logger.error(f"Unable to process patching data upload request: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DeleteServer(APIView):
+    def post(self, request):
+        hostname = request.data.get('hostname')
+        if not hostname:
+            return Response({'message': "Invalid request, missing hostname"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            server_to_delete = get_object_or_404(Server, hostname=request.data.get('hostname'))
+            server_to_delete.delete()
+            logger.info(f"Successfully deleted server with the hostname: {request.data.get('hostname')}")
+            return Response({'message': f'Server {hostname} deleted successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Unable to delete server {request.data.get('hostname')}: {str(e)}")
+            return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

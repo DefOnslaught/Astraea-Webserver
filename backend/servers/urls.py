@@ -3,7 +3,8 @@ from .views import (
     DashboardStatsView, 
     QuickVMSearchView, 
     PackageSearchView, 
-    SavePatchingData
+    SavePatchingData,
+    DeleteServer
 )
 
 urlpatterns = [
@@ -11,4 +12,5 @@ urlpatterns = [
     path('servers/search/', QuickVMSearchView.as_view(), name='vm_search'),
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
     path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
+    path('patching/delete/', DeleteServer.as_view(), name='delete_server'),
 ]

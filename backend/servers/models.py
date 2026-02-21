@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.db import models
 
 class Server(models.Model):
@@ -7,7 +8,7 @@ class Server(models.Model):
     os_version = models.CharField(max_length=100)
     uptime = models.CharField(max_length=100)
     rebooted = models.BooleanField(default=False)
-    last_patch_date = models.DateTimeField(auto_now=True)
+    last_patch_date = models.DateTimeField(default=timezone.now)
     total_packages_updated = models.IntegerField(default=0)
 
     def __str__(self):

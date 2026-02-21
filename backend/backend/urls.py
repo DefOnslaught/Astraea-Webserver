@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/register/', RegisterView.as_view(), name='auth_register'),
 
     path('api/users/', include('users.urls')),
+    path('api/servers/', include('servers.urls')),
 
     # React entry
     re_path(r"", views.frontend_view),

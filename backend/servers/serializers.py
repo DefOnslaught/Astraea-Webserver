@@ -2,9 +2,13 @@ from rest_framework import serializers
 from .models import Server, PackageUpdate, Package
 
 class PackageUpdateSerializer(serializers.ModelSerializer):
-    package_name = serializers.CharField(source='package.name')
-    version = serializers.CharField(source='package.version')
-    
+    """
+    Simplified to a plain Serializer to handle the flat JSON 
+    from the patching script without Model mapping conflicts.
+    """
+    package_name = serializers.CharField()
+    version = serializers.CharField()
+
     class Meta:
         model = PackageUpdate
         fields = ['package_name', 'version']
@@ -20,6 +24,7 @@ class ServerSearchSerializer(serializers.ModelSerializer):
 class ServerPatchSerializer(serializers.ModelSerializer):
     """Used for the incoming patching script API."""
     packages = PackageUpdateSerializer(many=True, write_only=True)
+    hostname = serializers.CharField(max_length=255, validators=[])
 
     class Meta:
         model = Server
