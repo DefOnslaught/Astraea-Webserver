@@ -14,6 +14,8 @@ Astraea is a robust Server Patching Management system designed to provide a unif
 
     Assumes Parent Directory is /opt
 
+    Assumes user account called `darren` - if different, changes to folder perms and service files needed
+
 ### Quick install for Ubuntu
 > [!NOTE]
 > If your system is not Debian based, then change this command to suite your distro. 
@@ -34,7 +36,6 @@ cp frontend/.env_example frontend/.env
 ````
 
 ### 2. Database & Directory Permissions
-Preparation required:
 
 **Database Preparation**
 We must create a database table before we can deploy the site. Ensure you also make a user as well with full permissions to the table.
@@ -43,10 +44,10 @@ CREATE DATABASE astraea;
 ```
 
 **Directory Permissions**
-If you encounter 403 Forbidden errors on the web interface, ensure the Nginx user (www-data) has execution permissions on the `/opt` and `/opt/Astraea-Webserver` directories:
+If you encounter 403 Forbidden errors on the web interface, ensure the proper permissions are setup and `www-data` user can access everything
 ```bash
-sudo chmod +x /opt
-sudo chmod +x /opt/Astraea-Webserver
+sudo chown darren:www-data -R /opt/Astraea-Webserver
+sudo chmod 755 /opt/Astraea-Webserver
 ```
 
 ### 3. Edit Required Files
@@ -61,6 +62,7 @@ Copy the configuration files provided in the repository to your system directori
 
 > [!WARNING]
 > This assumes the full directory of the webserver is `/opt/Astraea-Webserver` if it's not, you will have to edit the files below
+> this uses a user account called 'darren' to run the gunicorn service, either change this or make the account
 
 **Gunicorn:**
 ```bash
