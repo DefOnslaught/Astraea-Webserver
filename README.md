@@ -134,8 +134,6 @@ The Makefile is the primary way to interact with the Astraea environment, below 
 > [!WARNING]
 > This requires you to install the `docker-compose-plugin`, find how to install it at [Docker Docs](https://docs.docker.com/compose/install/linux/)
 
-Ensure you update `DB_HOST` within `backend/.env` to the new value of `DB_HOST=db`, also ensure `DB_PASSWORD` is configured
-
 ### Before Running Commands!
 Before running the command below, ensure your `backend/.env` is updated for the container network
 
@@ -143,6 +141,11 @@ Before running the command below, ensure your `backend/.env` is updated for the 
 DB_HOST=db
 REDIS_URL=redis://redis:6379/1
 DB_PASSWORD=your_secure_password - Must match with the docker-compose.yml `MYSQL_ROOT_PASSWORD`
+```
+
+Ensure your `frontend/.env` is correctly pointing to your server (if testing locally, localhost will work)
+```bash
+VITE_API_URL=http://localhost
 ```
 
 **Build and Start**
