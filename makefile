@@ -144,7 +144,7 @@ restart-internal:
 	@sudo systemctl restart nginx
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: virtualenv
+initialSetup-internal: setupGunicorn setupNginx virtualenv
 	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py makemigrations
@@ -154,6 +154,29 @@ initialSetup-internal: virtualenv
 virtualenv:
 	@python3 -m venv backend/venv
 	@backend/venv/bin/pip install -r backend/requirements.txt
+
+setupGunicorn:
+	@echo "$(CYAN)Creating Gunicorn Service Files$(RESET)"
+	@sudo cp backend/1_Host_Required_Files/gunicorn.service /etc/systemd/system/
+	@sudo cp backend/1_Host_Required_Files/gunicorn.socket /etc/systemd/system/
+	@sudo systemctl daemon-reload
+	@sudo systemctl enable gunicorn.service && sudo systemctl enable gunicorn.socket
+	@echo "$(GREEN)Gunicorn Setup Complete$(RESET)"
+	
+setupNginx:
+	@echo "$(CYAN)Creating Nginx Configuration File$(RESET)"
+	@sudo cp backend/1_Host_Required_Files/nginx_configuration /etc/nginx/sites-available/astraea
+	@sudo ln -sf /etc/nginx/sites-available/astraea /etc/nginx/sites-enabled/
+
+	@echo "$(CYAN)Creating Nginx Log Folder/Files$(RESET)"
+	@sudo mkdir /var/log/nginx/astraea/
+	@sudo touch /var/log/nginx/astraea/access.log /var/log/nginx/astraea/error.log
+	@sudo chown www-data:adm -R /var/log/nginx/astraea/
+	@sudo chmod 755 /var/log/nginx/astraea/
+	@sudo chmod 644 -R /var/log/nginx/astraea/
+
+	@sudo nginx -t
+	@echo "$(GREEN)Nginx Setup Complete$(RESET)"
 
 clean:
 	@echo "$(BOLD_RED)Cleaning up...$(RESET)"
