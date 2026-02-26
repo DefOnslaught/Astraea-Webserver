@@ -46,13 +46,6 @@ const Home = () => {
                     </div>
                     <i className="fa-solid fa-clock-rotate-left text-indigo-500 text-2xl"></i>
                 </div>
-
-                <button
-                    onClick={() => navigate("/logout")}
-                    className="mt-8 w-full py-3 bg-red-500/10 text-red-500 border border-red-500/50 rounded-lg hover:bg-red-500 hover:text-white transition-all font-semibold"
-                >
-                    Log Out
-                </button>
             </div>
         </div>
     );
