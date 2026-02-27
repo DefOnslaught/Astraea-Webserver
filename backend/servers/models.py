@@ -1,8 +1,9 @@
-import secrets, hashlib
+import secrets, hashlib, uuid
 from django.utils import timezone
 from django.db import models
 
 class Server(models.Model):
+    server_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     hostname = models.CharField(max_length=255, unique=True)
     ip_address = models.GenericIPAddressField()
     mac_address = models.CharField(max_length=17)

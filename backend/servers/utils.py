@@ -89,6 +89,7 @@ def cache_individual_vms(vms):
 
         payload[f"server_data:{vm_id}"] = {
             "id": vm_id,
+            "server_id": str(get_val('server_id')),
             "hostname": get_val('hostname', 'Unknown'),
             "ip_address": get_val('ip_address', '0.0.0.0'),
             "mac_address": get_val('mac_address', ''),
@@ -114,7 +115,7 @@ def warm_cache_in_background():
         close_old_connections()
         cache.set("is_warming", True, timeout=300)
         try:
-            fields = ['id', 'hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted']
+            fields = ['id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted']
             vms = list(Server.objects.values(*fields))
             cache_individual_vms(vms)
             refresh_dashboard_stats(vms=vms)

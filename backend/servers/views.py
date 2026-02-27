@@ -61,7 +61,8 @@ class QuickVMSearchView(APIView):
         if search_query:
             results = [
                 vm for vm in all_vms 
-                if any(search_query in str(val).lower() for val in vm.values())
+                if search_query in vm.get('hostname', '').lower() 
+                or search_query in vm.get('ip_address', '').lower()
             ]
         else:
             results = all_vms

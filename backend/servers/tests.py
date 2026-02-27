@@ -76,6 +76,7 @@ class PatchingSystemTests(APITestCase):
         
         # Check DB updated
         server.refresh_from_db()
+        self.assertIsNotNone(server.server_id)
         self.assertTrue(server.rebooted)
         self.assertEqual(Package.objects.count(), 2)
         self.assertEqual(PackageUpdate.objects.filter(server=server).count(), 2)
@@ -85,6 +86,7 @@ class PatchingSystemTests(APITestCase):
         self.assertIsNotNone(cached_data)
         self.assertEqual(cached_data['os_version'], "Debian 12")
         self.assertTrue(cached_data['rebooted'])
+        self.assertEqual(str(server.server_id), str(cached_data['server_id']))
 
 
     def test_dashboard_stats_signals(self):
@@ -209,6 +211,9 @@ class PatchingSystemTests(APITestCase):
         s1 = ServerFactory(hostname="alpha-web", ip_address="10.0.0.1")
         s2 = ServerFactory(hostname="beta-db", ip_address="10.0.0.2")
         
+        s1.refresh_from_db()
+        s2.refresh_from_db()
+
         # Manually trigger the cache warming so they are in Redis
         from .utils import cache_individual_vms
         cache_individual_vms([s1, s2])
@@ -216,15 +221,17 @@ class PatchingSystemTests(APITestCase):
         url = reverse('vm_search')
 
         # 2. Test Search by Hostname
-        response = self.client.get(url, {'q': 'alpha'})
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['hostname'], "alpha-web")
-        self.assertFalse(response.data['is_partial']) # Should be False because it came from Redis
+        resp1 = self.client.get(url, {'q': 'alpha'})
+        self.assertEqual(str(s1.server_id), resp1.data['results'][0]['server_id'])
+        self.assertEqual(len(resp1.data['results']), 1)
+        self.assertEqual(resp1.data['results'][0]['hostname'], "alpha-web")
+        self.assertFalse(resp1.data['is_partial']) # Should be False because it came from Redis
 
         # 3. Test Search by IP
-        response = self.client.get(url, {'q': '10.0.0.2'})
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['hostname'], "beta-db")
+        resp2 = self.client.get(url, {'q': '10.0.0.2'})
+        self.assertEqual(str(s2.server_id), resp2.data['results'][0]['server_id'])
+        self.assertEqual(len(resp2.data['results']), 1)
+        self.assertEqual(resp2.data['results'][0]['hostname'], "beta-db")
 
     
     def test_quick_search_fallback_to_db(self):

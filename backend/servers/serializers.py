@@ -18,7 +18,7 @@ class ServerSearchSerializer(serializers.ModelSerializer):
     """Used for the Quick Search Results."""
     class Meta:
         model = Server
-        fields = ['id', 'hostname', 'ip_address', 'os_version', 'rebooted', 'last_patch_date']
+        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'rebooted', 'last_patch_date']
 
 
 class ServerPatchSerializer(serializers.ModelSerializer):
