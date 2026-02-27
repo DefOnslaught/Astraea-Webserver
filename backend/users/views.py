@@ -176,11 +176,17 @@ class SessionStatusView(APIView):
     def get(self, request):
         access_token = request.auth
         
-        # Get the Refresh Token from cookies to check its expiry
         refresh_token_str = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-        refresh_token = RefreshToken(refresh_token_str)
-        
-        refresh_exp = refresh_token.payload['exp']
+
+        if not refresh_token_str:
+            return Response({"message": "Refresh token missing"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            refresh_token = RefreshToken(refresh_token_str)
+            refresh_exp = refresh_token.payload['exp']
+        except TokenError:
+            return Response({"message": "Session expired or invalid"}, status=status.HTTP_401_UNAUTHORIZED)
+
         now = datetime.now(timezone.utc).timestamp()
 
         return Response({
