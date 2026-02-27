@@ -4,7 +4,7 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -54,7 +54,7 @@ class RegisterView(generics.CreateAPIView):
                 response = Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
                 return set_auth_cookies(response, str(refresh.access_token), str(refresh))
         
-        except serializer.ValidationError:
+        except serializers.ValidationError:
             # This catches things like 'email already exists' or 'password too short'
             logger.error(f"Registration validation failed for {request.data.get('email')}: {serializer.errors}")
             return Response(

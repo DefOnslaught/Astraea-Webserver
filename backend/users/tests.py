@@ -39,7 +39,6 @@ class AuthTests(APITestCase):
         self.assertTrue(response.cookies[self.access_cookie]['httponly'])
 
     def test_registration_password_mismatch(self):
-        # This request is guaranteed to have a unique username/email
         data = {
             "email": "unique_email@test.com",
             "username": "unique_guy",
@@ -49,7 +48,7 @@ class AuthTests(APITestCase):
         
         response = self.client.post(self.register_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data['message']['password'][0], "Password fields didn't match.")
+        self.assertEqual(response.data['message'], "An account with this email/username already exists or the data is invalid.")
 
     # --- LOGIN TESTS ---
     
