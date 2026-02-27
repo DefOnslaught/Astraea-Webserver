@@ -14,12 +14,6 @@ Astraea is a robust Server Patching Management system designed to provide a unif
 
     Assumes Parent Directory is /opt
 
-### Quick install Script
-A quick install script is included (Only installs packages)
-```bash
-./setup.sh
-```
-
 ## 🚀 Installation (Bare Metal)
 Follow these steps to get the Astraea environment running manually.
 
