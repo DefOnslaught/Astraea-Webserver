@@ -2,62 +2,70 @@
 Astraea is a robust Server Patching Management system designed to provide a unified dashboard for system updates. It works in tandem with the Astraea Agent to monitor installed packages, schedule patches, and track system health across your infrastructure.
 
 ## 🛠 Prerequisites For Bare Metal (Non Docker)
-    Python 3.10+ & venv
+    Python 3.10+ - Required for Django 6.0 features
 
-    MySQL Server - Changes to configuration files will be needed in order to use anything else
+    Redis Server 6.0+ - Used for Astraea background tasks
 
-    Redis Server (for caching and background tasks)
+    Node.js v18+ - Required for Vite
 
-    Node.js (v18+) & npm (for the Vite frontend)
+    Nginx - To serve the content
 
-    Nginx (to serve the content)
+    MySQL/MariaDB	8.0 / 10.5	- Ensure utf8mb4 encoding is used
 
     Assumes Parent Directory is /opt
 
-    Assumes user account called `darren` - if different, changes to folder perms and service files needed
-
-### Quick install for Ubuntu
-> [!NOTE]
-> If your system is not Debian based, then change this command to suite your distro.
-````bash
-sudo apt update
-sudo apt install python3-dev python3-venv default-libmysqlclient-dev build-essential pkg-config redis-server nodejs npm nginx -y
-````
+### Quick install Script
+A quick install script is included (Only installs packages)
+```bash
+./setup.sh
+```
 
 ## 🚀 Installation (Bare Metal)
 Follow these steps to get the Astraea environment running manually.
 
-### 1. Clone and Environment Setup
-````bash
-git clone https://github.com/DefOnslaught/Astraea-Webserver.git
-cd Astraea-Webserver
-cp backend/.env_example backend/.env
-cp frontend/.env_example frontend/.env
-````
-
-### 2. Database & Directory Permissions
-
-> [!WARNING]
-> **User Account Setup:**</br>
-> The service files in `backend/1_Host_Required_Files` are configured for a user named `darren`. If your username is different, run this command to update them before running `make initialSetup`:
+### 1. Run Quick Install Script
 ```bash
-sed -i 's/darren/YOUR_USERNAME/g' backend/1_Host_Required_Files/gunicorn.service
+./setup.sh
 ```
 
-**Database Preparation**
+### 2. Database Preparation
 
-We must create a database table before we can deploy the site. Ensure you also make a user as well with full permissions to the table.
-```sql
-CREATE DATABASE astraea;
+Astraea requires a MySQL or MariaDB database. It is highly recommended to create a dedicated database user rather than using root.
+
+**Login to your Database Server**
+```bash
+# Enter your admin password when prompted
+mysql -u root -p
 ```
 
-**Directory Permissions**
+**Execute the following SQL commands**
 
-If you encounter 403 Forbidden errors on the web interface, ensure the proper permissions are setup and `www-data` user can access everything - change `darren` if your username is different
+Replace `your_secure_password` with a strong password of your choice.
+
 ```bash
-sudo usermod -a -G darren www-data
-sudo chown darren:www-data -R /opt/Astraea-Webserver
-sudo chmod 750 /opt/Astraea-Webserver
+-- 1. Create the database with UTF8MB4 support for modern emoji/special char handling
+CREATE DATABASE astraea CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 2. Create a dedicated user for the Astraea application
+-- Use 'localhost' if the DB is on the same machine, or '%' if it is remote
+CREATE USER 'astraea_user'@'%' IDENTIFIED BY 'your_secure_password';
+
+-- 3. Grant all privileges on the astraea database to this user
+GRANT ALL PRIVILEGES ON astraea.* TO 'astraea_user'@'%';
+
+-- 4. Apply the changes
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+> [!TIP]
+> **Keep these credentials handy!** You will need to input the Database Name (`astraea`), User (`astraea_user`), and `Password` into your `backend/.env` file in the next step.
+
+**🧪 Quick Verification**
+
+Before proceeding to the application setup, you can verify the credentials work by trying to log in as the new user:
+```bash
+mysql -u astraea_user -p your_secure_password
 ```
 
 ### 3. Edit Required Files
@@ -68,7 +76,7 @@ Files to edit in-order for the webserver and frontend to work correctly
     frontend/.env
 
 
-### 4. Run Required Make Commands
+### 3. Run Required Make Commands
 > [!WARNING]
 > This assumes the full directory of the webserver is `/opt/Astraea-Webserver` if it's not, you will have to edit the files in `backend/1_Host_Required_Files`.</br>
 
@@ -88,7 +96,7 @@ Runs unit tests, builds the frontend and backend, and restarts services.
 make deploy
 ```
 
-### 6. First-Time Configuration
+### 4. First-Time Configuration
 Once the deployment is successful, you need to set up your administrative account and prepare the system.
 
 **Create Superuser**
