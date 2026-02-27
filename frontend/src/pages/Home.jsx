@@ -34,7 +34,7 @@ const Home = () => {
     }, [decoded]);
 
     return (
-        <div className="p-10 text-white bg-gray-900 min-h-screen">
+        <div className="max-w-4x1 mx-auto">
             <div className="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-2xl">
                 <h1 className="text-3xl font-bold text-indigo-400">Welcome, {username}!</h1>
 

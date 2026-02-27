@@ -6,7 +6,7 @@ const NotFound = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="flex min-h-screen flex-col justify-center items-center px-6 lg:px-8 text-center">
+        <div className="flex h-screen flex-col justify-center items-center px-6 lg:px-8 text-center">
             {/* Large 404 text with a subtle glow */}
             <p className="text-base font-semibold text-indigo-500">404</p>
 
