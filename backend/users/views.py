@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -155,6 +156,18 @@ class BasicUserInfoView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SessionStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        token = request.auth
+        exp_timestamp = token.payload['exp']
+        now = datetime.now(timezone.utc).timestamp()
+
+        remaining = max(0, int(exp_timestamp - now))
+        return Response({"remaining_seconds": remaining, "username": request.user.username, "email": request.user.email}, status=status.HTTP_200_OK)
 
 
 class UserProfileView(APIView):
