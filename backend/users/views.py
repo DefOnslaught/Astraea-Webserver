@@ -128,25 +128,22 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        response = Response({"message": "Logged out"}, status=status.HTTP_200_OK)
+        
         try:
             refresh_token = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-            if not refresh_token:
-                return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
-                
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-            
-            response = Response({"message": "Logged out"}, status=status.HTTP_200_OK)
-            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
-            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-            return response
-        except Exception as e:
-            logger.error(f"Error logging user '{request.data.get('email')}' out, {str(e)}")
-            response = Response({"message": "Logged out with errors"}, status=status.HTTP_204_NO_CONTENT)
-            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
-            response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
-            return response
+        except (TokenError, Exception) as e:
+            # If the token is invalid/expired, we don't care, we still want to clear cookies
+            logger.info(f"Logout cleanup for {request.user}: {str(e)}")
+        
+        # Always clear cookies regardless of blacklist success
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        logger.info(f"Successfully logged out '{request.user}' ")
+        return response
 
 
 class LogoutAllDevicesView(APIView):
@@ -158,8 +155,13 @@ class LogoutAllDevicesView(APIView):
         for token in tokens:
             BlacklistedToken.objects.get_or_create(token=token)
         
-        logger.info(f"User '{request.user.email}' logged out of all devices successfully.")
-        return Response({"message": "Successfully logged out of all devices"}, status=status.HTTP_205_RESET_CONTENT)
+        # Use 200 OK so the frontend definitely sees the success message
+        response = Response({"message": "Successfully logged out of all devices"}, status=status.HTTP_200_OK)
+        
+        # MUST clear cookies so the current device is kicked immediately
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        return response
 
 
 class BasicUserInfoView(APIView):

@@ -125,10 +125,18 @@ class AuthTests(APITestCase):
         self.assertEqual(res_refresh.status_code, status.HTTP_401_UNAUTHORIZED)
 
     
-    def test_logout_without_token_fails(self):
+    def test_logout_without_token_is_silent_success(self):
+        # Log the user in via session/force_authenticate so they hit the view
         self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.logout_url, {}) # Empty payload
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        # Ensure NO refresh cookie is present
+        if self.refresh_cookie in self.client.cookies:
+            del self.client.cookies[self.refresh_cookie]
+
+        response = self.client.post(self.logout_url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['message'], "Logged out")
 
     
     def test_logout_all_devices(self):
@@ -138,7 +146,7 @@ class AuthTests(APITestCase):
         # Authenticate with cookie for "device 1"
         self.client.cookies[self.access_cookie] = str(refresh1.access_token)
         response = self.client.post(self.logout_all_url)
-        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Try to refresh with "device 2's" cookie - should fail because it's blacklisted
         self.client.cookies[self.refresh_cookie] = str(refresh2)
