@@ -1,0 +1,12 @@
+Backend:
+    - All the stuff to make the required frontend work
+    - Figure out a way to send notifications (celery maybe)
+    - Maybe cache all the packages?
+
+Frontend:
+    - Under Configuration, have a section that is for sending notifications (email, discord)
+    - When searching for a server, be able to search for last patching date older than X days
+    - Profile -> Change password
+    - List all packages, how many servers using that package (regardless of version)
+        - when inspecting a package, list versions and how many servers use it
+    - Search for package name, package version = shows a list of servers with it installed
