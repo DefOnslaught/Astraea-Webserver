@@ -41,21 +41,32 @@ class RegisterView(generics.CreateAPIView):
     queryset = None
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
-
+    
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            refresh = RefreshToken.for_user(user)
-            logger.info(f"New user '{request.data.get('email')}' has been created successfully")
-            response = Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
-            return set_auth_cookies(
-                response, 
-                str(refresh.access_token), 
-                str(refresh),
+        
+        try:
+            if serializer.is_valid(raise_exception=True):
+                user = serializer.save()
+                refresh = RefreshToken.for_user(user)
+                
+                logger.info(f"New user '{request.data.get('email')}' has been created successfully")
+                response = Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
+                return set_auth_cookies(response, str(refresh.access_token), str(refresh))
+        
+        except serializer.ValidationError:
+            # This catches things like 'email already exists' or 'password too short'
+            logger.error(f"Registration validation failed for {request.data.get('email')}: {serializer.errors}")
+            return Response(
+                {"message": "An account with this email/username already exists or the data is invalid."}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
-        logger.error(f"Error creating new user '{request.data.get('email')}': {str(serializer.errors)}")
-        return Response({'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected registration error: {str(e)}")
+            return Response(
+                {"message": "An unexpected error occurred. Please try again later."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @method_decorator(sensitive_post_parameters('password'), name='dispatch')

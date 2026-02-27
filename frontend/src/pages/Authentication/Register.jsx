@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
+import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
 
 const Register = () => {
     useDocumentTitle('Register | Astraea');
-    
+
+
+    const { checkAuth } = useAuth();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -45,22 +48,15 @@ const Register = () => {
             });
 
             if (response.status === 201) {
-                // Auto-login: Save the tokens sent back by the modified RegisterView
-                //localStorage.setItem(ACCESS_TOKEN, response.data.access);
-                //localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
-                
                 setShowSuccess(true);
+                await checkAuth(true);
                 setTimeout(() => navigate("/"), 2000);
             } else {
                 setErrorMessage(response?.data?.message || "Could not create account.");
             }
         } catch (error) {
-            if (error.response?.data?.message) {
-                const msg = error.response.data.message;
-                setErrorMessage(typeof msg === 'object' ? Object.values(msg)[0] : msg);
-            } else {
-                setErrorMessage("Registration failed. Please try again.");
-            }
+            const msg = error.response?.data?.message || "Registration failed. Please try again.";
+            setErrorMessage(msg);
         } finally {
             setLoading(false);
         }
@@ -249,7 +245,7 @@ const Register = () => {
                     </div>
 
                     <div className="mt-2">
-                        {password.length > 0 && strength < 2 && (
+                        {password.length > 0 && strength < 3 && (
                             <p className="mt-2 text-center text-[11px] text-gray-500 italic">
                                 Please include numbers or uppercase letters to continue.
                             </p>
@@ -269,7 +265,7 @@ const Register = () => {
                                 "Success!"
                             ) : !allFieldsFilled ? (
                                 "Complete all fields"
-                            ) : strength < 2 ? (
+                            ) : strength < 3 ? (
                                 "Password too weak"
                             ) : !passwordsMatch ? (
                                 "Passwords must match"

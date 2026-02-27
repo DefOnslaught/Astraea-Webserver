@@ -16,17 +16,19 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """
-        Check that the two password fields match.
+        Validate password complexity
         """
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
+            raise serializers.ValidationError({"password": "Passwords do not match."})
         
         user = User(email=attrs.get('email'), username=attrs.get('username'))
-
         try:
             validate_password(attrs['password'], user)
         except exceptions.ValidationError as e:
-            raise serializers.ValidationError({"password": list(e.messages)})
+            # For debugging, log the specific errors: str(e.messages)
+            # For the user, we raise a standard ValidationError that 
+            # our View's 'try/except' block will turn into a generic 400.
+            raise serializers.ValidationError(e.messages)
 
         return attrs
 
