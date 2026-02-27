@@ -28,6 +28,9 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"
 CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
 
+CSRF_COOKIE_HTTPONLY = False  # Must be False so JS can read it
+CSRF_COOKIE_SAMESITE = 'Lax'
+
 # Prevent the site from being rendered in an <iframe> (Prevents Clickjacking)
 X_FRAME_OPTIONS = 'DENY'
 
@@ -137,7 +140,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        #'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authenticate.CustomJWTAuthentication',
     ),
 }
 
@@ -147,6 +151,14 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+
+    # --- COOKIE SETTINGS ---
+    "AUTH_COOKIE": "access_token",       # Cookie name for access token
+    "AUTH_COOKIE_REFRESH": "refresh_token", # Cookie name for refresh token
+    "AUTH_COOKIE_SECURE": os.getenv("AUTH_COOKIE_SECURE", "True").lower() == "true",          # Only send over HTTPS
+    "AUTH_COOKIE_HTTP_ONLY": True,       # Prevent JS access (XSS protection)
+    "AUTH_COOKIE_PATH": "/",             # Available to all paths
+    "AUTH_COOKIE_SAMESITE": "Lax",       # CSRF protection
 }
 
 

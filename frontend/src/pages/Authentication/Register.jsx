@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ACCESS_TOKEN, REFRESH_TOKEN } from "../../utils/constants";
 import api from "../../utils/api";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
@@ -47,8 +46,8 @@ const Register = () => {
 
             if (response.status === 201) {
                 // Auto-login: Save the tokens sent back by the modified RegisterView
-                localStorage.setItem(ACCESS_TOKEN, response.data.access);
-                localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+                //localStorage.setItem(ACCESS_TOKEN, response.data.access);
+                //localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
                 
                 setShowSuccess(true);
                 setTimeout(() => navigate("/"), 2000);

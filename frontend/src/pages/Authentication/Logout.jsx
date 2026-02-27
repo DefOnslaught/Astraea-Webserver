@@ -2,28 +2,23 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../utils/api";
-import { REFRESH_TOKEN, ACCESS_TOKEN } from "../../utils/constants";
+import { useAuth } from "../../utils/AuthContext";
 import SuccessToast from '../../components/SuccessToast';
 import FullScreenLoader from "../../components/FullScreenLoader";
 
 const Logout = () => {
+    const { setUser } = useAuth();
     const [showSuccess, setShowSuccess] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const performLogout = async () => {
             try {
-                const refreshToken = localStorage.getItem(REFRESH_TOKEN);
-
-                await api.post('api/users/logout/', {
-                    refresh: refreshToken
-                });
+                await api.post('api/users/logout/');
             } catch (error) {
                 console.error("Logout error (likely already expired):", error);
             } finally {
-                localStorage.removeItem(ACCESS_TOKEN);
-                localStorage.removeItem(REFRESH_TOKEN);
-
+                setUser(null);
                 setShowSuccess(true);
                 setTimeout(() => navigate("/login"), 1500);
             }

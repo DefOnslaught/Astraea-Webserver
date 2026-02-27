@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import { ACCESS_TOKEN } from "../utils/constants";
+import { useAuth } from "../utils/AuthContext";
 import LogoutModal from "./LogoutModal";
  
 function Layout({ children }) {
-
+    const { user, isAuthorized, loading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-        const savedState = localStorage.getItem("sidebarOpen");
-        // We store as strings, so we check if it's explicitly 'false'
-        return savedState !== "false";
+        return localStorage.getItem("sidebarOpen") !== "false";
     });
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -17,25 +14,15 @@ function Layout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // Token Logic
-    const token = localStorage.getItem(ACCESS_TOKEN);
-    let username = "User";
-    let isAuthenticated = false;
+    // 1. Logic check: If we are still loading the auth status, 
+    // show a dark screen or loader so the UI doesn't flicker
+    if (loading) return <div className="min-h-screen bg-gray-900" />;
 
-    if (token) {
-        try {
-            const decoded = jwtDecode(token);
-            username = decoded.username;
-            isAuthenticated = true;
-        } catch (e) {
-            console.error("Invalid Token");
-            isAuthenticated = false;
-        }
-    }
-
+    // 2. Auth Logic: Use context instead of jwtDecode
+    const username = user?.username || "User";
     // Ensures the nav/sidebar aren't loaded on these paths
     const isAuthPage = ["/login", "/register", "/logout"].includes(location.pathname);
-    if (isAuthPage || !isAuthenticated) {
+    if (isAuthPage || !isAuthorized) {
         return <div className="min-h-screen bg-gray-900">{children}</div>;
     }
 
@@ -120,9 +107,9 @@ function Layout({ children }) {
             {/* SIDEBAR */}
             <aside
                 className={`fixed left-0 top-16 z-30 h-[calc(100vh-64px)] transition-all duration-300 border-r border-white/5 bg-gray-900
-                ${isSidebarOpen ? 'w-64' : 'w-20'}`}
+                ${isSidebarOpen ? 'w-54' : 'w-20'}`}
             >
-                <div className="p-4 space-y-2">
+                <div className="p-2 space-y-2">
                     <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} />
                     <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} />
                     <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} />
@@ -131,7 +118,7 @@ function Layout({ children }) {
             </aside>
 
             {/* MAIN CONTENT AREA */}
-            <main className={`pt-16 transition-all duration-300 ${isSidebarOpen ? 'pl-64' : 'pl-20'}`}>
+            <main className={`pt-16 transition-all duration-300 ${isSidebarOpen ? 'pl-54' : 'pl-20'}`}>
                 <div className="p-6">
                     {children}
                 </div>
@@ -149,7 +136,7 @@ const SidebarLink = ({ to, icon, label, isOpen, color = "text-gray-400" }) => (
                 {label}
             </span>
         )}
-        {isOpen && <span className="ml-3 text-sm font-medium text-gray-300 group-hover:text-white">{label}</span>}
+        {isOpen && <span className="ml-2 text-sm font-medium text-gray-300 group-hover:text-white">{label}</span>}
     </Link>
 );
 

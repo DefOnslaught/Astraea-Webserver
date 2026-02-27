@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ACCESS_TOKEN, REFRESH_TOKEN } from "../../utils/constants";
+
 import api from "../../utils/api";
+import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
 
 const Login = () => {
 
     useDocumentTitle('Login | Astraea');
+
+    const { checkAuth } = useAuth();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -34,8 +37,8 @@ const Login = () => {
         try {
             const response = await api.post('api/login/', { email, password })
             if (response.status === 200) {
-                localStorage.setItem(ACCESS_TOKEN, response.data.access);
-                localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+                
+                await checkAuth();
                 
                 setShowSuccess(true);
                 // Redirect to 'from' (the original page they tried to visit)
