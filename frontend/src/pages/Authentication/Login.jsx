@@ -38,7 +38,7 @@ const Login = () => {
             const response = await api.post('api/login/', { email, password })
             if (response.status === 200) {
                 
-                await checkAuth();
+                await checkAuth(true);
                 
                 setShowSuccess(true);
                 // Redirect to 'from' (the original page they tried to visit)

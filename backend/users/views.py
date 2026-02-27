@@ -101,12 +101,13 @@ class CustomTokenRefreshView(TokenRefreshView):
         response = super().post(request, *args, **kwargs)
         
         if response.status_code == 200:
-            # If ROTATE_REFRESH_TOKENS is True, we get a new access AND refresh
             access_token = response.data.get('access')
-            refresh_token = response.data.get('refresh')
+            # 2. FALLBACK: Use the new refresh token if provided (Rotation: True)
+            # OR keep using the existing one (Rotation: False)
+            refresh_token = response.data.get('refresh') or refresh_token
+            
             set_auth_cookies(response, access_token, refresh_token)
             
-            # Clean JSON response so JS can't see tokens
             response.data = {"message": "Token refreshed"}
             
         return response
@@ -162,12 +163,21 @@ class SessionStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        token = request.auth
-        exp_timestamp = token.payload['exp']
+        access_token = request.auth
+        
+        # Get the Refresh Token from cookies to check its expiry
+        refresh_token_str = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+        refresh_token = RefreshToken(refresh_token_str)
+        
+        refresh_exp = refresh_token.payload['exp']
         now = datetime.now(timezone.utc).timestamp()
 
-        remaining = max(0, int(exp_timestamp - now))
-        return Response({"remaining_seconds": remaining, "username": request.user.username, "email": request.user.email}, status=status.HTTP_200_OK)
+        return Response({
+            "remaining_seconds": max(0, int(access_token.payload['exp'] - now)),
+            "refresh_remaining": max(0, int(refresh_exp - now)),
+            "username": request.user.username,
+            "email": request.user.email,
+        })
 
 
 class UserProfileView(APIView):

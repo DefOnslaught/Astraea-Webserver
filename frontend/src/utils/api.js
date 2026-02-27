@@ -29,6 +29,15 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // 1. IMPROVED REFRESH FAILURE CHECK
+        if (originalRequest.url.endsWith('api/login/refresh/')) {
+            console.log("FATAL: Refresh token is expired or invalid.");
+            isRefreshing = false;
+            processQueue(error, null); // Clear the queue with error
+            window.dispatchEvent(new CustomEvent("force-logout"));
+            return Promise.reject(error);
+        }
+
         // --- HANDLE 403 CSRF ERRORS ---
         const isCsrfError = error.response?.data?.detail?.includes("CSRF") ||
             error.response?.data?.message?.includes("CSRF");
@@ -36,16 +45,14 @@ api.interceptors.response.use(
         if (error.response?.status === 403 && isCsrfError && !originalRequest._csrfRetry) {
             originalRequest._csrfRetry = true;
             try {
-                // Fetch a fresh CSRF token
                 await api.get('api/users/csrf/');
-                // Retry the original request (Axios will now see the new cookie)
                 return api(originalRequest);
             } catch (csrfError) {
                 return Promise.reject(csrfError);
             }
         }
 
-        // --- HANDLE 401 JWT ERRORS (Existing logic) ---
+        // --- HANDLE 401 JWT ERRORS ---
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
@@ -60,17 +67,14 @@ api.interceptors.response.use(
 
             try {
                 await api.post('api/login/refresh/');
+                isRefreshing = false;
                 processQueue(null);
                 return api(originalRequest);
             } catch (refreshError) {
-                processQueue(refreshError, null);
-                // Dispatch an event that the AuthContext can listen for
-                window.dispatchEvent(new CustomEvent("force-logout", {
-                    detail: { message: "Your session has expired. Please log in again." }
-                }));
-                return Promise.reject(refreshError);
-            } finally {
                 isRefreshing = false;
+                processQueue(refreshError, null);
+                window.dispatchEvent(new CustomEvent("force-logout"));
+                return Promise.reject(refreshError);
             }
         }
 

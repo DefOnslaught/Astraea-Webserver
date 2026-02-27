@@ -8,7 +8,7 @@ const Home = () => {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
             <div className="w-full max-w-md bg-gray-900/50 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-                <h1 className="text-3xl font-bold text-white mb-2 text-center">
+                <h1 className="text-3xl font-bold text-indigo-400 mb-2 text-center">
                     Welcome, <span className="text-indigo-400">{user?.username}</span>
                 </h1>
 
