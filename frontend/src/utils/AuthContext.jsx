@@ -3,70 +3,76 @@ import api from "./api";
 
 const AuthContext = createContext();
 
+// TODO: Fix the count down - checkAuth call. Ensure we aren't getting the 401, limit API calls
+//          Order it hits the endpoints
+//            401: GET - api/users/session-status/
+//            200: POST - /api/login/refresh/
+//            200: GET - api/users/session-status/
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [expiryTime, setExpiryTime] = useState(null); // Store the "Goal" time
+    const [currentTime, setCurrentTime] = useState(Date.now());
     const [loading, setLoading] = useState(true);
 
     const checkAuth = async () => {
         try {
             const res = await api.get("api/users/session-status/");
             setUser(res.data);
-            setTimeLeft(res.data.remaining_seconds);
+            // Calculate EXACT time the token dies: Current Time + Seconds Remaining
+            setExpiryTime(Date.now() + (res.data.remaining_seconds * 1000));
         } catch (err) {
             setUser(null);
-            // If the user isn't logged in (401), we still want to 
-            // ensure we have a CSRF token for their future login attempt
-            try {
-                await api.get("api/users/csrf/");
-            } catch (csrfErr) {
-                console.error("Failed to fetch CSRF token", csrfErr);
-            }
+            setExpiryTime(null);
+            try { await api.get("api/users/csrf/"); } catch (e) { }
         } finally {
             setLoading(false);
         }
     };
 
+    // 1. Static Ticker: Just updates a "Now" timestamp every second
     useEffect(() => {
-        let interval = null;
+        const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
-        if (user && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-            }, 1000);
-        } else if (timeLeft === 0 && user) {
-            // Optional: When access token hits 0, the interceptor will 
-            // likely refresh it on the next request. You could trigger a 
-            // checkAuth() here to refresh the UI timer after a refresh.
+    // 2. Refresh Logic: Only fire when we actually cross the finish line
+    useEffect(() => {
+        if (user && expiryTime && currentTime >= expiryTime) {
             checkAuth();
         }
+    }, [currentTime, expiryTime, user]);
 
-        return () => clearInterval(interval);
-    }, [user, timeLeft]);
-
-    useEffect(() => { 
-        const handleForceLogout = (event) => {
-            setUser(null);
-            if (event.detail?.message) {
-                // Optional: Show a "Session Expired" notification here, i.e toast
-            }
-        };
-
+    useEffect(() => {
+        const handleForceLogout = () => { setUser(null); setExpiryTime(null); };
         window.addEventListener("force-logout", handleForceLogout);
-        checkAuth(); 
-
+        checkAuth();
         return () => window.removeEventListener("force-logout", handleForceLogout);
     }, []);
 
-    // Helper to format seconds to MM:SS
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
+    // Helper: Difference between Goal and Now
+    const getSecondsLeft = () => {
+        if (!expiryTime) return 0;
+        return Math.max(0, Math.floor((expiryTime - currentTime) / 1000));
+    };
+
+    const formatTime = () => {
+        const totalSeconds = getSecondsLeft();
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
         return `${m}m ${s < 10 ? "0" : ""}${s}s`;
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, isAuthorized: !!user, loading, checkAuth, timeLeft, formattedTime: formatTime(timeLeft) }}>
+        <AuthContext.Provider value={{
+            user,
+            setUser,
+            isAuthorized: !!user,
+            loading,
+            checkAuth,
+            timeLeft: getSecondsLeft(),
+            formattedTime: formatTime()
+        }}>
             {children}
         </AuthContext.Provider>
     );

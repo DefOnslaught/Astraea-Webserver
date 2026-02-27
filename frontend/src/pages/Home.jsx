@@ -3,37 +3,49 @@ import useDocumentTitle from "../utils/useDocumentTitle";
 
 const Home = () => {
     useDocumentTitle('Home | Astraea');
-    
-    const { user, formattedTime } = useAuth();
-    
-    const username = user?.username || "Explorer";
+    const { user, formattedTime, isSyncing, checkAuth } = useAuth();
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="max-w-md mx-auto bg-white/5 border border-white/10 p-8 rounded-2xl">
-                <h1 className="text-3xl font-bold text-indigo-400">
-                    Welcome, {user?.username || "Explorer"}!
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+            <div className="w-full max-w-md bg-gray-900/50 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
+                <h1 className="text-3xl font-bold text-white mb-2 text-center">
+                    Welcome, <span className="text-indigo-400">{user?.username}</span>
                 </h1>
 
-                {/* Session Timer Card */}
-                <div className="mt-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex justify-between items-center">
-                    <div>
-                        <p className="text-xs text-indigo-300 uppercase font-bold tracking-widest">
-                            Token Expires In
+                <div className="mt-8 p-6 bg-indigo-500/5 border border-indigo-500/20 rounded-xl relative overflow-hidden">
+                    {/* Syncing overlay */}
+                    {isSyncing && (
+                        <div className="absolute inset-0 bg-indigo-500/10 flex items-center justify-center backdrop-blur-[1px]">
+                            <div className="h-4 w-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col items-center">
+                        <p className="text-[10px] text-indigo-300 uppercase font-black tracking-[0.2em] mb-2">
+                            Session Life
                         </p>
-                        <p className="text-xl font-mono text-white">
+                        <p className={`text-4xl font-mono transition-colors duration-500 ${isSyncing ? 'text-indigo-300' : 'text-white'}`}>
                             {formattedTime}
                         </p>
                     </div>
-                    <i className="fa-solid fa-clock-rotate-left text-indigo-500 text-2xl"></i>
                 </div>
 
-                <p className="mt-6 text-gray-400 text-sm italic border-t border-white/10 pt-4">
-                    <span className="text-indigo-400 font-bold">Security Note:</span> Your session uses
-                    <span className="text-white"> HttpOnly cookies</span>. The timer above shows the
-                    lifetime of your current access token. It will auto-refresh seamlessly
-                    before it reaches zero.
-                </p>
+                {/* THE UPDATED NOTE SECTION */}
+                <div className="mt-8 space-y-3">
+                    <p className="text-gray-400 text-xs leading-relaxed text-center">
+                        <span className="text-indigo-400 font-bold block mb-1">AUTOMATIC REFRESH ACTIVE</span>
+                        When the timer reaches zero, Astraea will automatically attempt to renew your security
+                        credentials via the refresh token.
+                    </p>
+
+                    <button
+                        onClick={checkAuth}
+                        disabled={isSyncing}
+                        className="w-full py-2 text-[10px] font-bold text-gray-500 hover:text-indigo-400 transition-colors uppercase tracking-widest"
+                    >
+                        {isSyncing ? "Syncing with server..." : "Sync Timer Now"}
+                    </button>
+                </div>
             </div>
         </div>
     );
