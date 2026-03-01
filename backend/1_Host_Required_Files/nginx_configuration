@@ -6,6 +6,8 @@ server {
 
     include mime.types;
 
+    server_tokens off;
+
     # Obtains the client IP, not the IP of the reverse proxy server
     real_ip_header X-Real-IP;
     # Set the IP of the Reverse Proxy the connection is coming from
