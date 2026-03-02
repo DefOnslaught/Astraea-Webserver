@@ -154,6 +154,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False, # Enable if you don't want users to be forced to sign back in when `REFRESH_TOKEN_LIFETIME` expires
     "BLACKLIST_AFTER_ROTATION": True,
     'AUTH_HEADER_TYPES': ('Bearer',),
+    "UPDATE_LAST_LOGIN": True,
 
     # --- COOKIE SETTINGS ---
     "AUTH_COOKIE": "access_token",       # Cookie name for access token
