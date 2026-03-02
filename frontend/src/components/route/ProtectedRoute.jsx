@@ -10,9 +10,13 @@ function ProtectedRoute() {
         return <FullScreenLoader label="Verifying session..." />;
     }
 
-    return isAuthorized
-        ? <Outlet />
-        : <Navigate to="/login" state={{ from: location }} replace />;
+    // If not authorized, redirect to login
+    if (!isAuthorized) {
+        const redirectTo = location.pathname === "/logout" ? "/" : location;
+        return <Navigate to="/login" state={{ from: redirectTo }} replace />;
+    }
+
+    return <Outlet />;
 }
 
 export default ProtectedRoute;

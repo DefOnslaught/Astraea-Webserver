@@ -74,13 +74,17 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const handleForceLogout = () => {
+            if (pathname === "/logout" || pathname === "/login" || pathname === "/register") {
+                handleClearingValues();
+                return;
+            }
             handleClearingValues();
             navigate("/login", { replace: true, state: { message: "Expired" } });
         };
 
         window.addEventListener("force-logout", handleForceLogout);
         return () => window.removeEventListener("force-logout", handleForceLogout);
-    }, [navigate]);
+    }, [navigate, pathname]);
 
     const getSecondsLeft = () => {
         if (!expiryTime) return 0;
