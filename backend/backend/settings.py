@@ -165,6 +165,9 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_SAMESITE": "Lax",       # CSRF protection
 }
 
+# Patching related options
+PATCH_THRESHOLD_DAYS = os.getenv("PATCH_THRESHOLD_DAYS", "30")
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
