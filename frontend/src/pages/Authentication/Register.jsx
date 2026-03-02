@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
 import api from "../../utils/api";
+import { API_ENDPOINTS } from "../../utils/constants";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
@@ -40,7 +42,7 @@ const Register = () => {
         setErrorMessage('');
 
         try {
-            const response = await api.post('api/register/', { 
+            const response = await api.post(API_ENDPOINTS.REGISTER, { 
                 email, 
                 username, 
                 password, 

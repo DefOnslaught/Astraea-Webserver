@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import api from "../../utils/api";
+import { API_ENDPOINTS } from "../../utils/constants";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
@@ -35,7 +36,7 @@ const Login = () => {
         setErrorMessage('');
 
         try {
-            const response = await api.post('api/login/', { email, password })
+            const response = await api.post(API_ENDPOINTS.LOGIN, { email, password })
             if (response.status === 200) {
                 
                 await checkAuth(true);

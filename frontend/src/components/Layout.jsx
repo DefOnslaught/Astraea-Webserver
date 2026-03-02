@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
+import { usePathCheck } from "../hooks/usePathCheck";
 import LogoutModal from "./LogoutModal";
  
 function Layout({ children }) {
     const { user, isAuthorized, loading } = useAuth();
+    const { isAuthPage } = usePathCheck();
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
         return localStorage.getItem("sidebarOpen") !== "false";
     });
@@ -21,7 +23,6 @@ function Layout({ children }) {
     // 2. Auth Logic: Use context instead of jwtDecode
     const username = user?.username || "User";
     // Ensures the nav/sidebar aren't loaded on these paths
-    const isAuthPage = ["/login", "/register", "/logout"].includes(location.pathname);
     if (isAuthPage || !isAuthorized) {
         return <div className="min-h-screen bg-gray-900">{children}</div>;
     }
