@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import api from "./api";
 import { API_ENDPOINTS } from "./constants";
-import { usePathCheck } from "../../hooks/usePathCheck";
+import { usePathCheck } from "../hooks/usePathCheck";
 
 const AuthContext = createContext();
 

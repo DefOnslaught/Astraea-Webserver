@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { PUBLIC_PATHS, AUTH_PAGES } from "../src/utils/constants";
+import { PUBLIC_PATHS, AUTH_PAGES } from "../utils/constants";
 
 export const usePathCheck = () => {
     const location = useLocation();
