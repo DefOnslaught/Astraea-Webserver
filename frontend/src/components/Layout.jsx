@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
 import { usePathCheck } from "../hooks/usePathCheck";
 import LogoutModal from "./LogoutModal";
@@ -13,7 +13,6 @@ function Layout({ children }) {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-    const location = useLocation();
     const navigate = useNavigate();
     
     const username = user?.username || "User";
@@ -51,7 +50,7 @@ function Layout({ children }) {
                 }}
             />
             {/* TOP NAVBAR */}
-            <nav className="fixed top-0 z-40 w-full h-16 bg-gray-900 border-b border-white/5 flex items-center justify-between px-6 shadow-md">
+            <nav className="fixed top-0 z-40 w-full h-16 bg-gray-950 border-b border-white/5 flex items-center justify-between px-6 shadow-md">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={toggleSidebar}
@@ -84,7 +83,7 @@ function Layout({ children }) {
                             {/* Invisible backdrop to close menu when clicking outside */}
                             <div className="fixed inset-0 z-10" onClick={() => setIsUserMenuOpen(false)}></div>
 
-                            <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                 <Link
                                     to="/profile"
                                     onClick={() => setIsUserMenuOpen(false)}
@@ -109,21 +108,35 @@ function Layout({ children }) {
 
             {/* SIDEBAR */}
             <aside
-                className={`fixed left-0 top-16 z-30 h-[calc(100vh-64px)] transition-all duration-300 border-r border-white/5 bg-gray-900
+                className={`fixed left-0 top-16 z-30 h-[calc(100vh-64px)] transition-all duration-300 border-r border-white/5 bg-gray-800 flex flex-col
                 ${isSidebarOpen ? 'w-54' : 'w-20'}`}
             >
-                <div className="p-2 space-y-2">
+                {/* Subtle Inner Glow */}
+                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] to-transparent pointer-events-none" />
+
+                <div className="relative p-3 space-y-1 flex-1 overflow-y-auto no-scrollbar">
                     <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
                     <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
                     <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
                     <SidebarLink to="/configuration" icon="fa-gears" label="Configuration" isOpen={isSidebarOpen} isActive={pathname === "/configuration"} />
                 </div>
 
-                <div className="p-4 border-t border-white/5 flex justify-center items-center">
-                    <span className={`text-[10px] font-mono tracking-widest text-gray-600 transition-opacity duration-300`}>
-                        v1.0.0
-                    </span>
-                    
+                {/* Footer with Versioning */}
+                <div className="relative p-4 mt-auto border-t border-white/[0.05] bg-black/20 flex flex-col items-center justify-center gap-2">
+                    {isSidebarOpen ? (
+                        <div className="flex flex-col items-center animate-in fade-in duration-500">
+                            <span className="text-[10px] font-mono tracking-[0.2em] text-gray-600 uppercase">
+                                Astraea System
+                            </span>
+                            <span className="mt-1 px-2 py-0.5 rounded-full bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
+                                v1.0.0
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
+                            v1.0.0
+                        </span>
+                    )}
                 </div>
             </aside>
 
@@ -139,14 +152,35 @@ function Layout({ children }) {
 
 // Simple helper component for Sidebar links
 const SidebarLink = ({ to, icon, label, isOpen, isActive }) => (
-    <Link to={to} className={`flex items-center p-3 rounded-lg hover:bg-white/5 group transition-colors`}>
-        <i className={`fa-solid ${icon} w-6 text-center ${isActive ? 'text-indigo-400' : 'text-gray-300'}`}></i>
-        {!isOpen && (
-            <span className="fixed left-20 scale-0 group-hover:scale-100 transition-all duration-200 origin-left bg-indigo-600 text-gray-300 text-xs font-bold px-2 py-1 rounded shadow-xl pointer-events-none">
+    <Link to={to} className={`
+        relative flex items-center p-3 rounded-xl transition-all duration-200 group
+        ${isActive
+            ? 'bg-indigo-500/10 text-indigo-400 shadow-[inset_0_0_12px_rgba(99,102,241,0.05)]'
+            : 'text-gray-400 hover:bg-white/[0.03] hover:text-gray-200'}
+    `}>
+        {/* Active Indicator Bar */}
+        {isActive && (
+            <div className="absolute left-0 w-1 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+        )}
+
+        <i className={`fa-solid ${icon} w-6 text-center transition-transform duration-200 group-hover:scale-110 
+            ${isActive ? 'text-indigo-400' : 'text-gray-500 group-hover:text-indigo-300'}`}>
+        </i>
+
+        {isOpen && (
+            <span className={`ml-3 text-sm font-medium tracking-wide transition-colors
+                ${isActive ? 'text-indigo-400' : 'text-gray-400 group-hover:text-gray-200'}`}>
                 {label}
             </span>
         )}
-        {isOpen && <span className={`ml-3 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-gray-300'}`}>{label}</span>}
+
+        {/* Tooltip for collapsed state */}
+        {!isOpen && (
+            <span className="fixed left-20 scale-0 group-hover:scale-100 transition-all duration-200 origin-left 
+                bg-gray-800 border border-white/10 text-indigo-400 text-xs font-bold px-3 py-2 rounded-lg shadow-2xl z-50">
+                {label}
+            </span>
+        )}
     </Link>
 );
 
