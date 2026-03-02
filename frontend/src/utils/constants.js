@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     LOGIN: "api/users/login/",
     LOGOUT: "api/users/logout/",
     REGISTER: "api/users/register/",
+    PROFILE: "api/users/profile/",
+    CHANGE_PASSWORD: "api/users/profile/change-password/",
 
     DASHBOARD_STATS: "api/servers/dashboard/stats/",
     SERVER_SEARCH: "api/servers/servers/search/",

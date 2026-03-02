@@ -159,3 +159,64 @@ class AuthTests(APITestCase):
         # Request without credentials
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+    def test_get_user_profile(self):
+        url = reverse('user-profile')
+
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies[self.access_cookie] = str(refresh.access_token)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], self.user.username)
+        self.assertEqual(response.data['email'], self.user.email)
+
+
+    def test_update_user_profile(self):
+        url = reverse('user-profile')
+        
+        refresh = RefreshToken.for_user(self.user)
+        self.client.cookies[self.access_cookie] = str(refresh.access_token)
+
+        new_data = {'username': 'new_awesome_username'}        
+        
+        response = self.client.put(url, data=new_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, 'new_awesome_username')
+        self.assertEqual(response.data['username'], 'new_awesome_username')
+
+
+    def test_change_password_success(self):
+        url = reverse('change-password')
+        self.client.cookies[self.access_cookie] = str(RefreshToken.for_user(self.user).access_token)
+    
+        data = {
+            "old_password": "StrongPassword123!",
+            "new_password": "New-Secure-Password-2026!"
+        }
+        
+        response = self.client.put(url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("New-Secure-Password-2026!"))
+
+
+    def test_change_password_invalid_old_password(self):
+        url = reverse('change-password')
+        self.client.cookies[self.access_cookie] = str(RefreshToken.for_user(self.user).access_token)
+    
+        data = {
+            "old_password": "WrongCurrentPassword123!",
+            "new_password": "New-Secure-Password-2026!"
+        }
+        
+        response = self.client.put(url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        self.assertIn('old_password', response.data)
+        self.assertEqual(response.data['old_password'][0], "Old password is not correct.")
+        
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("StrongPassword123!"))

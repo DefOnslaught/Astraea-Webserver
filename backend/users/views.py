@@ -13,7 +13,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
-from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer
+from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer, ChangePasswordSerializer
 
 logger = logging.getLogger('django')
 
@@ -203,11 +203,9 @@ class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get profile stuff
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # Example for now
     def put(self, request):
         # 'partial=True' allows updating just the username without sending the whole object
         serializer = UserSerializer(request.user, data=request.data, partial=True)
@@ -218,3 +216,19 @@ class UserProfileView(APIView):
         
         logger.error(f"Failed to update profile for '{request.user}': {str(serializer.errors)}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+
+        if not serializer.is_valid():
+            logger.error(f"User '{request.user.email}' failed to provide proper data to change their password. {str(serializer.errors)}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        request.user.set_password(serializer.validated_data['new_password'])
+        request.user.save()  
+        logger.info(f"User '{request.user.email}' successfully changed password.")
+        return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)

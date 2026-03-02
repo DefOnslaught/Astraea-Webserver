@@ -8,7 +8,9 @@ from .views import (
     CSRFTokenView, 
     RegisterView, 
     TokenOPView, 
-    CustomTokenRefreshView
+    CustomTokenRefreshView,
+    UserProfileView,
+    ChangePasswordView
 )
 
 urlpatterns = [
@@ -18,6 +20,8 @@ urlpatterns = [
     path('login/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('logout_all_devices/', LogoutAllDevicesView.as_view(), name='logout_all_devices'),
+    path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('profile/change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # After Auth
     path('basic-info/', BasicUserInfoView.as_view(), name='basic-info'),

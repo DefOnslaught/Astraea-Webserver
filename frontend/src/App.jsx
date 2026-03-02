@@ -1,12 +1,13 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import './App.css';
 
-import Login from "./pages/Authentication/Login"
+import Login from "./pages/Authentication/Login";
 import Logout from "./pages/Authentication/Logout";
-import Register from "./pages/Authentication/Register"
-import Home from "./pages/Home"
-import NotFound from "./pages/ErrorPages/NotFound"
+import Register from "./pages/Authentication/Register";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile/Profile";
+import NotFound from "./pages/ErrorPages/NotFound";
 
 import { AuthProvider } from "./utils/AuthContext";
 import ProtectedRoute from "./components/route/ProtectedRoute"
@@ -23,7 +24,8 @@ function App() {
             {/* --- PROTECTED ROUTES --- */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Home />} />
-              <Route path="/logout"element={<Logout />} />
+              <Route path="/logout" element={<Logout />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
             
             {/* --- PUBLIC ONLY ROUTES (Redirects to / if logged in) --- */}

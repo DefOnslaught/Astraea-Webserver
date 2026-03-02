@@ -22,7 +22,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     const checkAuth = async (force = false) => {
-        
+
+        if (user && !force) return;
+
         // If we're on a public page and already know the user, don't re-check
         if (isPublicPage && user && !force) {
             setLoading(false);
@@ -47,7 +49,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // 1. The Clock (Derived state to keep things light)
+    // 1. Initial Load Only
+    useEffect(() => {
+        checkAuth();
+    }, []);
+
+    // 2. The Clock (Derived state to keep things light)
     useEffect(() => {
         const interval = setInterval(() => setCurrentTime(Date.now()), 1000);
         return () => clearInterval(interval);
@@ -60,14 +67,9 @@ export const AuthProvider = ({ children }) => {
             // Immediately nullify expiryTime so this EFFECT cannot trigger again 
             // while the API call is in flight.
             setExpiryTime(null);
-            checkAuth();
+            checkAuth(true);
         }
     }, [currentTime, expiryTime, user]);
-
-    // 3. Logic: Re-run checkAuth when navigating to a new page
-    useEffect(() => {
-        checkAuth();
-    }, [pathname]);
 
 
     useEffect(() => {

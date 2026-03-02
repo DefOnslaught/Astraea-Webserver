@@ -15,14 +15,13 @@ function Layout({ children }) {
 
     const location = useLocation();
     const navigate = useNavigate();
-
-    // 1. Logic check: If we are still loading the auth status, 
-    // show a dark screen or loader so the UI doesn't flicker
-    if (loading) return <div className="min-h-screen bg-gray-900" />;
-
-    // 2. Auth Logic: Use context instead of jwtDecode
+    
     const username = user?.username || "User";
-    // Ensures the nav/sidebar aren't loaded on these paths
+
+    if (loading && !isAuthorized) {
+        return <div className="min-h-screen bg-gray-900" />;
+    }
+    
     if (isAuthPage || !isAuthorized) {
         return <div className="min-h-screen bg-gray-900">{children}</div>;
     }
@@ -69,8 +68,11 @@ function Layout({ children }) {
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                         className="flex items-center gap-1.5 p-1 px-2 rounded-lg hover:bg-white/5 transition-colors group"
                     >
-                        <div className="flex flex-col items-end">
-                            <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{username}</span>
+                        <div className="flex flex-row items-center gap-2">
+                            <i className="fa-solid fa-user text-gray-500 text-sm"></i>
+                            <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+                                {username}
+                            </span>
                         </div>
                         {/* Dynamic Arrow Icon */}
                         <i className={`fa-solid fa-chevron-down text-[10px] text-gray-500 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180 text-indigo-400' : ''}`}></i>
