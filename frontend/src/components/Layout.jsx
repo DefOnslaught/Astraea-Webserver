@@ -6,7 +6,7 @@ import LogoutModal from "./LogoutModal";
  
 function Layout({ children }) {
     const { user, isAuthorized, loading } = useAuth();
-    const { isAuthPage } = usePathCheck();
+    const { isAuthPage, pathname } = usePathCheck();
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
         return localStorage.getItem("sidebarOpen") !== "false";
     });
@@ -111,10 +111,17 @@ function Layout({ children }) {
                 ${isSidebarOpen ? 'w-54' : 'w-20'}`}
             >
                 <div className="p-2 space-y-2">
-                    <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} />
-                    <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} />
-                    <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} />
-                    <SidebarLink to="/configuration" icon="fa-gears" label="Configuration" isOpen={isSidebarOpen} />
+                    <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
+                    <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
+                    <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
+                    <SidebarLink to="/configuration" icon="fa-gears" label="Configuration" isOpen={isSidebarOpen} isActive={pathname === "/configuration"} />
+                </div>
+
+                <div className="p-4 border-t border-white/5 flex justify-center items-center">
+                    <span className={`text-[10px] font-mono tracking-widest text-gray-600 transition-opacity duration-300`}>
+                        v1.0.0
+                    </span>
+                    
                 </div>
             </aside>
 
@@ -129,15 +136,15 @@ function Layout({ children }) {
 };
 
 // Simple helper component for Sidebar links
-const SidebarLink = ({ to, icon, label, isOpen, color = "text-gray-400" }) => (
+const SidebarLink = ({ to, icon, label, isOpen, isActive }) => (
     <Link to={to} className={`flex items-center p-3 rounded-lg hover:bg-white/5 group transition-colors`}>
-        <i className={`fa-solid ${icon} ${color} w-6 text-center`}></i>
+        <i className={`fa-solid ${icon} w-6 text-center ${isActive ? 'text-indigo-400' : 'text-gray-300'}`}></i>
         {!isOpen && (
             <span className="fixed left-20 scale-0 group-hover:scale-100 transition-all duration-200 origin-left bg-indigo-600 text-gray-300 text-xs font-bold px-2 py-1 rounded shadow-xl pointer-events-none">
                 {label}
             </span>
         )}
-        {isOpen && <span className="ml-2 text-sm font-medium text-gray-300 group-hover:text-white">{label}</span>}
+        {isOpen && <span className={`ml-3 text-sm font-medium transition-colors ${isActive ? 'text-indigo-400' : 'text-gray-300'}`}>{label}</span>}
     </Link>
 );
 
