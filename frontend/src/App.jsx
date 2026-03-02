@@ -13,10 +13,6 @@ import ProtectedRoute from "./components/route/ProtectedRoute"
 import PublicRoute from "./components/route/PublicRoute";
 import Layout from "./components/Layout";
 
-function RegisterAndLogout() {
-  localStorage.clear()
-  return <Register />
-}
 
 function App() {
   return (
@@ -33,7 +29,7 @@ function App() {
             {/* --- PUBLIC ONLY ROUTES (Redirects to / if logged in) --- */}
             <Route element={<PublicRoute />} >
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<RegisterAndLogout />} />
+              <Route path="/register" element={<Register />} />
             </Route>
 
             {/* 404 Not Found */}

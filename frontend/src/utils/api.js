@@ -1,5 +1,7 @@
 import axios from "axios"
 
+import { API_ENDPOINTS } from "./constants";
+
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     withCredentials: true,
@@ -12,6 +14,9 @@ api.interceptors.request.use(
     (config) => config,
     (error) => Promise.reject(error)
 );
+
+
+const MAX_RETRIES = 2;
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -28,15 +33,7 @@ api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-
-        // 1. IMPROVED REFRESH FAILURE CHECK
-        if (originalRequest.url.endsWith('api/login/refresh/')) {
-            console.log("FATAL: Refresh token is expired or invalid.");
-            isRefreshing = false;
-            processQueue(error, null); // Clear the queue with error
-            window.dispatchEvent(new CustomEvent("force-logout"));
-            return Promise.reject(error);
-        }
+        originalRequest._retryCount = originalRequest._retryCount || 0;
 
         // --- HANDLE 403 CSRF ERRORS ---
         const isCsrfError = error.response?.data?.detail?.includes("CSRF") ||
@@ -45,35 +42,63 @@ api.interceptors.response.use(
         if (error.response?.status === 403 && isCsrfError && !originalRequest._csrfRetry) {
             originalRequest._csrfRetry = true;
             try {
-                await api.get('api/users/csrf/');
+                await api.get(API_ENDPOINTS.CSRF);
                 return api(originalRequest);
             } catch (csrfError) {
                 return Promise.reject(csrfError);
             }
         }
 
-        // --- HANDLE 401 JWT ERRORS ---
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // --- FATAL: REFRESH ENDPOINT FAILED ---
+        // If the refresh call itself returns 401, we MUST logout immediately
+        if (originalRequest.url.endsWith(API_ENDPOINTS.REFRESH)) {
+            isRefreshing = false;
+            processQueue(error, null);
+            window.dispatchEvent(new CustomEvent("force-logout"));
+            return Promise.reject(error);
+        }
+
+        // Handle 401 Errors
+        if (error.response?.status === 401) {
+
+            // If the request explicitly ask to skip refresh (e.g. on a public page),
+            // stop here and don't call `API_ENDPOINTS.REFRESH`
+            if (originalRequest._skipRefresh) {
+                return Promise.reject(error);
+            }
+
+            // If we hit max retries, or if this is a background check AND the user is already null, 
+            // just fail silently.
+            if (originalRequest._retryCount >= MAX_RETRIES) {
+                if (!originalRequest._isAuthCheck) {
+                    window.dispatchEvent(new CustomEvent("force-logout"));
+                }
+                return Promise.reject(error);
+            }
+
+            originalRequest._retryCount++;
+
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                })
-                    .then(() => api(originalRequest))
-                    .catch(err => Promise.reject(err));
+                }).then(() => api(originalRequest)).catch(err => Promise.reject(err));
             }
 
-            originalRequest._retry = true;
             isRefreshing = true;
 
             try {
-                await api.post('api/login/refresh/');
+                await api.post(API_ENDPOINTS.REFRESH);
                 isRefreshing = false;
                 processQueue(null);
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
                 processQueue(refreshError, null);
-                window.dispatchEvent(new CustomEvent("force-logout"));
+
+                // If the refresh failed, and it wasn't a background check, boot them.
+                if (!originalRequest._isAuthCheck) {
+                    window.dispatchEvent(new CustomEvent("force-logout"));
+                }
                 return Promise.reject(refreshError);
             }
         }

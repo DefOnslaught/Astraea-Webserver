@@ -1,6 +1,9 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+
 import api from "./api";
+import { API_ENDPOINTS } from "./constants";
+import { usePathCheck } from "../../hooks/usePathCheck";
 
 const AuthContext = createContext();
 
@@ -10,9 +13,8 @@ export const AuthProvider = ({ children }) => {
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [loading, setLoading] = useState(true);
 
-    const location = useLocation();
     const navigate = useNavigate();
-    const isPublicPage = ["/login", "/register"].includes(location.pathname);
+    const { isPublicPage, pathname } = usePathCheck();
 
     const handleClearingValues = () => {
         setUser(null);
@@ -20,17 +22,25 @@ export const AuthProvider = ({ children }) => {
     };
 
     const checkAuth = async (force = false) => {
+        
+        // If we're on a public page and already know the user, don't re-check
+        if (isPublicPage && user && !force) {
+            setLoading(false);
+            return;
+        }
 
         try {
-            if (isPublicPage && !force) return;
-
-            const res = await api.get("api/users/session-status/");
+            const res = await api.get(API_ENDPOINTS.SESSION_STATUS, { 
+                _isAuthCheck: true,
+                _skipRefresh: isPublicPage,
+             });
             setUser(res.data);
             setExpiryTime(Date.now() + (res.data.remaining_seconds * 1000));
-        } catch (err) {    
+        } catch (err) {
+            handleClearingValues();
             // Only fetch CSRF if we are actually on a login/register page
             if (isPublicPage) {
-                try { await api.get("api/users/csrf/"); } catch (e) { }
+                try { await api.get(API_ENDPOINTS.CSRF); } catch (e) { }
             }
         } finally {
             setLoading(false);
@@ -55,10 +65,9 @@ export const AuthProvider = ({ children }) => {
     }, [currentTime, expiryTime, user]);
 
     // 3. Logic: Re-run checkAuth when navigating to a new page
-    // This ensures that if they were on /login and went to /, we check their status.
     useEffect(() => {
         checkAuth();
-    }, [location.pathname]);
+    }, [pathname]);
 
 
     useEffect(() => {
