@@ -211,13 +211,13 @@ const Profile = () => {
                 </div>
             ) : (
                 /* --- SECURITY TAB --- */
-                    <div className="bg-gray-800/50 border border-white/5 rounded-2xl p-8 shadow-xl animate-in fade-in duration-300">
-                        <div className="mb-6">
+                    <div className="bg-gray-800/50 border border-white/5 rounded-2xl p-8 shadow-xl animate-in fade-in duration-300 flex flex-col items-center">
+                        <div className="mb-8 text-center">
                             <h2 className="text-xl font-semibold text-white">Security Settings</h2>
                             <p className="text-gray-500 text-sm mt-1">Update your password to keep your account secure.</p>
                         </div>
 
-                        <form onSubmit={handlePasswordChange} className="max-w-md space-y-5">
+                        <form onSubmit={handlePasswordChange} className="w-full max-w-md space-y-5">
                             {/* Current Password */}
                             <div>
                                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Current Password</label>
