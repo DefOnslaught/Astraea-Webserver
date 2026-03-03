@@ -11,24 +11,20 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         # Removes old data that may be in cache from before starting django
-        server_keys = cache.keys("server_data:*")
-        if server_keys:
-            cache.delete_many(server_keys)
-        cache.delete("dashboard_stats")
+        cache.clear()
         
         self.stdout.write("Fetching servers from database...")
-        # MUST include every field used in cache_individual_vms and refresh_dashboard_stats
-        fields = [
+
+        # Evaluate the queryset into a list immediately to hit DB once
+        vms = list(Server.objects.values(
             'id', 
+            'server_id',
             'hostname',
             'ip_address',
             'last_patch_date',
             'os_version',
-            'rebooted',
-        ]
-
-        # Evaluate the queryset into a list immediately to hit DB once
-        vms = list(Server.objects.only(*fields))
+            'rebooted'
+        ))
         
         # 1. Cache individual VM details
         cache_individual_vms(vms)

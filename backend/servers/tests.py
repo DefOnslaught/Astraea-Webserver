@@ -1,6 +1,10 @@
+import os
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core.cache import cache
+from django.utils import timezone
+from datetime import timedelta
+from unittest.mock import patch
 from rest_framework.test import APITestCase
 from rest_framework import status
 
@@ -300,3 +304,125 @@ class PatchingSystemTests(APITestCase):
         
         response = self.client.post(url, {"name": "Hacker-Key"})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+
+    @patch('servers.views.warm_cache_in_background')
+    def test_dashboard_cold_cache_triggers_warming(self, mock_warm):
+        """If cache is empty, view should return 202 and trigger warming task."""
+        url = reverse('dashboard_stats')
+        response = self.client.get(url)
+        
+        # 1. Check the response logic
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.data['status'], 'warming')
+        
+        # 2. Verify the background function was actually called
+        mock_warm.assert_called_once()
+
+    def test_dashboard_warm_cache_returns_data(self):
+        """If cache exists, return it directly."""
+        mock_stats = {
+            "total_servers": 10,
+            "outdated_servers": 2,
+            "at_risk": [],
+            "recent_activity": [],
+            "last_updated": "2026-03-02 12:00:00"
+        }
+        cache.set("dashboard_stats", mock_stats)
+        
+        url = reverse('dashboard_stats')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['total_servers'], 10)
+
+    def test_signals_update_cache_incrementally(self):
+        """Tests that post_save signals update the 'dashboard_stats' counts."""
+        # 1. Manually prime the cache
+        initial_stats = {
+            "total_servers": 1,
+            "outdated_servers": 0,
+            "last_updated": "never"
+        }
+        cache.set("dashboard_stats", initial_stats)
+
+        # 2. Create a new server that is 'outdated' (last_patch_date is old)
+        old_date = timezone.now() - timedelta(days=45)
+        Server.objects.create(
+            hostname="outdated-srv", 
+            ip_address="1.1.1.1", 
+            last_patch_date=old_date
+        )
+
+        # 3. Check if cache was updated by the signal
+        updated_stats = cache.get("dashboard_stats")
+        self.assertEqual(updated_stats["total_servers"], 2)
+        self.assertEqual(updated_stats["outdated_servers"], 1)
+
+    def test_at_risk_logic_ordering(self):
+        """Ensure the 5 oldest servers are returned in the correct order."""
+        now = timezone.now()
+        # Create 6 servers, all older than 30 days to ensure they qualify
+        for i in range(6):
+            Server.objects.create(
+                hostname=f"srv-{i}",
+                ip_address=f"10.0.0.{i}",
+                # Start at 40 days ago and go further back
+                last_patch_date=now - timedelta(days=40 + (i * 10)) 
+            )
+        
+        from .utils import refresh_dashboard_stats
+        stats = refresh_dashboard_stats()
+        
+        # Now this will pass because all 6 are 'outdated', so it picks the 5 oldest
+        self.assertEqual(len(stats['at_risk']), 5)
+        self.assertEqual(stats['at_risk'][0]['hostname'], "srv-5")
+
+    def test_delete_signal_updates_counts(self):
+        """Ensure deleting a server decrements the total count in cache."""
+        # Setup initial cache
+        cache.set("dashboard_stats", {
+            "total_servers": 1, 
+            "outdated_servers": 0,
+            "at_risk": [],
+            "recent_activity": []
+        })
+        srv = Server.objects.create(hostname="delete-me", ip_address="1.2.3.4")
+        
+        # Total should now be 2 (from initial 1 + srv)
+        srv.delete()
+        
+        stats = cache.get("dashboard_stats")
+        self.assertEqual(stats["total_servers"], 1)
+
+
+    def test_healthy_servers_excluded_from_at_risk(self):
+        """Confirm that servers patched within the threshold do not appear in At Risk."""
+        now = timezone.now()
+        threshold_days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
+        
+        for i in range(3):
+            Server.objects.create(
+                hostname=f"outdated-{i}",
+                ip_address=f"10.0.1.{i}",
+                last_patch_date=now - timedelta(days=threshold_days + 10 + (i * 10))
+            )
+
+        for i in range(3):
+            Server.objects.create(
+                hostname=f"healthy-{i}",
+                ip_address=f"10.0.2.{i}",
+                last_patch_date=now - timedelta(days=5 + (i * 5))
+            )
+
+        # Force refresh
+        from .utils import refresh_dashboard_stats
+        stats = refresh_dashboard_stats()
+
+        self.assertEqual(len(stats['at_risk']), 3)
+
+        hostnames = [server['hostname'] for server in stats['at_risk']]
+        for name in hostnames:
+            self.assertNotIn("healthy", name)
+
+        self.assertEqual(stats['outdated_servers'], 3)

@@ -5,7 +5,7 @@ import './App.css';
 import Login from "./pages/Authentication/Login";
 import Logout from "./pages/Authentication/Logout";
 import Register from "./pages/Authentication/Register";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile/Profile";
 import NotFound from "./pages/ErrorPages/NotFound";
 
@@ -23,7 +23,7 @@ function App() {
           <Routes>
             {/* --- PROTECTED ROUTES --- */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Dashboard />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

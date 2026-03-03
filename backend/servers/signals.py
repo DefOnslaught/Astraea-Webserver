@@ -24,16 +24,15 @@ def capture_old_state(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Server)
 def sync_cache_on_save(sender, instance, created, **kwargs):
-    # Update individual cache
     cache_individual_vms([instance])
-
-    # Calculate current state
+    
     days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
     threshold = timezone.now() - timedelta(days=days)
     is_outdated = (instance.last_patch_date is None or instance.last_patch_date < threshold)
 
-    # Incrementally update the dashboard
+    # Pass the instance here!
     update_dashboard_counts(
+        instance=instance, 
         was_outdated=getattr(instance, '_was_outdated', False),
         is_outdated=is_outdated,
         is_new=created
@@ -46,7 +45,12 @@ def sync_cache_on_delete(sender, instance, **kwargs):
     is_outdated = (instance.last_patch_date is None or 
                    instance.last_patch_date < (timezone.now() - timedelta(days=days)))
     
-    update_dashboard_counts(was_outdated=is_outdated, is_outdated=False, is_deleted=True)
+    update_dashboard_counts(
+        instance=instance, 
+        was_outdated=is_outdated, 
+        is_outdated=False, 
+        is_deleted=True
+    )
 
 
 @receiver([post_save, post_delete], sender=APIKey)

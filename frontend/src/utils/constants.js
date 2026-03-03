@@ -2,6 +2,8 @@ export const PUBLIC_PATHS = ["/login", "/register"];
 export const AUTH_PAGES = ["/login", "/register", "/logout"]
 
 export const API_ENDPOINTS = {
+    DASHBOARD: "api/servers/dashboard/",
+
     SESSION_STATUS: "api/users/session-status/",
     REFRESH: "api/users/login/refresh/",
     CSRF: "api/users/csrf/",

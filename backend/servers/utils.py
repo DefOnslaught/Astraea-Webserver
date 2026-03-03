@@ -1,5 +1,5 @@
-import os, threading, logging
-from datetime import timedelta
+import os, threading, logging, heapq
+from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.utils import timezone
 from django.db import close_old_connections
@@ -17,59 +17,111 @@ def get_dashboard_stats():
 
 
 def refresh_dashboard_stats(vms=None):
-    """Calculates summary stats. Pass 'vms' list to avoid DB hits."""
-    # Get threshold from .env or default to 30 days
+    """Calculates summary stats and top server lists. Hits DB only if vms is None."""
     days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
     time_threshold = timezone.now() - timedelta(days=days)
 
     if vms is None:
-        # DB-side calculation (used by Views/Signals)
-        vms_qs = Server.objects.only('id', 'last_patch_date')
-        total_servers = vms_qs.count()
-        outdated_servers = vms_qs.filter(
-            Q(last_patch_date__lt=time_threshold) | Q(last_patch_date__isnull=True)
-        ).count()
-    else:
-        # In-memory calculation (used by Management Command)
-        total_servers = len(vms)
-        outdated_servers = 0
-        for vm in vms:
-            lp_date = vm.last_patch_date if hasattr(vm, 'last_patch_date') else vm.get('last_patch_date')
-            if lp_date is None or lp_date < time_threshold:
-                outdated_servers += 1
+        # DB Fallback (try to avoid this on the home page)
+        vms = list(Server.objects.all().values('id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted'))
+
+    total_servers = len(vms)
+    outdated_count = 0
+    at_risk_list = []
+    recently_patched_list = []
+
+    for vm in vms:
+        lp_date = vm.get('last_patch_date')
+        if lp_date is None or lp_date < time_threshold:
+            outdated_count += 1
+
+    # Define a 'zero' time for comparison
+    epoch_start = timezone.make_aware(datetime(1970, 1, 1))
+
+    # 1. Get only the ones that are actually "outdated"
+    outdated_vms = [v for v in vms if v.get('last_patch_date') is None or v.get('last_patch_date') < time_threshold]
+
+    # 2. Pick the 5 oldest from THAT filtered list
+    at_risk_list = heapq.nsmallest(
+        5, outdated_vms, 
+        key=lambda x: x.get('last_patch_date') if x.get('last_patch_date') else epoch_start
+    )
+
+    # Recent Activity: We want the LARGEST dates (newest).
+    # We filter out None because a 'never patched' server is not 'recent activity'.
+    patched_vms = [v for v in vms if v.get('last_patch_date') is not None]
+    recently_patched_list = heapq.nlargest(
+        5, patched_vms, 
+        key=lambda x: x.get('last_patch_date')
+    )
 
     stats = {
         "total_servers": total_servers,
-        "outdated_servers": outdated_servers,
-        "last_updated": timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+        "outdated_servers": outdated_count,
+        "at_risk": at_risk_list,
+        "recent_activity": recently_patched_list,
+        "last_updated": timezone.now().isoformat()
     }
     
     cache.set("dashboard_stats", stats, timeout=None)
+    logger.info(f"Cache has been successfully set for 'dashboard_stats'")
     return stats
 
 
-def update_dashboard_counts(was_outdated, is_outdated, is_new=False, is_deleted=False):
-    """
-    Adjusts total and outdated counts in Redis without querying the database.
-    """
+def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, is_deleted=False):
     stats = cache.get("dashboard_stats")
     if not stats:
-        # If cache is empty, just do a full refresh
         return refresh_dashboard_stats()
 
-    # 1. Handle Total Count
+    # Convert the model instance to a dict that matches your list format
+    vm_dict = {
+        'id': instance.id,
+        'hostname': instance.hostname,
+        'ip_address': instance.ip_address,
+        'last_patch_date': instance.last_patch_date,
+    }
+
+    # 1. Handle Totals
     if is_new:
         stats["total_servers"] += 1
     elif is_deleted:
         stats["total_servers"] -= 1
 
-    # 2. Handle Outdated Logic
     if was_outdated and not is_outdated:
-        # Server was patched!
         stats["outdated_servers"] = max(0, stats["outdated_servers"] - 1)
     elif not was_outdated and is_outdated:
-        # Server became outdated or was added as outdated
         stats["outdated_servers"] += 1
+
+    # 2. Handle Recent Activity List
+    if not is_deleted and instance.last_patch_date:
+        # Remove if already exists (to avoid duplicates), then add to top
+        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['id'] != instance.id]
+        stats["recent_activity"].insert(0, vm_dict)
+        # Keep only top 5
+        stats["recent_activity"] = sorted(
+            stats["recent_activity"], 
+            key=lambda x: x['last_patch_date'], 
+            reverse=True
+        )[:5]
+
+    # 3. Handle At Risk List
+    if not is_deleted:
+        # Remove existing instance to update it
+        current_at_risk = [v for v in stats.get("at_risk", []) if v['id'] != instance.id]
+        
+        # ONLY add it back if it is actually outdated
+        if is_outdated:
+            current_at_risk.append(vm_dict)
+        
+        epoch_start = timezone.make_aware(datetime(1970, 1, 1))
+        stats["at_risk"] = sorted(
+            current_at_risk, 
+            key=lambda x: x['last_patch_date'] if x['last_patch_date'] else epoch_start
+        )[:5]
+    else:
+        # If deleted, just remove from lists
+        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['id'] != instance.id]
+        stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['id'] != instance.id]
 
     stats["last_updated"] = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
     cache.set("dashboard_stats", stats, timeout=None)
