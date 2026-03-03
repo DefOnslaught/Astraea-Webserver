@@ -4,12 +4,16 @@ import { useNavigate } from "react-router-dom";
 import api from "./api";
 import { API_ENDPOINTS } from "./constants";
 import { usePathCheck } from "../hooks/usePathCheck";
+import SessionWarningModal from "../components/SessionWarningModal";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [expiryTime, setExpiryTime] = useState(null);
+    const [expiryTime, setExpiryTime] = useState(null);// Access Token
+    const [refreshExpiryTime, setRefreshExpiryTime] = useState(null); // Hard Logout
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [hasDismissedWarning, setHasDismissedWarning] = useState(false);
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [loading, setLoading] = useState(true);
 
@@ -38,6 +42,7 @@ export const AuthProvider = ({ children }) => {
              });
             setUser(res.data);
             setExpiryTime(Date.now() + (res.data.remaining_seconds * 1000));
+            setRefreshExpiryTime(Date.now() + (res.data.refresh_remaining * 1000));
         } catch (err) {
             handleClearingValues();
             // Only fetch CSRF if we are actually on a login/register page
@@ -48,6 +53,20 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         }
     };
+
+
+    const extendSession = async () => {
+        try {
+            const res = await api.post(API_ENDPOINTS.SESSION_EXTEND);
+            await checkAuth(true);
+            setShowWarningModal(false);
+            setHasDismissedWarning(false);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    };
+
 
     // 1. Initial Load Only
     useEffect(() => {
@@ -71,6 +90,34 @@ export const AuthProvider = ({ children }) => {
         }
     }, [currentTime, expiryTime, user]);
 
+    useEffect(() => {
+        setHasDismissedWarning(false);
+    }, [refreshExpiryTime]);
+
+    // Watch for Refresh Token expiration
+    useEffect(() => {
+        // PREVENT MODAL ON LOGOUT/LOGIN/REGISTER PATHS
+        const isSystemPage = ["/logout", "/login", "/register"].includes(pathname);
+
+        if (!refreshExpiryTime || !user || hasDismissedWarning || isSystemPage) {
+            // If we are on a system page, ensure the modal is closed
+            if (isSystemPage && showWarningModal) setShowWarningModal(false);
+            return;
+        }
+
+        const secondsLeft = Math.floor((refreshExpiryTime - currentTime) / 1000);
+
+        // Trigger warning modal when 5 minutes are left (300 seconds)
+        if (secondsLeft <= 60 && secondsLeft > 0 && !showWarningModal) {
+            setShowWarningModal(true);
+        }
+
+        // Force logout if it hits 0
+        if (secondsLeft <= 0) {
+            setShowWarningModal(false);
+            window.dispatchEvent(new Event("force-logout"));
+        }
+    }, [currentTime, refreshExpiryTime, user, showWarningModal, hasDismissedWarning, pathname]);
 
     useEffect(() => {
         const handleForceLogout = () => {
@@ -99,6 +146,11 @@ export const AuthProvider = ({ children }) => {
         return `${m}m ${s < 10 ? "0" : ""}${s}s`;
     };
 
+    const dismissWarning = () => {
+        setShowWarningModal(false);
+        setHasDismissedWarning(true);
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -107,9 +159,15 @@ export const AuthProvider = ({ children }) => {
             loading,
             checkAuth,
             timeLeft: getSecondsLeft(),
-            formattedTime: formatTime()
+            formattedTime: formatTime(),
+            showWarningModal,
+            setShowWarningModal,
+            dismissWarning,
+            extendSession,
+            refreshTimeLeft: Math.max(0, Math.floor((refreshExpiryTime - currentTime) / 1000))
         }}>
             {children}
+            {showWarningModal && <SessionWarningModal />}
         </AuthContext.Provider>
     );
 };

@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
     DASHBOARD: "api/servers/dashboard/",
 
     SESSION_STATUS: "api/users/session-status/",
+    SESSION_EXTEND: "api/users/session-extend/",
     REFRESH: "api/users/login/refresh/",
     CSRF: "api/users/csrf/",
     LOGIN: "api/users/login/",

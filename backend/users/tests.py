@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
 from .factories import UserFactory
 
@@ -20,6 +21,7 @@ class AuthTests(APITestCase):
         self.logout_url = reverse('logout')
         self.refresh_url = reverse('token_refresh')
         self.logout_all_url = reverse('logout_all_devices')
+        self.session_extend_url = reverse('session-extend')
             
         # Cookie keys from your settings
         self.access_cookie = settings.SIMPLE_JWT['AUTH_COOKIE']
@@ -220,3 +222,74 @@ class AuthTests(APITestCase):
         
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("StrongPassword123!"))
+    
+
+    def test_session_extend_success(self):
+        """
+        HAPPY PATH: Valid user with a valid refresh token cookie.
+        Checks: 200 OK, New cookies set, Old token blacklisted.
+        """
+        # 1. Generate initial tokens
+        refresh = RefreshToken.for_user(self.user)
+        refresh_token_str = str(refresh)
+        
+        # 2. Authenticate the request
+        self.client.force_authenticate(user=self.user)
+        self.client.cookies[self.refresh_cookie] = refresh_token_str
+
+        response = self.client.post(self.session_extend_url)
+
+        # Assertions
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(self.access_cookie, response.cookies)
+        self.assertIn(self.refresh_cookie, response.cookies)
+        
+        # Verify blacklisting (Requires 'rest_framework_simplejwt.token_blacklist' in INSTALLED_APPS)
+        is_blacklisted = BlacklistedToken.objects.filter(token__token=refresh_token_str).exists()
+        self.assertTrue(is_blacklisted, "The old refresh token should be blacklisted after renewal.")
+
+    def test_session_extend_no_cookie(self):
+        """
+        FAILURE: Authenticated user but missing the refresh token cookie.
+        """
+        self.client.force_authenticate(user=self.user)
+        # We explicitly don't set the refresh cookie here
+        
+        response = self.client.post(self.session_extend_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['message'], "No refresh token provided")
+
+    def test_session_extend_invalid_token(self):
+        """
+        FAILURE: Refresh token cookie exists but is malformed or tampered with.
+        """
+        self.client.force_authenticate(user=self.user)
+        self.client.cookies[self.refresh_cookie] = "this-is-not-a-valid-jwt-string"
+
+        response = self.client.post(self.session_extend_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['message'], "Invalid session")
+
+    def test_session_extend_unauthenticated(self):
+        """
+        FAILURE: User is not logged in (Permission Denied).
+        """
+        response = self.client.post(self.session_extend_url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_session_extend_expired_token(self):
+        """
+        FAILURE: Refresh token has expired.
+        """
+        self.client.force_authenticate(user=self.user)
+        
+        refresh = RefreshToken.for_user(self.user)
+        refresh.blacklist()
+        
+        self.client.cookies[self.refresh_cookie] = str(refresh)
+        response = self.client.post(self.session_extend_url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -124,6 +124,35 @@ class CustomTokenRefreshView(TokenRefreshView):
         return response
 
 
+class SessionExtendView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(get, request):
+        refresh_token_str = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
+
+        if not refresh_token_str:
+            logger.error(f"Invalid Refresh Token for user '{request.user.email}' - attempted to renew session")
+            return Response({"message": "No refresh token provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            old_token = RefreshToken(refresh_token_str)
+
+            new_token = RefreshToken.for_user(request.user)
+
+            old_token.blacklist()
+
+            response = Response({"message": "Session extended"}, status=status.HTTP_200_OK)
+            logger.info(f"Successfully extended the Refresh Token for user '{request.user.email}'")
+            return set_auth_cookies(
+                response, 
+                str(new_token.access_token), 
+                str(new_token)
+            )
+        except Exception as e:
+            logger.error(f"Enable to extended the Refresh Token for user '{request.user.email}'")
+            return Response({"message": "Invalid session"}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 

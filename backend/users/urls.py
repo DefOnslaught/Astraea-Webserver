@@ -10,7 +10,8 @@ from .views import (
     TokenOPView, 
     CustomTokenRefreshView,
     UserProfileView,
-    ChangePasswordView
+    ChangePasswordView,
+    SessionExtendView
 )
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     # After Auth
     path('basic-info/', BasicUserInfoView.as_view(), name='basic-info'),
     path('session-status/', SessionStatusView.as_view(), name='session-status'),
+    path('session-extend/', SessionExtendView.as_view(), name='session-extend'),
     
     # CSRF
     path('csrf/', CSRFTokenView.as_view(), name="get_csrf_token"),
