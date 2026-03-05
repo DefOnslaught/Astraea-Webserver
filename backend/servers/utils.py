@@ -1,4 +1,4 @@
-import os, threading, logging, heapq
+import os, threading, logging, heapq, re
 from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.utils import timezone
@@ -131,15 +131,15 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, i
 def cache_individual_vms(vms):
     """Takes a list or queryset of VMs and bulk-updates their Redis entries."""
     payload = {}
+    search_index = []
+
     for vm in vms:
         vm_id = vm.id if hasattr(vm, 'id') else vm.get('id')
         # Use a helper to handle both object and dict access seamlessly
         def get_val(attr, default=None):
-            if hasattr(vm, attr): return getattr(vm, attr)
-            if isinstance(vm, dict): return vm.get(attr, default)
-            return default
+            return getattr(vm, attr) if hasattr(vm, attr) else vm.get(attr, default)
 
-        payload[f"server_data:{vm_id}"] = {
+        server_obj = {
             "id": vm_id,
             "server_id": str(get_val('server_id')),
             "hostname": get_val('hostname', 'Unknown'),
@@ -148,10 +148,16 @@ def cache_individual_vms(vms):
             "os_version": get_val('os_version', 'Unknown'),
             "rebooted": get_val('rebooted', False),
             "uptime": get_val('uptime', ''),
-            "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None
+            "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None,
+            "display_status": "Reboot Required" if get_val('rebooted') else "Healthy"
         }
+
+        payload[f"server_data:{vm_id}"] = server_obj
+        search_index.append(server_obj)
+
     if payload:
         cache.set_many(payload, timeout=None)
+        cache.set("server_search_index", search_index, timeout=None)
 
 
 def warm_cache_in_background():
@@ -179,3 +185,59 @@ def warm_cache_in_background():
             close_old_connections()
     
     threading.Thread(target=task, daemon=True).start()
+
+
+def parse_relative_date(date_str):
+    """
+    Converts strings like '30d', '7d', '2w', '1y' into a datetime object.
+    """
+    match = re.match(r'(\d+)([dwmy])', date_str.lower())
+    if not match:
+        return None
+    
+    amount, unit = int(match.group(1)), match.group(2)
+    now = timezone.now()
+    
+    if unit == 'd': return now - timedelta(days=amount)
+    if unit == 'w': return now - timedelta(weeks=amount)
+    if unit == 'm': return now - timedelta(days=amount * 30)
+    if unit == 'y': return now - timedelta(days=amount * 365)
+    return None
+
+
+def evaluate_comparison(data_val, search_val):
+    """
+    Evaluates comparisons like '>30d', '<7d', or 'none'.
+    Handles both dates and numeric values.
+    """
+    if not data_val:
+        return search_val.lower() == 'none'
+    
+    # Check for operators at the start of the search value
+    op_match = re.match(r'([><=]=?)(.*)', str(search_val))
+    
+    if op_match:
+        op, val_str = op_match.groups()
+        
+        # Determine if we are comparing dates or numbers
+        target_date = parse_relative_date(val_str)
+        
+        # If data_val is a string timestamp from cache, convert it
+        current_val = data_val
+        if isinstance(data_val, str):
+            try:
+                current_val = datetime.fromisoformat(data_val)
+                if timezone.is_naive(current_val):
+                    current_val = timezone.make_aware(current_val)
+            except ValueError:
+                pass
+
+        # Perform logic
+        if op == '>': return current_val < target_date if target_date else False
+        if op == '<': return current_val > target_date if target_date else False
+        if op == '>=': return current_val >= target_date
+        if op == '<=': return current_val <= target_date
+        if op == '==': return current_val == target_date
+        
+    # Fallback to standard string inclusion if no operator found
+    return str(search_val).lower() in str(data_val).lower()

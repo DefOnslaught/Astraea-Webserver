@@ -10,6 +10,7 @@ from rest_framework import status
 
 from .factories import ServerFactory, PackageFactory
 from .models import Package, PackageUpdate, Server, APIKey
+from .utils import cache_individual_vms
 
 User = get_user_model()
 
@@ -209,57 +210,6 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(stats['total_servers'], 0)
 
 
-    def test_quick_search_redis_vs_db(self):
-        """Verify search works from Redis cache and correctly filters results."""
-        # 1. Setup: Create 2 VMs
-        s1 = ServerFactory(hostname="alpha-web", ip_address="10.0.0.1")
-        s2 = ServerFactory(hostname="beta-db", ip_address="10.0.0.2")
-        
-        s1.refresh_from_db()
-        s2.refresh_from_db()
-
-        # Manually trigger the cache warming so they are in Redis
-        from .utils import cache_individual_vms
-        cache_individual_vms([s1, s2])
-
-        url = reverse('vm_search')
-
-        # 2. Test Search by Hostname
-        resp1 = self.client.get(url, {'q': 'alpha'})
-        self.assertEqual(str(s1.server_id), resp1.data['results'][0]['server_id'])
-        self.assertEqual(len(resp1.data['results']), 1)
-        self.assertEqual(resp1.data['results'][0]['hostname'], "alpha-web")
-        self.assertFalse(resp1.data['is_partial']) # Should be False because it came from Redis
-
-        # 3. Test Search by IP
-        resp2 = self.client.get(url, {'q': '10.0.0.2'})
-        self.assertEqual(str(s2.server_id), resp2.data['results'][0]['server_id'])
-        self.assertEqual(len(resp2.data['results']), 1)
-        self.assertEqual(resp2.data['results'][0]['hostname'], "beta-db")
-
-    
-    def test_quick_search_fallback_to_db(self):
-        """Verify search falls back to DB when Redis is empty (is_partial=True)."""
-        # 1. Setup: Create a VM (Signal automatically puts it in Redis)
-        ServerFactory(hostname="ghost-vm")
-        
-        # 2. MANUALLY CLEAR CACHE HERE 
-        # This wipes out what the signal just did, forcing the view to go to the DB
-        cache.clear() 
-        
-        url = reverse('vm_search')
-
-        # 3. Act: Search for the VM
-        response = self.client.get(url, {'q': 'ghost'})
-
-        # 4. Assertions
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['hostname'], "ghost-vm")
-        
-        # This should now be True!
-        self.assertTrue(response.data['is_partial'])
-
-
     def test_create_api_key_success(self):
         """Verify authenticated users can generate an API key and it's hashed in DB."""
         url = reverse('create_api_key')  # Ensure this matches your urls.py name
@@ -426,3 +376,129 @@ class PatchingSystemTests(APITestCase):
             self.assertNotIn("healthy", name)
 
         self.assertEqual(stats['outdated_servers'], 3)
+
+
+class EnhancedSearchTests(APITestCase):
+
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(username="admin", password="password", email="test@example.com")
+        self.client.force_authenticate(user=self.user)
+        self.url = reverse('vm_search')
+
+        # Create a diverse set of test servers
+        self.s1 = Server.objects.create(
+            hostname="prod-web-01",
+            ip_address="10.0.0.10",
+            os_version="Ubuntu 22.04",
+            last_patch_date=timezone.now() - timedelta(days=45), # Old
+            rebooted=False,
+            mac_address="00:1A:2B:3C:4D:5E"
+        )
+        self.s2 = Server.objects.create(
+            hostname="prod-db-01",
+            ip_address="10.0.0.20",
+            os_version="Ubuntu 20.04",
+            last_patch_date=timezone.now() - timedelta(days=5), # Recent
+            rebooted=True,
+            mac_address="00:1A:2B:3C:4D:6F"
+        )
+        self.s3 = Server.objects.create(
+            hostname="dev-app-01",
+            ip_address="192.168.1.50",
+            os_version="CentOS 7",
+            mac_address="00:00:00:00:00:00",
+            last_patch_date=None, # Never patched
+            rebooted=False
+        )
+
+        # Warm the cache manually for "Live" testing
+        cache_individual_vms([self.s1, self.s2, self.s3])
+
+    def test_advanced_search_os_specific(self):
+        """Verify keyed filter 'os:' works correctly."""
+        response = self.client.get(self.url, {'q': 'os:ubuntu'})
+        self.assertEqual(len(response.data['results']), 2)
+        
+        response = self.client.get(self.url, {'q': 'os:centos'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "dev-app-01")
+
+    def test_advanced_search_date_operators(self):
+        """Verify 'patched:' with > and < operators."""
+        # Search for servers patched more than 30 days ago
+        response = self.client.get(self.url, {'q': 'patched:>30d'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
+
+        # Search for servers patched within the last 7 days
+        response = self.client.get(self.url, {'q': 'patched:<7d'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-db-01")
+
+    def test_search_for_never_patched(self):
+        """Verify 'patched:none' logic."""
+        response = self.client.get(self.url, {'q': 'patched:none'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "dev-app-01")
+
+    def test_combined_filters_and_terms(self):
+        """Verify combining keyed filters and general terms (AND logic)."""
+        # Search for Ubuntu servers that specifically have 'db' in their text
+        response = self.client.get(self.url, {'q': 'os:ubuntu db'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-db-01")
+
+    def test_quoted_string_search(self):
+        """Verify that quoted strings with spaces are handled."""
+        response = self.client.get(self.url, {'q': 'os:"Ubuntu 22.04"'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
+
+    def test_status_rebooted_filter(self):
+        """Verify 'status:rebooted' filter."""
+        response = self.client.get(self.url, {'q': 'status:rebooted'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-db-01")
+    
+    def test_search_pagination(self):
+        """Verify that search results are paginated."""
+        # Create 25 servers (more than the default page_size of 20)
+        for i in range(25):
+            Server.objects.create(hostname=f"batch-{i}", ip_address=f"10.1.{i}.1")
+        
+        # Refresh cache to include new servers
+        vms = list(Server.objects.all().values('id', 'server_id', 'hostname', 'ip_address'))
+        cache_individual_vms(vms)
+
+        url = reverse('vm_search')
+        response = self.client.get(url, {'q': 'batch'})
+
+        # Check metadata
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 25)
+        self.assertEqual(len(response.data['results']), 20) # Default page size
+        self.assertIsNotNone(response.data['next']) # Should have a link to page
+    
+    def test_basic_search_naked_string(self):
+        """Verify that searching without keys (hostname/IP) still works."""
+        # Search by hostname fragment
+        response = self.client.get(self.url, {'q': 'prod-web'})
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
+
+        # Search by IP fragment
+        response = self.client.get(self.url, {'q': '192.168'})
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "dev-app-01")
+
+    def test_multi_term_general_search(self):
+        """Verify that multiple naked terms act as an 'AND' filter."""
+        # This should match s1 because it has both 'prod' and 'web'
+        response = self.client.get(self.url, {'q': 'prod web'})
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
+
+        # This should match nothing (nothing has 'prod' AND 'centos')
+        response = self.client.get(self.url, {'q': 'prod centos'})
+        self.assertEqual(response.data['count'], 0)

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils import timezone
 from .models import Server, PackageUpdate, Package
 
 class PackageUpdateSerializer(serializers.ModelSerializer):
@@ -18,7 +19,7 @@ class ServerSearchSerializer(serializers.ModelSerializer):
     """Used for the Quick Search Results."""
     class Meta:
         model = Server
-        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'rebooted', 'last_patch_date']
+        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'rebooted', 'last_patch_date', 'mac_address', 'uptime']
 
 
 class ServerPatchSerializer(serializers.ModelSerializer):
@@ -30,11 +31,13 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         model = Server
         fields = [
             'hostname', 'ip_address', 'mac_address', 'os_version', 
-            'rebooted', 'uptime', 'total_packages_updated', 'packages'
+            'rebooted', 'uptime', 'total_packages_updated', 'packages',
+            'last_patch_date'
         ]
 
     def create(self, validated_data):
         packages_data = validated_data.pop('packages')
+        validated_data['last_patch_date'] = timezone.now()
         
         server, _ = Server.objects.update_or_create(
             hostname=validated_data.get('hostname'),

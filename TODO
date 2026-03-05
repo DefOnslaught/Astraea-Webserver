@@ -4,8 +4,20 @@ Backend:
     - Maybe cache all the packages?
 
 Frontend:
-    - Under Configuration, have a section that is for sending notifications (email, discord)
-    - When searching for a server, be able to search for last patching date older than X days
+    - Searching for a server - implement on the results output 'Infinite Scroll' - Bold Highlighting to highlight the searched parts that matched correctly 
     - List all packages, how many servers using that package (regardless of version)
         - when inspecting a package, list versions and how many servers use it
     - Search for package name, package version = shows a list of servers with it installed
+
+
+General Needs:
+
+    Configuration page (or dropdown):
+        - Notification area to  configure when to send notifications (on fail, on success) and where to send them
+        - Have a section for patching that allows you to enable/disable patching system wide
+        - Have a spot to delete package data that is not used by any server
+
+    Administration Page:
+        - Manage user accounts (Based on permission)
+        - About section (maybe show updates?)
+        - Link to the Django Admin page

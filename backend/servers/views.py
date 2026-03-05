@@ -1,14 +1,16 @@
-import logging
+import logging, re
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from django.core.cache import cache
 from django.db import transaction
+from django.db.models import Q
 
 from .models import Server, Package, APIKey
-from .utils import warm_cache_in_background
+from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date
 from .serializers import ServerSearchSerializer, ServerPatchSerializer
 from .permissions import HasInternalAPIKey
 
@@ -31,46 +33,130 @@ class DashboardStatsView(APIView):
         return Response(stats)
 
 
+class ServerSearchPagination(PageNumberPagination):
+    page_size = 20  # Default results per page
+    page_size_query_param = 'page_size'  # Allow client to override, e.g., ?page_size=50
+    max_page_size = 100
+
 class QuickVMSearchView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = ServerSearchPagination
 
     def get(self, request):
-        # request.GET pulls from the URL params (e.g., ?q=searchterm)
-        search_query = request.GET.get('q', '').lower()
+        raw_query = request.GET.get('q', '').strip()
+        if not raw_query:
+            return Response({'results': [], 'count': 0})
 
-        if not search_query:
-            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
+        # Regex captures (key):(operator)(value) or (key):(quoted value) or (term)
+        tokens = re.findall(r'(?:(\w+):)?(?:"([^"]+)"|([^\s]+))', raw_query.lower())
         
-        # 1. Try Redis first
-        keys = cache.keys("server_data:*")
-        vm_dict = cache.get_many(keys)
-        all_vms = [v for v in vm_dict.values() if v is not None]
+        filters = []
+        general_terms = []
+        for key, val_quoted, val_unquoted in tokens:
+            value = val_quoted or val_unquoted
+            if key:
+                filters.append((key, value))
+            else:
+                general_terms.append(value)
+
+        all_vms = cache.get("server_search_index")
         
-        # 2. Fallback to DB if Redis is empty
-        is_partial = False
-        if not all_vms:
+        if all_vms is None:
+            warm_cache_in_background() # Warm the cache while we are doing a Database lookup for the search results
+            return self._db_fallback(request, filters, general_terms)
 
-            warm_cache_in_background()
 
-            # Send 50 results while the cache is loading
-            vms_qs = Server.objects.all()[:50]
-            serializer = ServerSearchSerializer(vms_qs, many=True)
-            all_vms = serializer.data
-            is_partial = True
+        filter_map = {
+            'id': lambda vm, v: v in vm['server_id'].lower(),
+            'os': lambda vm, v: v in vm['os_version'].lower(),
+            'ip': lambda vm, v: v in vm['ip_address'].lower(),
+            'host': lambda vm, v: v in vm['hostname'].lower(),
+            'mac': lambda vm, v: v in vm['mac_address'].lower(),
+            'status': lambda vm, v: (v == 'rebooted' and vm['rebooted']) or 
+                                    (v == 'needs-patch' and not vm['last_patch']),
+            'patched': lambda vm, v: evaluate_comparison(vm['last_patch'], v),
+            'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v),
+        }
 
-        if search_query:
-            results = [
-                vm for vm in all_vms 
-                if search_query in vm.get('hostname', '').lower() 
-                or search_query in vm.get('ip_address', '').lower()
-            ]
-        else:
-            results = all_vms
+        results = []
+        for vm in all_vms:
+            is_match = True
+            for key, val in filters:
+                condition = filter_map.get(key)
+                if condition and not condition(vm, val):
+                    is_match = False
+                    break
+            
+            if is_match and general_terms:
+                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']}".lower()
+                if not all(term in searchable_string for term in general_terms):
+                    is_match = False
+            
+            if is_match:
+                results.append(vm)
 
-        return Response({
-            "results": results,
-            "is_partial": is_partial
-        })
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(results, request, view=self)
+        
+        if page is not None:
+            response = paginator.get_paginated_response(page)
+            response.data['is_partial'] = False
+            return response
+
+        return Response({"results": results, "is_partial": False})
+
+    def _db_fallback(self, request, filters, general_terms):
+        """Enhanced DB fallback to handle basic comparison operators."""
+        query = Q()
+        for key, val in filters:
+            # Map search keys to Django ORM lookups
+            lookup_map = {
+                'os': 'os_version', 
+                'host': 'hostname', 
+                'ip': 'ip_address', 
+                'id': 'server_id', 
+                'mac': 'mac_address',
+                'patched': 'last_patch_date'
+            }
+            field = lookup_map.get(key)
+            if not field: continue
+
+            # Edge Case: Handle 'none' for nullable fields
+            if val.lower() == 'none':
+                query &= Q(**{f"{field}__isnull": True})
+                continue
+
+            # Detect operators for ORM
+            if val.startswith('>'):
+                date_target = parse_relative_date(val[1:])
+                if date_target: query &= Q(**{f"{field}__lt": date_target})
+            elif val.startswith('<'):
+                date_target = parse_relative_date(val[1:])
+                if date_target: query &= Q(**{f"{field}__gt": date_target})
+            else:
+                query &= Q(**{f"{field}__icontains": val})
+
+        for term in general_terms:
+            query &= (
+                Q(hostname__icontains=term) | 
+                Q(ip_address__icontains=term) |
+                Q(os_version__icontains=term) |
+                Q(mac_address__icontains=term)
+            )
+
+        queryset = Server.objects.filter(query).order_by('hostname')
+        
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        
+        if page is not None:
+            serializer = ServerSearchSerializer(page, many=True)
+            response = paginator.get_paginated_response(serializer.data)
+            response.data['is_partial'] = True
+            return response
+
+        serializer = ServerSearchSerializer(queryset, many=True)
+        return Response({"results": serializer.data, "is_partial": True})
 
 
 class PackageSearchView(APIView):
