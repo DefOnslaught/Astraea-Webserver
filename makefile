@@ -114,10 +114,16 @@ run-tests-internal:
 		echo "\n$(BACKGROUND_RED)$(BOLD_WHITE)  TESTS FAILED  $(RESET)"; \
 		exit 1; \
 	)
+	@$(VENV_PYTHON) backend/manage.py clear_cache
 	@echo "\n$(BACKGROUND_GREEN)$(BOLD_WHITE)  ALL TESTS PASSED  $(RESET)"
 
 run-test-only-internal:
-	@cd backend && venv/bin/python manage.py test $(app) --noinput
+	@cd backend && venv/bin/python manage.py test $(app) --noinput || ( \
+		echo "\n$(BACKGROUND_RED)$(BOLD_WHITE)  TESTS FAILED  $(RESET)"; \
+		exit 1; \
+	)
+	@$(VENV_PYTHON) backend/manage.py clear_cache
+	@echo "\n$(BACKGROUND_GREEN)$(BOLD_WHITE)  TESTS PASSED  $(RESET)"
 
 run-buildBackend-internal:
 	@echo "$(GREEN)Deploying Django Backend...$(RESET)"
