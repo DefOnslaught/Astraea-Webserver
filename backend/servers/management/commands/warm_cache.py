@@ -3,6 +3,7 @@ from django.core.cache import cache
 
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms
+from servers.constants import SERVER_CACHE_FIELDS
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
 
@@ -16,15 +17,7 @@ class Command(BaseCommand):
         self.stdout.write("Fetching servers from database...")
 
         # Evaluate the queryset into a list immediately to hit DB once
-        vms = list(Server.objects.values(
-            'id', 
-            'server_id',
-            'hostname',
-            'ip_address',
-            'last_patch_date',
-            'os_version',
-            'rebooted'
-        ))
+        vms = list(Server.objects.values(*SERVER_CACHE_FIELDS))
         
         # 1. Cache individual VM details
         cache_individual_vms(vms)
