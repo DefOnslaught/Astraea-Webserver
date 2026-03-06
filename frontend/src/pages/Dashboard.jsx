@@ -3,6 +3,7 @@ import api from "../utils/api";
 import { useAuth } from "../utils/AuthContext";
 import useDocumentTitle from "../utils/useDocumentTitle";
 import { API_ENDPOINTS } from "../utils/constants";
+import getDaysAgo from "../utils/getDaysAgo";
 
 const Dashboard = () => {
     useDocumentTitle('Dashboard | Astraea');
@@ -210,47 +211,6 @@ const StatCard = ({ label, value, icon, loading, color, subtext }) => {
             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all"></div>
         </div>
     );
-};
-
-const getDaysAgo = (dateString) => {
-    if (!dateString) return "Never";
-    
-    const date = new Date(dateString);
-    const now = new Date();
-    const JUST_NOW_TIME = 3 * 60 * 1000;
-    const timeDifference = now - date;
-
-    // Check if dates are the same calendar day
-    const isToday = date.toDateString() === now.toDateString();
-
-    const yesterday = new Date();
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-
-    // Format the time portion (e.g., "2:30 PM")
-    const timeFormatter = new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true
-    });
-    const timeStr = timeFormatter.format(date);
-
-    if (timeDifference > 0 && timeDifference < JUST_NOW_TIME) {
-        return `Just Now`;
-    }
-
-    if (isToday) return `Today at ${timeStr}`;
-    if (isYesterday) return `Yesterday at ${timeStr}`;
-
-    // For older dates, calculate days ago
-    const diffTime = now - date;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return `Today at ${timeStr}`; //Fallback for edge cases
-
-    return diffDays > 7
-        ? date.toLocaleDateString() // e.g. "12/15/2023" if very old
-        : `${diffDays} days ago`;
 };
 
 // Sub-component for individual rows
