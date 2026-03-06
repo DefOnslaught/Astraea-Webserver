@@ -121,7 +121,7 @@ The Makefile is the primary way to interact with the Astraea environment, below 
 |--------------|----------|----------|
 | make status | | Primary Health Check. Shows service status, disk usage, and pending migrations.  |
 | make initialSetup | | Creates Python venv, installs dependencies, configures any migrations, creates Gunicorn service files, Nginx config files and log files. |
-| make deploy | skip=yes | Runs unit tests, builds the frontend and backend, and restarts services. *arg used to skip test -Optional |
+| make deploy | skip=no | Runs unit tests, builds the frontend and backend, and restarts services. *arg used to skip test -Optional |
 | make buildBackend | | skip=yes | Builds Backend, restarts services. *arg used to skip test -Optional |
 | make buildFrontend | | Builds Frontend |
 | make test | skip=yes | Executes the Django test suite. *arg used to skip test -Optional |

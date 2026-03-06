@@ -76,10 +76,18 @@ endif
 
 test:
 ifeq ("$(skip)", "yes")
-	@echo "$(RED)!WARNING! $(RESET)$(BOLD_MAGENTA)Skipping Unit Tests...$(RESET)"
+	@echo "$(RED)!WARNING! $(RESET)$(BOLD_MAGENTA)Skipping Unit Tests...$(RESET)"	
 else
 	@$(TIME_CMD) -o .test_time $(M_SILENT) run-tests-internal
 	$(call PRINT_TIME,.test_time)
+endif
+
+test-deploy:
+ifeq ("$(skip)", "no")
+	@$(TIME_CMD) -o .test_deploy_time $(M_SILENT) run-tests-internal
+	$(call PRINT_TIME,.test_deploy_time)
+else
+	@echo "$(RED)!WARNING! $(RESET)$(BOLD_MAGENTA)Skipping Unit Tests...$(RESET)"
 endif
 
 buildBackend: test
@@ -137,7 +145,7 @@ run-buildFrontend-internal:
 	@mkdir -p frontend/dist/assets
 	@cd frontend && npm install && npm run build || exit 1
 
-deploy-internal: test buildFrontend
+deploy-internal: test-deploy buildFrontend
 	@echo "$(GREEN)Finalizing Deployment...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput
 	@sudo systemctl restart gunicorn
