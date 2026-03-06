@@ -14,7 +14,7 @@ class PackageAdmin(admin.ModelAdmin):
 
 @admin.register(PackageUpdate)
 class PackageUpdateAdmin(admin.ModelAdmin):
-    fields = ('server', 'package', 'timestamp')
+    fields = ('server', 'package')
     list_display = ('server', 'package', 'timestamp')
 
 @admin.register(APIKey)

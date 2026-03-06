@@ -117,6 +117,7 @@ class PatchingSystemTests(APITestCase):
     def test_bulk_patching_simulation(self):
         """Simulates 10 different VMs checking in with patching data."""
         url = reverse('save_patching_data')
+        cache.clear()
         from .utils import refresh_dashboard_stats
         refresh_dashboard_stats()
 

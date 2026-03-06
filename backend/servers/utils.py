@@ -6,6 +6,7 @@ from django.db import close_old_connections
 from django.db.models import Q
 
 from .models import Server
+from .constants import SERVER_CACHE_FIELDS
 
 logger = logging.getLogger('django')
 
@@ -130,13 +131,24 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, i
 
 
 def cache_individual_vms(vms):
-    """Takes a list or queryset of VMs and bulk-updates their Redis entries."""
+    """Updates specific Redis entries and surgically updates the search index."""
     payload = {}
-    search_index = []
+    
+    # 1. Fetch the existing search index
+    current_index = cache.get("server_search_index")
+    
+    # If index is missing, we can't update it surgically. 
+    # Just trigger a full warm and update individual server keys.
+    if current_index is None:
+        current_index = [] 
+
+    # Convert index to a dict for O(1) lookups during the update
+    # Using 'id' as the unique key
+    index_map = {str(item['id']): item for item in current_index}
 
     for vm in vms:
         vm_id = vm.id if hasattr(vm, 'id') else vm.get('id')
-        # Use a helper to handle both object and dict access seamlessly
+        
         def get_val(attr, default=None):
             return getattr(vm, attr) if hasattr(vm, attr) else vm.get(attr, default)
 
@@ -149,16 +161,35 @@ def cache_individual_vms(vms):
             "os_version": get_val('os_version', 'Unknown'),
             "rebooted": get_val('rebooted', False),
             "uptime": get_val('uptime', ''),
-            "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None,
-            "display_status": "Reboot Required" if get_val('rebooted') else "Healthy"
+            "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None
         }
 
+        # 2. Update individual granular keys
         payload[f"server_data:{vm_id}"] = server_obj
-        search_index.append(server_obj)
+        
+        # 3. Update the dictionary map for the index
+        index_map[str(vm_id)] = server_obj
 
+    # 4. Save everything back
     if payload:
         cache.set_many(payload, timeout=None)
-        cache.set("server_search_index", search_index, timeout=None)
+        
+        # Convert map back to list and sort by hostname to keep search results consistent
+        updated_index = sorted(index_map.values(), key=lambda x: natural_sort_key(x['hostname']))
+        cache.set("server_search_index", updated_index, timeout=None)
+
+
+def remove_vm_from_index(vm_id):
+    """Surgically removes a server from the search index list."""
+    current_index = cache.get("server_search_index")
+    if not current_index:
+        return
+    
+    # Filter out the deleted ID
+    updated_index = [vm for vm in current_index if str(vm['id']) != str(vm_id)]
+    
+    if len(updated_index) != len(current_index):
+        cache.set("server_search_index", updated_index, timeout=None)
 
 
 def warm_cache_in_background():
@@ -174,8 +205,8 @@ def warm_cache_in_background():
         close_old_connections()
         cache.set("is_warming", True, timeout=300)
         try:
-            fields = ['id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted']
-            vms = list(Server.objects.values(*fields))
+            fields = ['id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted', 'mac_address', 'uptime']
+            vms = list(Server.objects.values(*SERVER_CACHE_FIELDS))
             cache_individual_vms(vms)
             refresh_dashboard_stats(vms=vms)
             logger.info("Background cache warming completed.")
@@ -242,3 +273,12 @@ def evaluate_comparison(data_val, search_val):
         
     # Fallback to standard string inclusion if no operator found
     return str(search_val).lower() in str(data_val).lower()
+
+
+def natural_sort_key(s):
+    """
+    Splits string into a list of strings and integers.
+    'server-10.internal' -> ['server-', 10, '.internal']
+    """
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split('([0-9]+)', s)]

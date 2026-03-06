@@ -30,7 +30,7 @@ class DashboardStatsView(APIView):
                 "status": "warming",
                 "progress": "Cache is populating..."
             }, status=status.HTTP_202_ACCEPTED)
-        return Response(stats)
+        return Response(stats, status=status.HTTP_200_OK)
 
 
 class ServerSearchPagination(PageNumberPagination):
@@ -44,8 +44,16 @@ class QuickVMSearchView(APIView):
 
     def get(self, request):
         raw_query = request.GET.get('q', '').strip()
+        all_vms = cache.get("server_search_index")
+
         if not raw_query:
-            return Response({'results': [], 'count': 0})
+            if all_vms is None:
+                warm_cache_in_background()
+                # Return everything from DB if cache is empty
+                queryset = Server.objects.all().order_by('hostname')
+                return self._paginate_and_serialize(queryset, request, is_partial=True)
+            else:
+                return self._paginate_list(all_vms, request, is_partial=False)
 
         # Regex captures (key):(operator)(value) or (key):(quoted value) or (term)
         tokens = re.findall(r'(?:(\w+):)?(?:"([^"]+)"|([^\s]+))', raw_query.lower())
@@ -58,8 +66,6 @@ class QuickVMSearchView(APIView):
                 filters.append((key, value))
             else:
                 general_terms.append(value)
-
-        all_vms = cache.get("server_search_index")
         
         if all_vms is None:
             warm_cache_in_background() # Warm the cache while we are doing a Database lookup for the search results
@@ -72,8 +78,7 @@ class QuickVMSearchView(APIView):
             'ip': lambda vm, v: v in vm['ip_address'].lower(),
             'host': lambda vm, v: v in vm['hostname'].lower(),
             'mac': lambda vm, v: v in vm['mac_address'].lower(),
-            'status': lambda vm, v: (v == 'rebooted' and vm['rebooted']) or 
-                                    (v == 'needs-patch' and not vm['last_patch']),
+            'rebooted': lambda vm, v: vm['rebooted'] if v == 'true' else not vm['rebooted'],
             'patched': lambda vm, v: evaluate_comparison(vm['last_patch'], v),
             'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v),
         }
@@ -103,7 +108,7 @@ class QuickVMSearchView(APIView):
             response.data['is_partial'] = False
             return response
 
-        return Response({"results": results, "is_partial": False})
+        return Response({"results": results, "is_partial": False}, status=status.HTTP_200_OK)
 
     def _db_fallback(self, request, filters, general_terms):
         """Enhanced DB fallback to handle basic comparison operators."""
@@ -116,10 +121,16 @@ class QuickVMSearchView(APIView):
                 'ip': 'ip_address', 
                 'id': 'server_id', 
                 'mac': 'mac_address',
-                'patched': 'last_patch_date'
+                'patched': 'last_patch_date',
+                'rebooted': 'rebooted'
             }
             field = lookup_map.get(key)
             if not field: continue
+
+            if key == 'rebooted':
+                is_rebooted = val.lower() == 'true'
+                query &= Q(rebooted=is_rebooted)
+                continue
 
             # Edge Case: Handle 'none' for nullable fields
             if val.lower() == 'none':
@@ -156,7 +167,30 @@ class QuickVMSearchView(APIView):
             return response
 
         serializer = ServerSearchSerializer(queryset, many=True)
-        return Response({"results": serializer.data, "is_partial": True})
+        return Response({"results": serializer.data, "is_partial": True}, status=status.HTTP_200_OK)
+    
+    def _paginate_list(self, data_list, request, is_partial=False):
+        """Helper to paginate a standard Python list (from Cache)."""
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(data_list, request, view=self)
+        if page is not None:
+            response = paginator.get_paginated_response(page)
+            response.data['is_partial'] = is_partial
+            return response
+        return Response({"results": data_list, "is_partial": is_partial})
+
+    def _paginate_and_serialize(self, queryset, request, is_partial=True):
+        """Helper to paginate a Django QuerySet (from Database)."""
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = ServerSearchSerializer(page, many=True)
+            response = paginator.get_paginated_response(serializer.data)
+            response.data['is_partial'] = is_partial
+            return response
+        
+        serializer = ServerSearchSerializer(queryset, many=True)
+        return Response({"results": serializer.data, "is_partial": is_partial})
 
 
 class PackageSearchView(APIView):
@@ -198,7 +232,7 @@ class PackageSearchView(APIView):
             results = list(grouped_data.values())
             cache.set(cache_key, results, timeout=900)
         
-        return Response(results)
+        return Response(results, status=status.HTTP_200_OK)
 
 
 class SavePatchingData(APIView):

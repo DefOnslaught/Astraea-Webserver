@@ -6,6 +6,7 @@ import Login from "./pages/Authentication/Login";
 import Logout from "./pages/Authentication/Logout";
 import Register from "./pages/Authentication/Register";
 import Dashboard from "./pages/Dashboard";
+import Servers from "./pages/Servers/Servers";
 import Profile from "./pages/Profile/Profile";
 import NotFound from "./pages/ErrorPages/NotFound";
 
@@ -24,6 +25,7 @@ function App() {
             {/* --- PROTECTED ROUTES --- */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/servers" element={<Servers />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
