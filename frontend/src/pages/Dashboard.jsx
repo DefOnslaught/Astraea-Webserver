@@ -4,8 +4,8 @@ import { useAuth } from "../utils/AuthContext";
 import useDocumentTitle from "../utils/useDocumentTitle";
 import { API_ENDPOINTS } from "../utils/constants";
 
-const Home = () => {
-    useDocumentTitle('Home | Astraea');
+const Dashboard = () => {
+    useDocumentTitle('Dashboard | Astraea');
     const { user, formattedTime } = useAuth();
 
     const [stats, setStats] = useState(null);
@@ -31,6 +31,12 @@ const Home = () => {
 
     useEffect(() => {
         fetchDashboardData();
+        // Force a re-render every 60 seconds to update "Today at..." strings
+        const interval = setInterval(() => {
+            setStats(prev => ({ ...prev }));
+        }, 60000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return (
@@ -78,26 +84,37 @@ const Home = () => {
                 />
 
                 {/* CARD 3: SYSTEM STATUS */}
-                <div className={`bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden transition-all duration-500 ${isLoading ? 'animate-pulse' : ''}`}>
-                    <div className="flex justify-between items-start">
+                <div className={`bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 ${isLoading ? 'animate-pulse' : ''}`}>
+                    <div className="flex justify-between items-start relative z-10">
                         <div>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Cache Status</p>
-                            <h3 className="text-2xl font-bold text-white">
-                                {isWarming ? "Populating..." : "Live"}
+                            <h3 className={`text-4xl font-bold tracking-tighter transition-colors duration-500 ${isWarming ? 'text-amber-500' : 'text-emerald-400'}`}>
+                                {isWarming ? "Populating" : "Live"}
                             </h3>
                         </div>
-                        <div className={`p-3 rounded-xl bg-white/5 ${isWarming ? 'animate-spin' : ''}`}>
-                            <i className={`fa-solid ${isWarming ? 'fa-circle-notch' : 'fa-check-double'} text-indigo-400`}></i>
+
+                        {/* Icon logic matching StatCard hover effects */}
+                        <div className={`p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform duration-300 ${isWarming ? 'animate-spin' : ''}`}>
+                            <i className={`fa-solid ${isWarming ? 'fa-circle-notch' : 'fa-check-double'} text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
                         </div>
                     </div>
+
                     {!isLoading && (
-                        <p className="mt-4 text-xs text-gray-400">
-                            Last Refreshed: <span className="text-gray-300 font-mono">{stats?.last_updated
-                                ? new Date(stats.last_updated).toLocaleString()
-                                : "N/A"}
+                        <p className="mt-4 text-xs text-gray-500 font-medium">
+                            Last Refreshed: <span className="text-gray-400 font-mono">
+                                {stats?.last_updated
+                                    ? new Intl.DateTimeFormat(navigator.language, {
+                                        dateStyle: 'short',
+                                        timeStyle: 'medium',
+                                    }).format(new Date(stats.last_updated))
+                                    : "N/A"}
                             </span>
                         </p>
                     )}
+
+                    <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-2xl transition-all duration-500 
+                        ${isWarming ? 'bg-amber-500/5 group-hover:bg-amber-500/10' : 'bg-emerald-500/5 group-hover:bg-emerald-500/10'}`}>
+                    </div>
                 </div>
             </div>
             
@@ -126,12 +143,12 @@ const Home = () => {
                     </div>
                 </div>
 
-                {/* RECENT ACTIVITY */}
+                {/* RECENTLY PATCHED */}
                 <div className="bg-gray-800/20 border border-white/5 rounded-2xl overflow-hidden flex flex-col">
                     <div className="p-5 border-b border-white/5 bg-emerald-500/5 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recent Activity</h2>
+                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recently Patched</h2>
                         </div>
                         <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded">Successfully Patched</span>
                     </div>
@@ -144,7 +161,7 @@ const Home = () => {
                                 <ServerRow key={server.id} server={server} type="activity" />
                             ))
                         ) : (
-                            <EmptyState message="No recent activity recorded." />
+                            <EmptyState message="No recent patches recorded." />
                         )}
                     </div>
                 </div>
@@ -197,12 +214,43 @@ const StatCard = ({ label, value, icon, loading, color, subtext }) => {
 
 const getDaysAgo = (dateString) => {
     if (!dateString) return "Never";
-    const patchDate = new Date(dateString);
+    
+    const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - patchDate);
+    const JUST_NOW_TIME = 3 * 60 * 1000;
+    const timeDifference = now - date;
+
+    // Check if dates are the same calendar day
+    const isToday = date.toDateString() === now.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    // Format the time portion (e.g., "2:30 PM")
+    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+    });
+    const timeStr = timeFormatter.format(date);
+
+    if (timeDifference > 0 && timeDifference < JUST_NOW_TIME) {
+        return `Just Now`;
+    }
+
+    if (isToday) return `Today at ${timeStr}`;
+    if (isYesterday) return `Yesterday at ${timeStr}`;
+
+    // For older dates, calculate days ago
+    const diffTime = now - date;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays === 0 ? "Today" : `${diffDays} days ago`;
+    if (diffDays === 0) return `Today at ${timeStr}`; //Fallback for edge cases
+
+    return diffDays > 7
+        ? date.toLocaleDateString() // e.g. "12/15/2023" if very old
+        : `${diffDays} days ago`;
 };
 
 // Sub-component for individual rows
@@ -220,11 +268,8 @@ const ServerRow = ({ server, type }) => (
         </div>
 
         <div className="text-right">
-            <p className="text-[11px] text-gray-400 font-medium lowercase">
-                {type === 'risk'
-                    ? getDaysAgo(server.last_patch_date)
-                    : (server.last_patch_date ? new Date(server.last_patch_date).toLocaleDateString() : 'Never')
-                }
+            <p className="text-[11px] text-gray-400 font-medium">
+                {getDaysAgo(server.last_patch_date)}
             </p>
             <p className="text-[9px] text-gray-600 uppercase font-bold tracking-tighter">
                 {type === 'risk' ? 'Status' : 'Last Patch'}
@@ -248,4 +293,4 @@ const EmptyState = ({ message }) => (
     </div>
 );
 
-export default Home;
+export default Dashboard;
