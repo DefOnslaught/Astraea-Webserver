@@ -123,8 +123,9 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, i
         stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['id'] != instance.id]
         stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['id'] != instance.id]
 
-    stats["last_updated"] = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)
+    logger.info(f"Cache has been successfully updated for 'dashboard_stats'")
     return stats
 
 
