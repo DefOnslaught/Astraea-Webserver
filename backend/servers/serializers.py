@@ -19,7 +19,7 @@ class ServerSearchSerializer(serializers.ModelSerializer):
     """Used for the Quick Search Results."""
     class Meta:
         model = Server
-        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'rebooted', 'last_patch_date', 'mac_address', 'uptime']
+        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'last_reboot', 'last_patch_date', 'mac_address', 'uptime', 'patch_schedule', 'env']
 
 
 class ServerPatchSerializer(serializers.ModelSerializer):
@@ -31,8 +31,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         model = Server
         fields = [
             'hostname', 'ip_address', 'mac_address', 'os_version', 
-            'rebooted', 'uptime', 'total_packages_updated', 'packages',
-            'last_patch_date'
+            'last_reboot', 'uptime', 'total_packages_updated', 'packages',
+            'last_patch_date', 'patch_schedule', 'env'
         ]
 
     def create(self, validated_data):

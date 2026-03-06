@@ -56,16 +56,25 @@ class PatchingSystemTests(APITestCase):
     def test_patching_api_updates_db_and_cache(self):
         """Verify the SavePatchingData view correctly updates everything."""
         # 1. Setup existing server
-        server = ServerFactory(hostname="prod-web-01", rebooted=False)
-        url = reverse('save_patching_data') # Assuming this name in urls.py
+        past_reboot = timezone.now() - timedelta(days=10)
+        server = ServerFactory(
+            hostname="prod-web-01", 
+            last_reboot=past_reboot,
+            patch_schedule="Default"
+        )
+        url = reverse('save_patching_data')
         
+        new_reboot_time = timezone.now()
+
         payload = {
             "hostname": "prod-web-01",
             "ip_address": "192.168.1.50",
             "mac_address": "AA:BB:CC:DD:EE:FF",
             "os_version": "Debian 12",
-            "rebooted": True,
+            "last_reboot": new_reboot_time.isoformat(),
+            "patch_schedule": "10AM Wednesday Weeks 1 & 3",
             "uptime": "1 hour",
+            "env": "Prod",
             "total_packages_updated": 2,
             "packages": [
                 {"package_name": "openssl", "version": "3.0.8"},
@@ -82,7 +91,9 @@ class PatchingSystemTests(APITestCase):
         # Check DB updated
         server.refresh_from_db()
         self.assertIsNotNone(server.server_id)
-        self.assertTrue(server.rebooted)
+        self.assertEqual(server.patch_schedule, "10AM Wednesday Weeks 1 & 3")
+        self.assertGreater(server.last_reboot, past_reboot)
+        self.assertEqual(server.env, "Prod")
         self.assertEqual(Package.objects.count(), 2)
         self.assertEqual(PackageUpdate.objects.filter(server=server).count(), 2)
 
@@ -90,7 +101,9 @@ class PatchingSystemTests(APITestCase):
         cached_data = cache.get(f"server_data:{server.id}")
         self.assertIsNotNone(cached_data)
         self.assertEqual(cached_data['os_version'], "Debian 12")
-        self.assertTrue(cached_data['rebooted'])
+        self.assertEqual(cached_data['patch_schedule'], "10AM Wednesday Weeks 1 & 3")
+        self.assertEqual(cached_data['env'], "Prod")
+        self.assertIn(str(new_reboot_time.date()), cached_data['last_reboot'])
         self.assertEqual(str(server.server_id), str(cached_data['server_id']))
 
 
@@ -121,6 +134,8 @@ class PatchingSystemTests(APITestCase):
         from .utils import refresh_dashboard_stats
         refresh_dashboard_stats()
 
+        reboot_time = timezone.now().replace(microsecond=0).isoformat()
+
         # We will loop 10 times to simulate 10 different servers reporting in
         for i in range(10):
             vm_name = f"server-{i}"
@@ -129,9 +144,11 @@ class PatchingSystemTests(APITestCase):
                 "ip_address": f"10.0.0.{i}",
                 "mac_address": f"00:11:22:33:44:00",
                 "os_version": "Ubuntu 22.04",
-                "rebooted": False,
+                "rebooted": reboot_time,
                 "uptime": "10 days",
+                "env": "Prod",
                 "total_packages_updated": 1,
+                "patch_schedule": "10AM Wednesday Weeks 1 and 3",
                 "packages": [
                     {"package_name": "openssl", "version": "3.0.8"},
                     {"package_name": "bash", "version": "5.2.15"},
@@ -393,16 +410,20 @@ class EnhancedSearchTests(APITestCase):
             ip_address="10.0.0.10",
             os_version="Ubuntu 22.04",
             last_patch_date=timezone.now() - timedelta(days=45), # Old
-            rebooted=False,
-            mac_address="00:1A:2B:3C:4D:5E"
+            last_reboot=timezone.now() - timedelta(days=2),
+            mac_address="00:1A:2B:3C:4D:5E",
+            patch_schedule="1AM Friday Weeks 2 and 4",
+            env = "Prod"
         )
         self.s2 = Server.objects.create(
             hostname="prod-db-01",
             ip_address="10.0.0.20",
             os_version="Ubuntu 20.04",
             last_patch_date=timezone.now() - timedelta(days=5), # Recent
-            rebooted=True,
-            mac_address="00:1A:2B:3C:4D:6F"
+            last_reboot=timezone.now() - timedelta(days=30),
+            mac_address="00:1A:2B:3C:4D:6F",
+            patch_schedule="9PM Thursday Weeks 1 and 3",
+            env = "Prod"
         )
         self.s3 = Server.objects.create(
             hostname="dev-app-01",
@@ -410,7 +431,9 @@ class EnhancedSearchTests(APITestCase):
             os_version="CentOS 7",
             mac_address="00:00:00:00:00:00",
             last_patch_date=None, # Never patched
-            rebooted=False
+            last_reboot=timezone.now() - timedelta(days=10),
+            patch_schedule="", # Test null
+            env = ""
         )
 
         # Warm the cache manually for "Live" testing
@@ -457,10 +480,14 @@ class EnhancedSearchTests(APITestCase):
         self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
 
     def test_status_rebooted_filter(self):
-        """Verify 'status:rebooted' filter."""
-        response = self.client.get(self.url, {'q': 'status:rebooted'})
+        """Verify filtering by reboot status using the new last_reboot field."""
+        response = self.client.get(self.url, {'q': 'host:prod-web-01'})
         self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['hostname'], "prod-db-01")
+        
+        server_data = response.data['results'][0]
+        self.assertIsNotNone(server_data['last_reboot'])
+        
+        self.assertIsInstance(server_data['last_reboot'], str)
     
     def test_search_pagination(self):
         """Verify that search results are paginated."""
@@ -469,7 +496,7 @@ class EnhancedSearchTests(APITestCase):
             Server.objects.create(hostname=f"batch-{i}", ip_address=f"10.1.{i}.1")
         
         # Refresh cache to include new servers
-        vms = list(Server.objects.all().values('id', 'server_id', 'hostname', 'ip_address'))
+        vms = list(Server.objects.all().values('id', 'server_id', 'hostname', 'ip_address', 'env'))
         cache_individual_vms(vms)
 
         url = reverse('vm_search')
@@ -503,3 +530,34 @@ class EnhancedSearchTests(APITestCase):
         # This should match nothing (nothing has 'prod' AND 'centos')
         response = self.client.get(self.url, {'q': 'prod centos'})
         self.assertEqual(response.data['count'], 0)
+    
+    def test_patch_schedule_filter(self):
+        """Verify 'schedule:' filter and general search for patch windows."""
+        
+        # 1. Test targeted search using the key
+        response = self.client.get(self.url, {'q': 'schedule:"1AM Friday"' })
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
+
+        # 2. Test general term search (no key)
+        response = self.client.get(self.url, {'q': 'Thursday'})
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-db-01")
+
+        # 3. Test empty/null schedule handling
+        response = self.client.get(self.url, {'q': 'host:dev-app-01'})
+        self.assertEqual(response.data['results'][0]['patch_schedule'], "")
+    
+    def test_env_filter(self):
+        """Verify 'env:' filter and general search for environments."""
+
+        response = self.client.get(self.url, {'q': 'env:Prod'})
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['hostname'], 'prod-db-01')
+
+        response = self.client.get(self.url, {'q': 'Prod'})
+        self.assertEqual(len(response.data['results']), 2)
+        self.assertEqual(response.data['results'][0]['hostname'], 'prod-db-01')
+
+        response = self.client.get(self.url, {'q': 'host:dev-app-01'})
+        self.assertEqual(response.data['results'][0]['env'], "")

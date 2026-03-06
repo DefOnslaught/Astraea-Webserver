@@ -24,7 +24,7 @@ def refresh_dashboard_stats(vms=None):
 
     if vms is None:
         # DB Fallback (try to avoid this on the home page)
-        vms = list(Server.objects.all().values('id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted'))
+        vms = list(Server.objects.all().values('id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'last_reboot', 'env'))
 
     total_servers = len(vms)
     outdated_count = 0
@@ -159,8 +159,10 @@ def cache_individual_vms(vms):
             "ip_address": get_val('ip_address', '0.0.0.0'),
             "mac_address": get_val('mac_address', ''),
             "os_version": get_val('os_version', 'Unknown'),
-            "rebooted": get_val('rebooted', False),
+            "last_reboot": str(get_val('last_reboot')) if get_val('last_reboot') else None,
             "uptime": get_val('uptime', ''),
+            "env": get_val('env', ''),
+            "patch_schedule": get_val('patch_schedule', ''),
             "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None
         }
 
@@ -205,7 +207,6 @@ def warm_cache_in_background():
         close_old_connections()
         cache.set("is_warming", True, timeout=300)
         try:
-            fields = ['id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'rebooted', 'mac_address', 'uptime']
             vms = list(Server.objects.values(*SERVER_CACHE_FIELDS))
             cache_individual_vms(vms)
             refresh_dashboard_stats(vms=vms)

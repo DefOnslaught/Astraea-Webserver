@@ -56,7 +56,7 @@ class QuickVMSearchView(APIView):
                 return self._paginate_list(all_vms, request, is_partial=False)
 
         # Regex captures (key):(operator)(value) or (key):(quoted value) or (term)
-        tokens = re.findall(r'(?:(\w+):)?(?:"([^"]+)"|([^\s]+))', raw_query.lower())
+        tokens = re.findall(r'(?:(\w+):)?(?:"([^"]+)"|([^\s]*))', raw_query.lower())
         
         filters = []
         general_terms = []
@@ -78,7 +78,9 @@ class QuickVMSearchView(APIView):
             'ip': lambda vm, v: v in vm['ip_address'].lower(),
             'host': lambda vm, v: v in vm['hostname'].lower(),
             'mac': lambda vm, v: v in vm['mac_address'].lower(),
-            'rebooted': lambda vm, v: vm['rebooted'] if v == 'true' else not vm['rebooted'],
+            'schedule': lambda vm, v: v in vm['patch_schedule'].lower(),
+            'env': lambda vm, v: self._apply_string_filter(vm.get('env'), v),
+            'reboot': lambda vm, v: evaluate_comparison(vm['last_reboot'], v),
             'patched': lambda vm, v: evaluate_comparison(vm['last_patch'], v),
             'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v),
         }
@@ -88,12 +90,16 @@ class QuickVMSearchView(APIView):
             is_match = True
             for key, val in filters:
                 condition = filter_map.get(key)
-                if condition and not condition(vm, val):
+                if condition:
+                    if not condition(vm, val):
+                        is_match = False
+                        break
+                else:
                     is_match = False
                     break
             
             if is_match and general_terms:
-                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']}".lower()
+                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']} {vm['patch_schedule']} {vm['env']}".lower()
                 if not all(term in searchable_string for term in general_terms):
                     is_match = False
             
@@ -110,6 +116,17 @@ class QuickVMSearchView(APIView):
 
         return Response({"results": results, "is_partial": False}, status=status.HTTP_200_OK)
 
+    def _apply_string_filter(self, actual_val, search_val):
+        """Helper to handle null/none/empty logic in Python filtering."""
+        actual_val = (actual_val or '').lower().strip()
+        search_val = (search_val or '').lower().strip()
+        
+        # Handle keywords for empty/null searches
+        if search_val in ['none', 'null', 'empty', 'unknown', '']:
+            return actual_val == ''
+            
+        return search_val in actual_val
+
     def _db_fallback(self, request, filters, general_terms):
         """Enhanced DB fallback to handle basic comparison operators."""
         query = Q()
@@ -122,19 +139,16 @@ class QuickVMSearchView(APIView):
                 'id': 'server_id', 
                 'mac': 'mac_address',
                 'patched': 'last_patch_date',
-                'rebooted': 'rebooted'
+                'reboot': 'last_reboot',
+                'schedule': 'patch_schedule',
+                'env': 'env'
             }
             field = lookup_map.get(key)
             if not field: continue
 
-            if key == 'rebooted':
-                is_rebooted = val.lower() == 'true'
-                query &= Q(rebooted=is_rebooted)
-                continue
-
-            # Edge Case: Handle 'none' for nullable fields
-            if val.lower() == 'none':
-                query &= Q(**{f"{field}__isnull": True})
+            # Handle 'env:none', 'env:null', or 'env:'
+            if val.lower() in ['none', 'null', 'empty', 'unknown', '']:
+                query &= (Q(**{f"{field}__isnull": True}) | Q(**{f"{field}": ""}))
                 continue
 
             # Detect operators for ORM

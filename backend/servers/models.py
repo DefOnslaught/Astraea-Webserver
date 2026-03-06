@@ -1,5 +1,4 @@
 import secrets, hashlib, uuid
-from django.utils import timezone
 from django.db import models
 
 class Server(models.Model):
@@ -9,8 +8,10 @@ class Server(models.Model):
     mac_address = models.CharField(max_length=17)
     os_version = models.CharField(max_length=100)
     uptime = models.CharField(max_length=100)
-    rebooted = models.BooleanField(default=False)
+    last_reboot = models.DateTimeField(null=True, blank=True)
     last_patch_date = models.DateTimeField(null=True, blank=True)
+    patch_schedule = models.CharField(max_length=100)
+    env = models.CharField(max_length=100, null=True, blank=True)
     total_packages_updated = models.IntegerField(default=0)
 
     def __str__(self):
