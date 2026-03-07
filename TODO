@@ -1,22 +1,27 @@
 Backend:
-    - All the stuff to make the required frontend work
     - Figure out a way to send notifications (celery maybe)
     - Maybe cache all the packages?
+    - Add a method for verification when a user registers.
 
 Frontend:
+    - Ensure if verification is enabled, we properly follow that.
     - List all packages, how many servers using that package (regardless of version)
         - when inspecting a package, list versions and how many servers use it
     - Search for package name, package version = shows a list of servers with it installed
 
+    - When inspecting a server, have a spot that shows any problems, like out of date (30 days), or not rebooted (30 days)
+    - When using the 'Actions -> Configure' menu in /servers have the two options for now 'Enable/Disable Patching', ''
+
 
 General Needs:
 
-    Configuration page (or dropdown):
+    Configuration Page:
         - Notification area to  configure when to send notifications (on fail, on success) and where to send them
         - Have a section for patching that allows you to enable/disable patching system wide
         - Have a spot to delete package data that is not used by any server
+        - Have a tool to create cron schedule
 
-    Administration Drop Down:
+    Administration Page:
         - Manage user accounts (Based on permission)
         - About section (maybe show updates?)
-        - Link to the Django Admin page
+        - Link to the Django Admin page (if superuser)
