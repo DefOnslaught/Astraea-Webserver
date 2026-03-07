@@ -404,7 +404,7 @@ const ServerRow = ({ server, query, innerRef }) => {
                             <div className="flex items-center gap-2">
                                 {/* Status indicator: Emerald (Healthy), Amber (Stale), Gray (Unknown) */}
                                 <div className={`h-2 w-2 rounded-full ${statusColor} ${statusEffect}`}></div>
-                                <span className={`text-xs font-medium ${isStale ? 'text-amber-400' : 'text-gray-300'}`}>
+                                <span className={`text-xs font-medium ${isStale ? 'text-amber-400' : 'text-gray-400'}`}>
                                     {isUnknown ? "Needs Audit" : getDaysAgo(server.last_reboot)}
                                 </span>
                             </div>
@@ -419,7 +419,36 @@ const ServerRow = ({ server, query, innerRef }) => {
                 })()}
             </td>
             <td className="px-6 py-4 text-sm text-gray-400 font-mono">
-                {server.last_patch ? getDaysAgo(server.last_patch) : 'Never'}
+                {(() => {
+                    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+                    const lastPatchDate = server.last_patch ? new Date(server.last_patch) : null;
+                    const isStale = lastPatchDate && (new Date() - lastPatchDate > thirtyDaysInMs);
+                    const isUnknown = !server.last_patch;
+
+                    // Determine color and effect
+                    let statusColor = "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]";
+                    let statusEffect = "";
+
+                    if (isUnknown) {
+                        statusColor = "bg-gray-600";
+                        statusEffect = "animate-pulse";
+                    } else if (isStale) {
+                        statusColor = "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+                        statusEffect = "animate-pulse";
+                    }
+
+                    return (
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                {/* Status indicator: Emerald (Healthy), Amber (Stale), Gray (Unknown) */}
+                                <div className={`h-2 w-2 rounded-full ${statusColor} ${statusEffect}`}></div>
+                                <span className={`text-xs font-medium ${isStale ? 'text-amber-400' : 'text-gray-400'}`}>
+                                    {isUnknown ? "Never" : getDaysAgo(server.last_patch)}
+                                </span>
+                            </div>
+                        </div>
+                    );
+                })()}
             </td>
             
             {/* PATCHING SCHEDULE */}
