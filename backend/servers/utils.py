@@ -152,6 +152,18 @@ def cache_individual_vms(vms):
         def get_val(attr, default=None):
             return getattr(vm, attr) if hasattr(vm, attr) else vm.get(attr, default)
 
+        # Helper to ensure dates are consistently ISO 8601 formatted
+        def format_date(date_val):
+            if not date_val:
+                return None
+            # If it's already a string, return as is (assuming it's already formatted)
+            if isinstance(date_val, str):
+                return date_val
+            # If it's a datetime object, use isoformat()
+            if hasattr(date_val, 'isoformat'):
+                return date_val.isoformat()
+            return str(date_val)
+
         server_obj = {
             "id": vm_id,
             "server_id": str(get_val('server_id')),
@@ -159,11 +171,11 @@ def cache_individual_vms(vms):
             "ip_address": get_val('ip_address', '0.0.0.0'),
             "mac_address": get_val('mac_address', ''),
             "os_version": get_val('os_version', 'Unknown'),
-            "last_reboot": str(get_val('last_reboot')) if get_val('last_reboot') else None,
+            "last_reboot": format_date(get_val('last_reboot')),
             "uptime": get_val('uptime', ''),
             "env": get_val('env', ''),
-            "patch_schedule": get_val('patch_schedule', ''),
-            "last_patch": str(get_val('last_patch_date')) if get_val('last_patch_date') else None
+            "patch_schedule": get_val('patch_schedule'),
+            "last_patch": format_date(get_val('last_patch_date'))
         }
 
         # 2. Update individual granular keys

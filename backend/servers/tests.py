@@ -103,7 +103,9 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(cached_data['os_version'], "Debian 12")
         self.assertEqual(cached_data['patch_schedule'], "10AM Wednesday Weeks 1 & 3")
         self.assertEqual(cached_data['env'], "Prod")
-        self.assertIn(str(new_reboot_time.date()), cached_data['last_reboot'])
+        from django.utils.dateparse import parse_datetime
+        cached_time = parse_datetime(cached_data['last_reboot'])
+        self.assertAlmostEqual(cached_time, new_reboot_time, delta=timedelta(seconds=1))
         self.assertEqual(str(server.server_id), str(cached_data['server_id']))
 
 
