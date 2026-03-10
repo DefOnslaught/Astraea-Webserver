@@ -75,7 +75,7 @@ const ServerRow = ({ server, query, innerRef }) => {
                             <div className="flex items-center gap-2 pl-4">
                                 <i className="fa-solid fa-clock-rotate-left text-[9px] text-gray-600"></i>
                                 <span className="text-[10px] text-gray-500 font-mono">
-                                    Uptime at reboot {server.uptime || "0 days"}
+                                    Last known uptime {server.uptime || "0 days"}
                                 </span>
                             </div>
                         </div>
