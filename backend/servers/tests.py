@@ -1,4 +1,4 @@
-import os
+import os, uuid
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.core.cache import cache
@@ -66,6 +66,7 @@ class PatchingSystemTests(APITestCase):
         new_reboot_time = timezone.now()
 
         payload = {
+            "server_id": str(server.server_id),
             "hostname": "prod-web-01",
             "ip_address": "192.168.1.50",
             "mac_address": "AA:BB:CC:DD:EE:FF",
@@ -139,11 +140,12 @@ class PatchingSystemTests(APITestCase):
         for i in range(10):
             vm_name = f"server-{i}"
             payload = {
+                "server_id": str(uuid.uuid4()),
                 "hostname": vm_name,
                 "ip_address": f"10.0.0.{i}",
                 "mac_address": f"00:11:22:33:44:00",
                 "os_version": "Ubuntu 22.04",
-                "rebooted": reboot_time,
+                "last_reboot": reboot_time,
                 "uptime": "10 days",
                 "env": "Prod",
                 "total_packages_updated": 1,

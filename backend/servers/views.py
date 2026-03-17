@@ -264,22 +264,32 @@ class SavePatchingData(APIView):
 
     def post(self, request):
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
-        if request.data is None:
-            logger.info(f"'{ip_address}' tried to upload empty JSON data.")
+        server_uuid = request.data.get('server_id', 'Unknown UUID')
+        hostname = request.data.get('hostname', 'Unknown Host')
+
+        if not request.data:
+            logger.warning(f"Empty payload received from IP: {ip_address}")
             return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             with transaction.atomic():
                 serializer = ServerPatchSerializer(data=request.data)
+                
                 if not serializer.is_valid():
-                    logger.info(f"Invalid patching data, error: {serializer.errors}")
-                    return Response({'message': 'Validation failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                    logger.error(f"Validation Error for {hostname} ({server_uuid}): {serializer.errors}")
+                    return Response({
+                        'message': 'Validation failed', 
+                        'errors': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Triggers the refined create() logic
                 serializer.save()
-                hostname = serializer.validated_data.get('hostname')
-                logger.info(f"Successfully saved patching data for host: {hostname}")
-                return Response({'message': 'Successfully saved patching data'}, status=status.HTTP_200_OK)
+                
+                logger.info(f"Patch data synced for: {hostname} | ID: {server_uuid} | Source: {ip_address}")
+                return Response({'message': 'Successfully processed patch telemetry'}, status=status.HTTP_200_OK)
+
         except Exception as e:
-            logger.error(f"Unable to process patching data upload request: {str(e)}")
+            logger.critical(f"Transaction failed for {hostname} ({server_uuid}): {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

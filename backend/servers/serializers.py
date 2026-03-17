@@ -31,24 +31,27 @@ class ServerUpdateSerializer(serializers.ModelSerializer):
 
 
 class ServerPatchSerializer(serializers.ModelSerializer):
-    """Used for the incoming patching script API."""
+    """Used for the incoming patching script API using UUID lookups."""
     packages = PackageUpdateSerializer(many=True, write_only=True)
-    hostname = serializers.CharField(max_length=255, validators=[])
+    server_id = serializers.UUIDField(required=True)
+    hostname = serializers.CharField(max_length=255)
 
     class Meta:
         model = Server
         fields = [
-            'hostname', 'ip_address', 'mac_address', 'os_version', 
+            'server_id', 'hostname', 'ip_address', 'mac_address', 'os_version', 
             'last_reboot', 'uptime', 'total_packages_updated', 'packages',
-            'last_patch_date', 'patch_schedule', 'env'
+            'patch_schedule', 'env'
         ]
 
     def create(self, validated_data):
         packages_data = validated_data.pop('packages')
+        server_uuid = validated_data.pop('server_id')
+        
         validated_data['last_patch_date'] = timezone.now()
         
-        server, _ = Server.objects.update_or_create(
-            hostname=validated_data.get('hostname'),
+        server, created = Server.objects.update_or_create(
+            server_id=server_uuid,
             defaults=validated_data
         )
 
@@ -58,7 +61,10 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 version=pkg_data['version']
             )
 
-            # Record the update event
-            PackageUpdate.objects.get_or_create(server=server, package=package_obj)
+            PackageUpdate.objects.update_or_create(
+                server=server, 
+                package=package_obj,
+                defaults={'timestamp': timezone.now()} 
+            )
             
         return server
