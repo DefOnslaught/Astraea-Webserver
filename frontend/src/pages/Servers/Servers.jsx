@@ -5,6 +5,7 @@ import useDocumentTitle from "../../utils/useDocumentTitle";
 import SearchGuide from "./utils/SearchGuide";
 import TableSkeleton from "./utils/TableSkeleton";
 import ServerRow from "./utils/ServerRow";
+import ServersSuccessToast from "./utils/ServersSuccessToast";
 
 const Servers = () => {
     useDocumentTitle('Servers | Astraea');
@@ -19,6 +20,7 @@ const Servers = () => {
     const searchContainerRef = useRef(null);
     const searchInputRef = useRef(null);
     const [totalNodes, setTotalNodes] = useState(0);
+    const [toast, setToast] = useState({ show: false, msg: "" });
 
 
     const fetchServers = useCallback(async (query = "", isLoadMore = false) => {
@@ -58,6 +60,12 @@ const Servers = () => {
 
         if (node) observer.current.observe(node);
     }, [isLoading, nextPageUrl, activeQuery, fetchServers]);
+
+
+    const triggerToast = useCallback((message) => {
+        setToast({ show: true, msg: message });
+        setTimeout(() => setToast({ show: false, msg: "" }), 3000);
+    }, []);
 
 
     useEffect(() => {
@@ -148,6 +156,14 @@ const Servers = () => {
 
     return (
         <div className="animate-in fade-in duration-700 space-y-6">
+
+            {toast.show && (
+                <ServersSuccessToast
+                    message={toast.msg}
+                    onClose={() => setToast({ show: false, msg: "" })}
+                />
+            )}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight">Infrastructure <span className="text-indigo-500">Inventory</span></h1>
@@ -222,7 +238,9 @@ const Servers = () => {
                                                 key={server.id}
                                                 server={server}
                                                 query={activeQuery}
-                                                innerRef={isLastElement ? lastElementRef : null}
+                                                onRefresh={() => fetchServers(activeQuery)}
+                                                onSuccess={triggerToast}
+                                                innerRef={servers.length === index + 1 ? lastElementRef : null}
                                             />
                                         );
                                     })}

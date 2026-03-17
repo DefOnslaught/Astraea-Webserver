@@ -209,7 +209,7 @@ class PatchingSystemTests(APITestCase):
 
         # 2. Act: Call the delete view
         url = reverse('delete_server')
-        response = self.client.post(url, {'hostname': "delete-me-vm"}, format='json')
+        response = self.client.delete(url, {'id': server.id }, format='json')
 
         # 3. Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -233,7 +233,7 @@ class PatchingSystemTests(APITestCase):
 
         url = reverse('update_server')
         payload = {
-            'server_id': str(server.server_id), 
+            'id': str(server.id), 
             'enable_patching': False
         }
         response = self.client.post(url, payload, format='json')

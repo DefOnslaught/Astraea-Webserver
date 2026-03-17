@@ -10,7 +10,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from .models import Server, Package, APIKey
-from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date
+from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
 
@@ -286,14 +286,31 @@ class SavePatchingData(APIView):
 class UpdateServerInfo(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        server_id = request.data.get('server_id')
+    def get(self, request):
+        id = request.query_params.get('id')
 
-        if not server_id:
-            return Response({'message': "Missing server_id"}, status=status.HTTP_400_BAD_REQUEST)
+        if not id:
+            return Response({'message': "Missing id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cache_key = f"server_data:{id}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data is None:
+            server = get_object_or_404(Server, id=id)
+            cache_individual_vms([server])
+            cached_data = cache.get(cache_key)
+
+        return Response(cached_data, status=status.HTTP_200_OK)
+
+
+    def post(self, request):
+        id = request.data.get('id')
+
+        if not id:
+            return Response({'message': "Missing id"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            server_instance = Server.objects.get(server_id=server_id)
+            server_instance = Server.objects.get(id=id)
         except Server.DoesNotExist:
             return Response({'message': "Server not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -314,15 +331,16 @@ class UpdateServerInfo(APIView):
 class DeleteServer(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        hostname = request.data.get('hostname')
-        if not hostname:
-            return Response({'message': "Invalid request, missing hostname"}, status=status.HTTP_400_BAD_REQUEST)
+    def delete(self, request):
+        id = request.data.get('id')
+        if not id:
+            return Response({'message': "Missing id"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            server_to_delete = get_object_or_404(Server, hostname=request.data.get('hostname'))
+            server_to_delete = get_object_or_404(Server, id=id)
+            hostname = server_to_delete.hostname
             server_to_delete.delete()
-            logger.info(f"Successfully deleted server with the hostname: {request.data.get('hostname')}")
+            logger.info(f"Successfully deleted server with the hostname: {hostname}")
             return Response({'message': f'Server {hostname} deleted successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Unable to delete server {request.data.get('hostname')}: {str(e)}")

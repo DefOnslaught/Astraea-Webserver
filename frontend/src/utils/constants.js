@@ -18,6 +18,9 @@ export const API_ENDPOINTS = {
     SERVER_SEARCH: "api/servers/servers/search/",
     PACKAGE_SEARCH: "api/servers/software/search/",
 
+    UPDATE_SERVER: "api/servers/patching/update/",
+    DELETE_SERVER: "api/servers/patching/delete/",
+
     PATCHING_API_KEY_CREATE: "api/servers/patching/api-key/create/",
 };
 

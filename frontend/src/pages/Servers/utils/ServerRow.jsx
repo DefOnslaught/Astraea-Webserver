@@ -3,10 +3,14 @@ import HighlightText from "../../../utils/HighlightText";
 import getDaysAgo from "../../../utils/getDaysAgo";
 import truncateString from "../../../utils/truncateString";
 import { PATCH_THRESHOLD_DAYS } from "../../../utils/constants";
+import ConfigureServerModal from "./ConfigureServerModal";
+import ActionDropdown from "./ActionDropdown";
 
-const ServerRow = ({ server, query, innerRef }) => {
+const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isConfigOpen, setIsConfigOpen] = useState(false);
     const menuRef = useRef(null);
+    const actionButtonRef = useRef(null);
 
     // Close the menu if the user clicks anywhere else on the page
     useEffect(() => {
@@ -21,6 +25,11 @@ const ServerRow = ({ server, query, innerRef }) => {
         }
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isMenuOpen]);
+
+    const handleSuccess = () => {
+        onRefresh();
+        onSuccess(`Updated ${server.hostname} successfully!`);
+    }
 
     return (
         <tr ref={innerRef} className="group hover:bg-white/[0.02] transition-colors">
@@ -166,7 +175,7 @@ const ServerRow = ({ server, query, innerRef }) => {
 
             {/* ACTIONS TD */}
             <td className="px-6 py-4 text-right relative">
-                <div ref={menuRef} className="inline-block text-left">
+                <div ref={actionButtonRef} className="inline-block text-left">
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className={`p-2 rounded-lg transition-all duration-200 ${isMenuOpen
@@ -178,26 +187,40 @@ const ServerRow = ({ server, query, innerRef }) => {
                     </button>
 
                     {/* ACTIONS DROPDOWN */}
-                    {isMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-40 bg-gray-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                            <button
-                                onClick={() => { console.log("Inspect", server.id); setIsMenuOpen(false); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
-                            >
-                                <i className="fa-solid fa-eye text-xs"></i>
-                                Inspect
-                            </button>
-                            <div className="h-px bg-white/5"></div>
-                            <button
-                                onClick={() => { console.log("Configure", server.id); setIsMenuOpen(false); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
-                            >
-                                <i className="fa-solid fa-sliders text-xs"></i>
-                                Configure
-                            </button>
-                        </div>
-                    )}
+                    <ActionDropdown
+                        isOpen={isMenuOpen}
+                        onClose={() => setIsMenuOpen(false)}
+                        anchorRef={actionButtonRef}
+                    >
+                        <button
+                            onClick={() => { console.log("Inspect", server.id); setIsMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
+                        >
+                            <i className="fa-solid fa-eye text-xs"></i>
+                            Inspect
+                        </button>
+                        <div className="h-px bg-white/5"></div>
+                        <button
+                            onClick={() => {
+                                setIsConfigOpen(true);
+                                setIsMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
+                        >
+                            <i className="fa-solid fa-sliders text-xs"></i>
+                            Configure
+                        </button>
+                    </ActionDropdown>
                 </div>
+
+                {/* RENDER MODAL */}
+                {isConfigOpen && (
+                    <ConfigureServerModal
+                        id={server.id}
+                        onClose={() => setIsConfigOpen(false)}
+                        onUpdateSuccess={handleSuccess}
+                    />
+                )}
             </td>
         </tr>
     );
