@@ -1,5 +1,5 @@
 export const PUBLIC_PATHS = ["/login", "/register"];
-export const AUTH_PAGES = ["/login", "/register", "/logout"]
+export const AUTH_PAGES = ["/login", "/register", "/logout"];
 
 export const API_ENDPOINTS = {
     DASHBOARD: "api/servers/dashboard/",
@@ -20,3 +20,5 @@ export const API_ENDPOINTS = {
 
     PATCHING_API_KEY_CREATE: "api/servers/patching/api-key/create/",
 };
+
+export const PATCH_THRESHOLD_DAYS = import.meta.env.VITE_PATCH_THRESHOLD_DAYS;

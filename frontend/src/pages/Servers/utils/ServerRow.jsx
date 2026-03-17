@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import HighlightText from "../../../utils/HighlightText";
 import getDaysAgo from "../../../utils/getDaysAgo";
 import truncateString from "../../../utils/truncateString";
+import { PATCH_THRESHOLD_DAYS } from "../../../utils/constants";
 
 const ServerRow = ({ server, query, innerRef }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,9 +47,9 @@ const ServerRow = ({ server, query, innerRef }) => {
             {/* LAST REBOOT */}
             <td className="px-6 py-4">
                 {(() => {
-                    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+                    const patchDaysInMs = PATCH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
                     const lastRebootDate = server.last_reboot ? new Date(server.last_reboot) : null;
-                    const isStale = lastRebootDate && (new Date() - lastRebootDate > thirtyDaysInMs);
+                    const isStale = lastRebootDate && (new Date() - lastRebootDate > patchDaysInMs);
                     const isUnknown = !server.last_reboot;
 
                     // Determine color and effect
@@ -84,9 +85,9 @@ const ServerRow = ({ server, query, innerRef }) => {
             </td>
             <td className="px-6 py-4 text-sm text-gray-400 font-mono">
                 {(() => {
-                    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+                    const patchDaysInMs = PATCH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
                     const lastPatchDate = server.last_patch ? new Date(server.last_patch) : null;
-                    const isStale = lastPatchDate && (new Date() - lastPatchDate > thirtyDaysInMs);
+                    const isStale = lastPatchDate && (new Date() - lastPatchDate > patchDaysInMs);
                     const isUnknown = !server.last_patch;
 
                     // Determine color and effect
