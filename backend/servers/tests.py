@@ -52,7 +52,6 @@ class PatchingSystemTests(APITestCase):
         # 403 Forbidden or 401 Unauthorized depending on your settings
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-
     def test_patching_api_updates_db_and_cache(self):
         """Verify the SavePatchingData view correctly updates everything."""
         # 1. Setup existing server
@@ -108,7 +107,6 @@ class PatchingSystemTests(APITestCase):
         self.assertAlmostEqual(cached_time, new_reboot_time, delta=timedelta(seconds=1))
         self.assertEqual(str(server.server_id), str(cached_data['server_id']))
 
-
     def test_dashboard_stats_signals(self):
         """Test that adding/deleting servers updates the dashboard counts in Redis."""
         # Start by warming cache with 0 servers
@@ -127,7 +125,6 @@ class PatchingSystemTests(APITestCase):
         stats = cache.get("dashboard_stats")
         self.assertEqual(stats['total_servers'], 2)
         self.assertEqual(stats['outdated_servers'], 1) # Only the first one is outdated
-
 
     def test_bulk_patching_simulation(self):
         """Simulates 10 different VMs checking in with patching data."""
@@ -173,7 +170,6 @@ class PatchingSystemTests(APITestCase):
         # This proves your unique_together and get_or_create logic works!
         self.assertEqual(Package.objects.count(), 3)
 
-
     def test_software_search_grouping(self):
         """Verify PackageSearchView returns grouped data and uses cache."""
         # 1. Setup: 2 servers with same package version, 1 with different version
@@ -200,8 +196,7 @@ class PatchingSystemTests(APITestCase):
         
         # Check cache was set
         self.assertIsNotNone(cache.get("software_search:python"))
-
-   
+ 
     def test_delete_server_updates_db_and_cache(self):
         """Verify that deleting a server via the API cleans up Redis and DB."""
         # 1. Setup: Create a server and ensure it's in the cache
@@ -229,6 +224,30 @@ class PatchingSystemTests(APITestCase):
         stats = cache.get("dashboard_stats")
         self.assertEqual(stats['total_servers'], 0)
 
+    def test_server_update_db_and_cache(self):
+        """Verify that updating a server via the frontend updates Redis and DB."""
+        server = ServerFactory(hostname="update-me-vm", enable_patching=True)
+        
+        server_cache_key = f"server_data:{server.id}"
+        self.assertIsNotNone(cache.get(server_cache_key))
+
+        url = reverse('update_server')
+        payload = {
+            'server_id': str(server.server_id), 
+            'enable_patching': False
+        }
+        response = self.client.post(url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 1. Verify Database Update
+        server.refresh_from_db()
+        self.assertEqual(server.enable_patching, False)
+
+        # 2. Verify Cache Update
+        cached_data = cache.get(server_cache_key)
+        self.assertIsNotNone(cached_data)
+        self.assertEqual(cached_data['enable_patching'], False)
 
     def test_create_api_key_success(self):
         """Verify authenticated users can generate an API key and it's hashed in DB."""
@@ -253,7 +272,6 @@ class PatchingSystemTests(APITestCase):
         expected_hash = hashlib.sha256(plain_key.encode()).hexdigest()
         self.assertTrue(APIKey.objects.filter(key_hash=expected_hash).exists())
 
-
     def test_api_key_signal_clears_cache(self):
         """Verify that creating an APIKey clears the Redis key_hash cache."""
         # 1. Manually set the cache
@@ -266,7 +284,6 @@ class PatchingSystemTests(APITestCase):
         # 3. Assert the cache was deleted by the signal
         self.assertIsNone(cache.get('valid_api_key_hashes'))
 
-
     def test_create_api_key_unauthenticated_denied(self):
         """Verify unauthenticated users cannot create API keys."""
         self.client.force_authenticate(user=None)
@@ -274,7 +291,6 @@ class PatchingSystemTests(APITestCase):
         
         response = self.client.post(url, {"name": "Hacker-Key"})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-    
 
     @patch('servers.views.warm_cache_in_background')
     def test_dashboard_cold_cache_triggers_warming(self, mock_warm):
@@ -365,7 +381,6 @@ class PatchingSystemTests(APITestCase):
         stats = cache.get("dashboard_stats")
         self.assertEqual(stats["total_servers"], 1)
 
-
     def test_healthy_servers_excluded_from_at_risk(self):
         """Confirm that servers patched within the threshold do not appear in At Risk."""
         now = timezone.now()
@@ -435,7 +450,8 @@ class EnhancedSearchTests(APITestCase):
             last_patch_date=None, # Never patched
             last_reboot=timezone.now() - timedelta(days=10),
             patch_schedule="", # Test null
-            env = ""
+            env = "",
+            enable_patching=False
         )
 
         # Warm the cache manually for "Live" testing
@@ -563,3 +579,9 @@ class EnhancedSearchTests(APITestCase):
 
         response = self.client.get(self.url, {'q': 'host:dev-app-01'})
         self.assertEqual(response.data['results'][0]['env'], "")
+    
+    def test_enable_patch_filter(self):
+        """Verify 'enabled:' filter and general search for status of patching."""
+
+        response = self.client.get(self.url, {'q': 'enabled:false'})
+        self.assertEqual(response.data['results'][0]['enable_patching'], False)

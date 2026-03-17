@@ -19,7 +19,15 @@ class ServerSearchSerializer(serializers.ModelSerializer):
     """Used for the Quick Search Results."""
     class Meta:
         model = Server
-        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'last_reboot', 'last_patch_date', 'mac_address', 'uptime', 'patch_schedule', 'env']
+        fields = ['id', 'server_id', 'hostname', 'ip_address', 'os_version', 'last_reboot', 'last_patch_date', 'mac_address', 'uptime', 'patch_schedule', 'enable_patching', 'env']
+
+
+class ServerUpdateSerializer(serializers.ModelSerializer):
+    """Used for updating server information."""
+    server_id = serializers.CharField(read_only=True)
+    class Meta:
+        model = Server
+        fields = ['server_id', 'enable_patching', 'patch_schedule', 'env']
 
 
 class ServerPatchSerializer(serializers.ModelSerializer):

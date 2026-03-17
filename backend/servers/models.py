@@ -11,6 +11,7 @@ class Server(models.Model):
     last_reboot = models.DateTimeField(null=True, blank=True)
     last_patch_date = models.DateTimeField(null=True, blank=True)
     patch_schedule = models.CharField(max_length=100)
+    enable_patching = models.BooleanField(default=True)
     env = models.CharField(max_length=100, null=True, blank=True)
     total_packages_updated = models.IntegerField(default=0)
 

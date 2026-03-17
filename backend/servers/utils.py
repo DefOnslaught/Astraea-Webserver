@@ -175,7 +175,8 @@ def cache_individual_vms(vms):
             "uptime": get_val('uptime', ''),
             "env": get_val('env', ''),
             "patch_schedule": get_val('patch_schedule'),
-            "last_patch": format_date(get_val('last_patch_date'))
+            "last_patch": format_date(get_val('last_patch_date')),
+            "enable_patching": get_val('enable_patching', True)
         }
 
         # 2. Update individual granular keys

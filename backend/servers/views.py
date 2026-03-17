@@ -11,7 +11,7 @@ from django.db.models import Q
 
 from .models import Server, Package, APIKey
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date
-from .serializers import ServerSearchSerializer, ServerPatchSerializer
+from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
 
 logger = logging.getLogger('django')
@@ -79,10 +79,11 @@ class QuickVMSearchView(APIView):
             'host': lambda vm, v: v in vm['hostname'].lower(),
             'mac': lambda vm, v: v in vm['mac_address'].lower(),
             'schedule': lambda vm, v: v in vm['patch_schedule'].lower(),
+            'enabled': lambda vm, v: str(vm['enable_patching']).lower() == v.lower(),
             'env': lambda vm, v: self._apply_string_filter(vm.get('env'), v),
             'reboot': lambda vm, v: evaluate_comparison(vm['last_reboot'], v),
             'patched': lambda vm, v: evaluate_comparison(vm['last_patch'], v),
-            'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v),
+            'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v)
         }
 
         results = []
@@ -99,7 +100,7 @@ class QuickVMSearchView(APIView):
                     break
             
             if is_match and general_terms:
-                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']} {vm['patch_schedule']} {vm['env']}".lower()
+                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']} {vm['patch_schedule']} {vm['env']} {str(vm['enable_patching'])}".lower()
                 if not all(term in searchable_string for term in general_terms):
                     is_match = False
             
@@ -131,6 +132,12 @@ class QuickVMSearchView(APIView):
         """Enhanced DB fallback to handle basic comparison operators."""
         query = Q()
         for key, val in filters:
+            if key == 'enabled':
+                # Convert string "true"/"false" from search into actual Python Boolean
+                bool_val = val.lower() == 'true'
+                query &= Q(enable_patching=bool_val)
+                continue
+
             # Map search keys to Django ORM lookups
             lookup_map = {
                 'os': 'os_version', 
@@ -139,6 +146,7 @@ class QuickVMSearchView(APIView):
                 'id': 'server_id', 
                 'mac': 'mac_address',
                 'patched': 'last_patch_date',
+                'enabled': 'enable_patching',
                 'reboot': 'last_reboot',
                 'schedule': 'patch_schedule',
                 'env': 'env'
@@ -166,7 +174,9 @@ class QuickVMSearchView(APIView):
                 Q(hostname__icontains=term) | 
                 Q(ip_address__icontains=term) |
                 Q(os_version__icontains=term) |
-                Q(mac_address__icontains=term)
+                Q(mac_address__icontains=term) |
+                Q(env__icontains=term) |
+                Q(enabled__icontains=term)
             )
 
         queryset = Server.objects.filter(query).order_by('hostname')
@@ -270,6 +280,34 @@ class SavePatchingData(APIView):
                 return Response({'message': 'Successfully saved patching data'}, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(f"Unable to process patching data upload request: {str(e)}")
+            return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UpdateServerInfo(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        server_id = request.data.get('server_id')
+
+        if not server_id:
+            return Response({'message': "Missing server_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            server_instance = Server.objects.get(server_id=server_id)
+        except Server.DoesNotExist:
+            return Response({'message': "Server not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try: 
+            with transaction.atomic():
+                serializer = ServerUpdateSerializer(server_instance, data=request.data, partial=True)
+                if not serializer.is_valid():
+                    logger.info(f"Invalid update data, error: {serializer.errors}")
+                    return Response({'message': 'Validation failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                serializer.save()
+                logger.info(f"Successfully updated host: {server_instance.hostname}")
+                return Response({'message': 'Successfully updated host'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Unable to update server {server_instance.hostname}: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
