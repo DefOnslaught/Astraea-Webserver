@@ -20,28 +20,35 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         num_servers = kwargs['total']
         
-        self.stdout.write(f"Generating {num_servers} servers...")
+        # 1. Define common software names
+        software_names = [
+            'nginx', 'docker-ce', 'openssl', 'python3', 'kernel-core', 
+            'redis-server', 'postgresql-14', 'systemd', 'vim', 'bash'
+        ]
 
-        # Common package names for variety
-        common_packages = ['nginx', 'docker-ce', 'openssl', 'python3', 'kernel-core', 'redis-server']
+        self.stdout.write("Creating a shared package pool...")
 
+        package_pool = []
         with transaction.atomic():
+            for name in software_names:
+                # For each software, create 2-3 specific versions that exist in our "world"
+                for _ in range(random.randint(2, 3)):
+                    version = f"{random.randint(1, 2)}.{random.randint(0, 5)}.{random.randint(0, 10)}"
+                    pkg, _ = Package.objects.get_or_create(name=name, version=version)
+                    package_pool.append(pkg)
+
+            self.stdout.write(f"Generated {len(package_pool)} unique package-version pairs.")
+
+            # 2. Create Servers and assign packages from the pool
             for i in range(num_servers):
-                # Create the server using the factory
                 server = ServerFactory()
 
-                # Let's add 3-5 random package updates per server to populate relationships
-                num_pkgs = random.randint(3, 5)
-                for _ in range(num_pkgs):
-                    pkg_name = random.choice(common_packages)
-                    pkg_version = f"{random.randint(1, 5)}.{random.randint(0, 20)}.{random.randint(0, 10)}"
-                    
-                    # get_or_create prevents unique constraint crashes in Package model
-                    package, _ = Package.objects.get_or_create(
-                        name=pkg_name, 
-                        version=pkg_version
-                    )
-                    
+                # Each server has a random subset of the "available" packages in the network
+                # We use k=random to simulate that some servers are "heavier" than others
+                num_installed = random.randint(4, 8)
+                assigned_packages = random.sample(package_pool, k=min(num_installed, len(package_pool)))
+
+                for package in assigned_packages:
                     PackageUpdate.objects.create(
                         server=server,
                         package=package
@@ -50,4 +57,4 @@ class Command(BaseCommand):
                 if (i + 1) % 10 == 0:
                     self.stdout.write(f"Created {i + 1} servers...")
 
-        self.stdout.write(self.style.SUCCESS(f"Successfully created {num_servers} servers and related package logs."))
+        self.stdout.write(self.style.SUCCESS(f"Finished! {num_servers} servers are now sharing {len(package_pool)} packages."))
