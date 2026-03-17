@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import api from "../utils/api";
-import { useAuth } from "../utils/AuthContext";
-import useDocumentTitle from "../utils/useDocumentTitle";
-import { API_ENDPOINTS } from "../utils/constants";
-import getDaysAgo from "../utils/getDaysAgo";
+import api from "../../utils/api";
+import { useAuth } from "../../utils/AuthContext";
+import useDocumentTitle from "../../utils/useDocumentTitle";
+import { API_ENDPOINTS } from "../../utils/constants";
+import ListSkeleton from "./utils/ListSkeleton";
+import EmptyState from "./utils/EmptyState";
+import ServerRow from "./utils/ServerRow";
+import StatCard from "./utils/StatCard";
 
 const Dashboard = () => {
     useDocumentTitle('Dashboard | Astraea');
@@ -63,7 +66,7 @@ const Dashboard = () => {
             </div>
 
             {/* STATS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
 
                 {/* CARD 1: TOTAL SERVERS */}
                 <StatCard
@@ -84,7 +87,18 @@ const Dashboard = () => {
                     subtext={stats?.outdated_servers > 0 ? "Action required" : "All systems current"}
                 />
 
-                {/* CARD 3: SYSTEM STATUS */}
+                {/* CARD 3: DISABLED SERVERS */}
+                <StatCard
+                    label="Patching Disabled"
+                    value={stats?.total_servers_not_enabled}
+                    icon="fa-circle-pause"
+                    loading={isLoading}
+                    color={stats?.total_servers_not_enabled > 0 ? "text-slate-400" : "text-emerald-500/50"}
+                    subtext="Exempt from automation"
+                    glowColor="bg-slate-500/10"
+                />
+
+                {/* CARD 4: SYSTEM STATUS */}
                 <div className={`bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 ${isLoading ? 'animate-pulse' : ''}`}>
                     <div className="flex justify-between items-start relative z-10">
                         <div>
@@ -180,77 +194,5 @@ const Dashboard = () => {
         </div>
     );
 };
-
-// Helper Component for Stat Cards (Ghost Box Logic)
-const StatCard = ({ label, value, icon, loading, color, subtext }) => {
-    return (
-        <div className="bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
-            <div className="flex justify-between items-start">
-                <div className="z-10">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</p>
-                    {loading ? (
-                        <div className="h-8 w-24 bg-white/5 rounded-md animate-pulse mt-2"></div>
-                    ) : (
-                        <h3 className={`text-4xl font-bold ${color} tracking-tighter`}>
-                            {value?.toLocaleString() || "0"}
-                        </h3>
-                    )}
-                </div>
-                <div className="p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform duration-300">
-                    <i className={`fa-solid ${icon} text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
-                </div>
-            </div>
-
-            {loading ? (
-                <div className="h-3 w-32 bg-white/5 rounded mt-4 animate-pulse"></div>
-            ) : (
-                subtext && <p className="mt-4 text-xs text-gray-500 font-medium">{subtext}</p>
-            )}
-
-            {/* Decorative background glow */}
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all"></div>
-        </div>
-    );
-};
-
-// Sub-component for individual rows
-const ServerRow = ({ server, type }) => (
-    <div className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group">
-        <div className="flex items-center gap-4">
-            <div className={`h-10 w-10 rounded-lg flex items-center justify-center border ${type === 'risk' ? 'border-red-500/20 bg-red-500/5' : 'border-emerald-500/20 bg-emerald-500/5'
-                }`}>
-                <i className={`fa-solid ${type === 'risk' ? 'fa-server text-red-400' : 'fa-circle-check text-emerald-400'} text-xs`}></i>
-            </div>
-            <div>
-                <p className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">{server.hostname}</p>
-                <p className="text-[10px] text-gray-500 font-mono">{server.ip_address}</p>
-            </div>
-        </div>
-
-        <div className="text-right">
-            <p className="text-[11px] text-gray-400 font-medium">
-                {getDaysAgo(server.last_patch_date)}
-            </p>
-            <p className="text-[9px] text-gray-600 uppercase font-bold tracking-tighter">
-                {type === 'risk' ? 'Status' : 'Last Patch'}
-            </p>
-        </div>
-    </div>
-);
-
-const ListSkeleton = () => (
-    <div className="space-y-2 p-2">
-        {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="h-14 w-full bg-white/5 rounded-xl animate-pulse"></div>
-        ))}
-    </div>
-);
-
-const EmptyState = ({ message }) => (
-    <div className="flex flex-col items-center justify-center py-12">
-        <i className="fa-solid fa-folder-open text-gray-700 text-2xl mb-2"></i>
-        <p className="text-xs text-gray-500">{message}</p>
-    </div>
-);
 
 export default Dashboard;

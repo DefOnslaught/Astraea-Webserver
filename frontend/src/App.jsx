@@ -5,7 +5,7 @@ import './App.css';
 import Login from "./pages/Authentication/Login";
 import Logout from "./pages/Authentication/Logout";
 import Register from "./pages/Authentication/Register";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import Servers from "./pages/Servers/Servers";
 import Profile from "./pages/Profile/Profile";
 import NotFound from "./pages/ErrorPages/NotFound";
