@@ -310,6 +310,7 @@ class PatchingSystemTests(APITestCase):
         mock_stats = {
             "total_servers": 10,
             "outdated_servers": 2,
+            "total_servers_not_enabled": 2,
             "at_risk": [],
             "recent_activity": [],
             "last_updated": "2026-03-02 12:00:00"

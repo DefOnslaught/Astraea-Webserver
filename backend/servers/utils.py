@@ -27,14 +27,18 @@ def refresh_dashboard_stats(vms=None):
         vms = list(Server.objects.all().values('id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'last_reboot', 'env'))
 
     total_servers = len(vms)
+    total_servers_not_enabled = 0
     outdated_count = 0
     at_risk_list = []
     recently_patched_list = []
 
     for vm in vms:
         lp_date = vm.get('last_patch_date')
+        enabled = vm.get('enable_patching')
         if lp_date is None or lp_date < time_threshold:
             outdated_count += 1
+        if enabled == False:
+            total_servers_not_enabled += 1
 
     # Define a 'zero' time for comparison
     epoch_start = timezone.make_aware(datetime(1970, 1, 1))
@@ -58,6 +62,7 @@ def refresh_dashboard_stats(vms=None):
 
     stats = {
         "total_servers": total_servers,
+        "total_servers_not_enabled": total_servers_not_enabled,
         "outdated_servers": outdated_count,
         "at_risk": at_risk_list,
         "recent_activity": recently_patched_list,
@@ -69,10 +74,13 @@ def refresh_dashboard_stats(vms=None):
     return stats
 
 
-def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, is_deleted=False):
+def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=True, is_new=False, is_deleted=False):
     stats = cache.get("dashboard_stats")
     if not stats:
         return refresh_dashboard_stats()
+    
+    if "total_servers_not_enabled" not in stats:
+        stats["total_servers_not_enabled"] = 0
 
     # Convert the model instance to a dict that matches your list format
     vm_dict = {
@@ -80,13 +88,23 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, is_new=False, i
         'hostname': instance.hostname,
         'ip_address': instance.ip_address,
         'last_patch_date': instance.last_patch_date,
+        'total_servers_not_enabled': instance.enable_patching,
     }
 
     # 1. Handle Totals
     if is_new:
         stats["total_servers"] += 1
+        if instance.enable_patching == False:
+            stats["total_servers_not_enabled"] += 1
     elif is_deleted:
         stats["total_servers"] -= 1
+        if instance.enable_patching == False:
+            stats["total_servers_not_enabled"] = max(0, stats["total_servers_not_enabled"] - 1)
+    else:
+        if was_enabled and not instance.enable_patching:
+            stats["total_servers_not_enabled"] += 1
+        elif not was_enabled and instance.enable_patching:
+            stats["total_servers_not_enabled"] = max(0, stats["total_servers_not_enabled"] - 1)
 
     if was_outdated and not is_outdated:
         stats["outdated_servers"] = max(0, stats["outdated_servers"] - 1)

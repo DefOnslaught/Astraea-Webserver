@@ -13,14 +13,19 @@ def capture_old_state(sender, instance, **kwargs):
     """Store the old 'outdated' status on the instance before it's saved."""
     if instance.pk:
         try:
-            old_date = Server.objects.only('last_patch_date').get(pk=instance.pk).last_patch_date
+            old_obj = Server.objects.only('last_patch_date', 'enable_patching').get(pk=instance.pk)
+            
             days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
             threshold = timezone.now() - timedelta(days=days)
-            instance._was_outdated = (old_date is None or old_date < threshold)
+            instance._was_outdated = (old_obj.last_patch_date is None or old_obj.last_patch_date < threshold)
+            
+            instance._was_enabled = old_obj.enable_patching
         except Server.DoesNotExist:
             instance._was_outdated = False
+            instance._was_enabled = True
     else:
         instance._was_outdated = False
+        instance._was_enabled = True
 
 @receiver(post_save, sender=Server)
 def sync_cache_on_save(sender, instance, created, **kwargs):
@@ -35,6 +40,7 @@ def sync_cache_on_save(sender, instance, created, **kwargs):
         instance=instance, 
         was_outdated=getattr(instance, '_was_outdated', False),
         is_outdated=is_outdated,
+        was_enabled=getattr(instance, '_was_enabled', True),
         is_new=created
     )
 
