@@ -25,4 +25,5 @@ export const API_ENDPOINTS = {
     PATCHING_API_KEY_CREATE: "api/servers/patching/api-key/create/",
 };
 
+export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;
 export const PATCH_THRESHOLD_DAYS = import.meta.env.VITE_PATCH_THRESHOLD_DAYS;

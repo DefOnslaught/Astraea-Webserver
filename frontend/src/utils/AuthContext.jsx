@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 
 import api from "./api";
-import { API_ENDPOINTS } from "./constants";
+import { API_ENDPOINTS, REFRESH_TOKEN_LIFETIME_WARNING } from "./constants";
 import { usePathCheck } from "../hooks/usePathCheck";
 import SessionWarningModal from "../components/SessionWarningModal";
 
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         const secondsLeft = Math.floor((refreshExpiryTime - currentTime) / 1000);
 
         // Trigger warning modal when 5 minutes are left (300 seconds)
-        if (secondsLeft <= 60 && secondsLeft > 0 && !showWarningModal) {
+        if (secondsLeft <= REFRESH_TOKEN_LIFETIME_WARNING && secondsLeft > 0 && !showWarningModal) {
             setShowWarningModal(true);
         }
 
