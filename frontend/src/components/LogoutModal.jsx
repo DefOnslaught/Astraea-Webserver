@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const LogoutModal = ({ isOpen, onConfirm, onCancel }) => {
+const LogoutModal = ({ isOpen, onConfirm, onCancel, title, description, confirmLabel }) => {
     
     useEffect(() => {
         const handleEsc = (event) => {
@@ -19,11 +19,11 @@ const LogoutModal = ({ isOpen, onConfirm, onCancel }) => {
                     <div className="bg-red-500/10 p-3 rounded-full">
                         <i className="fa-solid fa-right-from-bracket text-xl"></i>
                     </div>
-                    <h3 className="text-xl font-bold text-white">Sign Out?</h3>
+                    <h3 className="text-xl font-bold text-white">{title || "Sign Out?"}</h3>
                 </div>
 
                 <p className="text-gray-400 text-sm mb-6">
-                    Are you sure you want to log out? You will need to sign back in to access your data.
+                    {description || "Are you sure you want to log out? You will need to sign back in to access your data."}
                 </p>
 
                 <div className="flex gap-3">
@@ -37,7 +37,7 @@ const LogoutModal = ({ isOpen, onConfirm, onCancel }) => {
                         onClick={onConfirm}
                         className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold transition-all shadow-lg shadow-red-500/20"
                     >
-                        Logout
+                        {confirmLabel || "Logout"}
                     </button>
                 </div>
             </div>

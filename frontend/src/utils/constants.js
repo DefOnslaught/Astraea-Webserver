@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     CSRF: "api/users/csrf/",
     LOGIN: "api/users/login/",
     LOGOUT: "api/users/logout/",
+    LOGOUT_ALL_DEVICES: "api/users/logout_all_devices/",
     REGISTER: "api/users/register/",
     PROFILE: "api/users/profile/",
     CHANGE_PASSWORD: "api/users/profile/change-password/",
