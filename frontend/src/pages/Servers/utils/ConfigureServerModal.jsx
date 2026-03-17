@@ -79,6 +79,13 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
         }
     };
 
+    const AgentWarning = () => (
+        <div className="flex items-center gap-1.5 mt-1.5 px-1 text-[10px] text-amber-500/80 italic font-medium">
+            <i className="fa-solid fa-circle-info text-[9px]"></i>
+            <span>Note: This value is overwritten by Astraea Agent</span>
+        </div>
+    );
+
     if (isLoading) return <SectionLoader label="Fetching Server..." />;
 
     return createPortal(
@@ -130,6 +137,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
                                 onChange={(e) => setFormData({ ...formData, env: e.target.value })}
                                 className="w-full bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
                             />
+                            <AgentWarning />
                         </div>
 
                         <div className="space-y-2">
@@ -140,6 +148,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
                                 onChange={(e) => setFormData({ ...formData, patch_schedule: e.target.value })}
                                 className="w-full bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors"
                             />
+                            <AgentWarning />
                         </div>
 
                         <div className="flex gap-3 pt-2">
