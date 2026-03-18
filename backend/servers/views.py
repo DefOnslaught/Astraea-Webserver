@@ -293,7 +293,7 @@ class SavePatchingData(APIView):
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class UpdateServerInfo(APIView):
+class InspectServerInfo(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -311,6 +311,30 @@ class UpdateServerInfo(APIView):
             cached_data = cache.get(cache_key)
 
         return Response(cached_data, status=status.HTTP_200_OK)
+
+
+class UpdateServerInfo(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        id = request.query_params.get('id')
+
+        if not id:
+            return Response({'message': "Missing id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        cache_key = f"server_data:{id}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data is None:
+            server = get_object_or_404(Server, id=id)
+            cache_individual_vms([server])
+            cached_data = cache.get(cache_key)
+        
+        # Only send the needed data to reduce amount sent
+        fields = ['id', 'patch_schedule', 'enable_patching', 'env', 'hostname']
+        needed_results = {k: cached_data.get(k) for k in fields if k in cached_data}
+        
+        return Response(needed_results, status=status.HTTP_200_OK)
 
 
     def post(self, request):

@@ -226,6 +226,27 @@ class PatchingSystemTests(APITestCase):
         stats = cache.get("dashboard_stats")
         self.assertEqual(stats['total_servers'], 0)
 
+    def test_inspect_server_db_and_cache(self):
+        """Verify that inspecting a server via the frontend properly uses Redis and DB."""
+        server = ServerFactory(hostname="woah-this-vm")
+        
+        server_cache_key = f"server_data:{server.id}"
+        self.assertIsNotNone(cache.get(server_cache_key))
+        
+        url = reverse('inspect_server')
+        payload = {
+            'id': str(server.id)
+        }
+        response = self.client.get(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        server.refresh_from_db()
+        self.assertEqual(server.hostname, "woah-this-vm")
+        
+        cached_data = cache.get(server_cache_key)
+        self.assertIsNotNone(cached_data)
+        self.assertEqual(cached_data['hostname'], "woah-this-vm")
+
     def test_server_update_db_and_cache(self):
         """Verify that updating a server via the frontend updates Redis and DB."""
         server = ServerFactory(hostname="update-me-vm", enable_patching=True)

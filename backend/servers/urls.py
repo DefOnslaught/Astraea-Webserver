@@ -6,7 +6,8 @@ from .views import (
     SavePatchingData,
     DeleteServer,
     CreateAPIKeyView,
-    UpdateServerInfo
+    UpdateServerInfo,
+    InspectServerInfo
 )
 
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path('servers/search/', QuickVMSearchView.as_view(), name='vm_search'),
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
     path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
+    path('patching/inspect/', InspectServerInfo.as_view(), name='inspect_server'),
     path('patching/update/', UpdateServerInfo.as_view(), name='update_server'),
     path('patching/delete/', DeleteServer.as_view(), name='delete_server'),
     path('patching/api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
