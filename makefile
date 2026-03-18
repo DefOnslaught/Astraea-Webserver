@@ -192,8 +192,12 @@ setupNginx:
 	@sudo nginx -t
 	@echo "$(GREEN)Nginx Setup Complete$(RESET)"
 
+clearCache:
+	@echo "$(BOLD_CYAN)Clearing cache...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py clear_cache || echo "$(YELLOW)Cache clear failed$(RESET)"
+
 clean:
-	@echo "$(BOLD_RED)Cleaning up...$(RESET)"
+	@echo "$(BOLD_CYAN)Cleaning up...$(RESET)"
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@rm -rf frontend/dist backend/staticfiles
 
