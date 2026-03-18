@@ -98,7 +98,7 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(PackageUpdate.objects.filter(server=server).count(), 2)
 
         # Check Individual Cache updated
-        cached_data = cache.get(f"server_data:{server.id}")
+        cached_data = cache.get(f"server_data:{server.server_id}")
         self.assertIsNotNone(cached_data)
         self.assertEqual(cached_data['os_version'], "Debian 12")
         self.assertEqual(cached_data['patch_schedule'], "10AM Wednesday Weeks 1 & 3")
@@ -206,12 +206,12 @@ class PatchingSystemTests(APITestCase):
         from .utils import refresh_dashboard_stats
         refresh_dashboard_stats() # Initialize dashboard counts
         
-        server_cache_key = f"server_data:{server.id}"
+        server_cache_key = f"server_data:{server.server_id}"
         self.assertIsNotNone(cache.get(server_cache_key)) # Confirm it exists initially
 
         # 2. Act: Call the delete view
-        url = reverse('delete_server')
-        response = self.client.delete(url, {'id': server.id }, format='json')
+        url = f"{reverse('delete_server')}?server_id={server.server_id}"
+        response = self.client.delete(url)
 
         # 3. Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -230,12 +230,12 @@ class PatchingSystemTests(APITestCase):
         """Verify that inspecting a server via the frontend properly uses Redis and DB."""
         server = ServerFactory(hostname="woah-this-vm")
         
-        server_cache_key = f"server_data:{server.id}"
+        server_cache_key = f"server_data:{server.server_id}"
         self.assertIsNotNone(cache.get(server_cache_key))
         
         url = reverse('inspect_server')
         payload = {
-            'id': str(server.id)
+            'server_id': str(server.server_id)
         }
         response = self.client.get(url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -251,12 +251,12 @@ class PatchingSystemTests(APITestCase):
         """Verify that updating a server via the frontend updates Redis and DB."""
         server = ServerFactory(hostname="update-me-vm", enable_patching=True)
         
-        server_cache_key = f"server_data:{server.id}"
+        server_cache_key = f"server_data:{server.server_id}"
         self.assertIsNotNone(cache.get(server_cache_key))
 
         url = reverse('update_server')
         payload = {
-            'id': str(server.id), 
+            'server_id': str(server.server_id), 
             'enable_patching': False
         }
         response = self.client.post(url, payload, format='json')

@@ -150,7 +150,7 @@ const Dashboard = () => {
                             <ListSkeleton />
                         ) : stats?.at_risk?.length > 0 ? (
                             stats.at_risk.map(server => (
-                                <ServerRow key={server.id} server={server} type="risk" />
+                                <ServerRow key={server.server_id} server={server} type="risk" />
                             ))
                         ) : (
                             <EmptyState message="No at-risk servers found." />
@@ -173,7 +173,7 @@ const Dashboard = () => {
                             <ListSkeleton />
                         ) : stats?.recent_activity?.length > 0 ? (
                             stats.recent_activity.map(server => (
-                                <ServerRow key={server.id} server={server} type="activity" />
+                                <ServerRow key={server.server_id} server={server} type="activity" />
                             ))
                         ) : (
                             <EmptyState message="No recent patches recorded." />

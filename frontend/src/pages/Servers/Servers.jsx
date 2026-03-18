@@ -235,7 +235,7 @@ const Servers = () => {
                                         const isLastElement = servers.length === index + 1;
                                         return (
                                             <ServerRow
-                                                key={server.id}
+                                                key={server.server_id}
                                                 server={server}
                                                 query={activeQuery}
                                                 onRefresh={() => fetchServers(activeQuery)}

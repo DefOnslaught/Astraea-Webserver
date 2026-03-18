@@ -16,6 +16,14 @@ def get_dashboard_stats():
     stats = cache.get("dashboard_stats")
     return stats if stats else refresh_dashboard_stats()
 
+def _project_dashboard_fields(vm):
+    """Returns only the specific fields required for the Dashboard UI."""
+    return {
+        "server_id": str(vm.get('server_id') if isinstance(vm, dict) else vm.server_id),
+        "hostname": vm.get('hostname') if isinstance(vm, dict) else vm.hostname,
+        "ip_address": vm.get('ip_address') if isinstance(vm, dict) else vm.ip_address,
+        "last_patch_date": vm.get('last_patch_date') if isinstance(vm, dict) else vm.last_patch_date,
+    }
 
 def refresh_dashboard_stats(vms=None):
     """Calculates summary stats and top server lists. Hits DB only if vms is None."""
@@ -29,8 +37,6 @@ def refresh_dashboard_stats(vms=None):
     total_servers = len(vms)
     total_servers_not_enabled = 0
     outdated_count = 0
-    at_risk_list = []
-    recently_patched_list = []
 
     for vm in vms:
         lp_date = vm.get('last_patch_date')
@@ -47,7 +53,7 @@ def refresh_dashboard_stats(vms=None):
     outdated_vms = [v for v in vms if v.get('last_patch_date') is None or v.get('last_patch_date') < time_threshold]
 
     # 2. Pick the 5 oldest from THAT filtered list
-    at_risk_list = heapq.nsmallest(
+    at_risk_raw = heapq.nsmallest(
         5, outdated_vms, 
         key=lambda x: x.get('last_patch_date') if x.get('last_patch_date') else epoch_start
     )
@@ -55,7 +61,7 @@ def refresh_dashboard_stats(vms=None):
     # Recent Activity: We want the LARGEST dates (newest).
     # We filter out None because a 'never patched' server is not 'recent activity'.
     patched_vms = [v for v in vms if v.get('last_patch_date') is not None]
-    recently_patched_list = heapq.nlargest(
+    recent_raw = heapq.nlargest(
         5, patched_vms, 
         key=lambda x: x.get('last_patch_date')
     )
@@ -64,8 +70,8 @@ def refresh_dashboard_stats(vms=None):
         "total_servers": total_servers,
         "total_servers_not_enabled": total_servers_not_enabled,
         "outdated_servers": outdated_count,
-        "at_risk": at_risk_list,
-        "recent_activity": recently_patched_list,
+        "at_risk": [_project_dashboard_fields(v) for v in at_risk_raw],
+        "recent_activity": [_project_dashboard_fields(v) for v in recent_raw],
         "last_updated": timezone.now().isoformat()
     }
     
@@ -84,7 +90,7 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
 
     # Convert the model instance to a dict that matches your list format
     vm_dict = {
-        'id': instance.id,
+        'server_id': str(instance.server_id),
         'hostname': instance.hostname,
         'ip_address': instance.ip_address,
         'last_patch_date': instance.last_patch_date,
@@ -114,7 +120,7 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
     # 2. Handle Recent Activity List
     if not is_deleted and instance.last_patch_date:
         # Remove if already exists (to avoid duplicates), then add to top
-        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['id'] != instance.id]
+        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != instance.server_id]
         stats["recent_activity"].insert(0, vm_dict)
         # Keep only top 5
         stats["recent_activity"] = sorted(
@@ -126,7 +132,7 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
     # 3. Handle At Risk List
     if not is_deleted:
         # Remove existing instance to update it
-        current_at_risk = [v for v in stats.get("at_risk", []) if v['id'] != instance.id]
+        current_at_risk = [v for v in stats.get("at_risk", []) if v['server_id'] != instance.server_id]
         
         # ONLY add it back if it is actually outdated
         if is_outdated:
@@ -139,8 +145,8 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
         )[:5]
     else:
         # If deleted, just remove from lists
-        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['id'] != instance.id]
-        stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['id'] != instance.id]
+        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != instance.server_id]
+        stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['server_id'] != instance.server_id]
 
     stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)
@@ -161,11 +167,11 @@ def cache_individual_vms(vms):
         current_index = [] 
 
     # Convert index to a dict for O(1) lookups during the update
-    # Using 'id' as the unique key
-    index_map = {str(item['id']): item for item in current_index}
+    # Using 'server_id' as the unique key
+    index_map = {str(item['server_id']): item for item in current_index}
 
     for vm in vms:
-        vm_id = vm.id if hasattr(vm, 'id') else vm.get('id')
+        server_id = str(getattr(vm, 'server_id') if hasattr(vm, 'server_id') else vm.get('server_id'))
         
         def get_val(attr, default=None):
             return getattr(vm, attr) if hasattr(vm, attr) else vm.get(attr, default)
@@ -183,8 +189,7 @@ def cache_individual_vms(vms):
             return str(date_val)
 
         server_obj = {
-            "id": vm_id,
-            "server_id": str(get_val('server_id')),
+            "server_id": server_id,
             "hostname": get_val('hostname', 'Unknown'),
             "ip_address": get_val('ip_address', '0.0.0.0'),
             "mac_address": get_val('mac_address', ''),
@@ -199,10 +204,10 @@ def cache_individual_vms(vms):
         }
 
         # 2. Update individual granular keys
-        payload[f"server_data:{vm_id}"] = server_obj
+        payload[f"server_data:{server_id}"] = server_obj
         
         # 3. Update the dictionary map for the index
-        index_map[str(vm_id)] = server_obj
+        index_map[str(server_id)] = server_obj
 
     # 4. Save everything back
     if payload:
@@ -213,14 +218,14 @@ def cache_individual_vms(vms):
         cache.set("server_search_index", updated_index, timeout=None)
 
 
-def remove_vm_from_index(vm_id):
+def remove_vm_from_index(server_id):
     """Surgically removes a server from the search index list."""
     current_index = cache.get("server_search_index")
     if not current_index:
         return
     
     # Filter out the deleted ID
-    updated_index = [vm for vm in current_index if str(vm['id']) != str(vm_id)]
+    updated_index = [vm for vm in current_index if str(vm['server_id']) != str(server_id)]
     
     if len(updated_index) != len(current_index):
         cache.set("server_search_index", updated_index, timeout=None)

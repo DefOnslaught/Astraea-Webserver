@@ -193,7 +193,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         anchorRef={actionButtonRef}
                     >
                         <button
-                            onClick={() => { console.log("Inspect", server.id); setIsMenuOpen(false); }}
+                            onClick={() => { console.log("Inspect", server.server_id); setIsMenuOpen(false); }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
                         >
                             <i className="fa-solid fa-eye text-xs"></i>
@@ -216,7 +216,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                 {/* RENDER MODAL */}
                 {isConfigOpen && (
                     <ConfigureServerModal
-                        id={server.id}
+                        server_id={server.server_id}
                         onClose={() => setIsConfigOpen(false)}
                         onUpdateSuccess={handleSuccess}
                     />

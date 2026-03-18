@@ -46,8 +46,8 @@ def sync_cache_on_save(sender, instance, created, **kwargs):
 
 @receiver(post_delete, sender=Server)
 def sync_cache_on_delete(sender, instance, **kwargs):
-    cache.delete(f"server_data:{instance.id}")
-    remove_vm_from_index(instance.id)
+    cache.delete(f"server_data:{instance.server_id}")
+    remove_vm_from_index(instance.server_id)
     days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
     is_outdated = (instance.last_patch_date is None or 
                    instance.last_patch_date < (timezone.now() - timedelta(days=days)))

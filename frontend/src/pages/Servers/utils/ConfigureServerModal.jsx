@@ -4,7 +4,7 @@ import api from '../../../utils/api';
 import { API_ENDPOINTS } from "../../../utils/constants";
 import SectionLoader from '../../../components/SectionLoader';
 
-const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
+const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
     const [formData, setFormData] = useState({
         enable_patching: true,
         patch_schedule: '',
@@ -21,7 +21,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await api.get(`${API_ENDPOINTS.UPDATE_SERVER}?id=${id}`);
+                const res = await api.get(`${API_ENDPOINTS.UPDATE_SERVER}?server_id=${server_id}`);
                 setServerInfo(res.data);
                 setFormData({
                     enable_patching: res.data.enable_patching,
@@ -35,7 +35,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
             }
         };
         fetchSettings();
-    }, [id]);
+    }, [server_id]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -44,7 +44,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
 
         try {
             await api.post(API_ENDPOINTS.UPDATE_SERVER, {
-                id: id,
+                server_id: server_id,
                 ...formData
             });
 
@@ -66,7 +66,7 @@ const ConfigureServerModal = ({ id, onClose, onUpdateSuccess }) => {
         try {
             await api.delete(API_ENDPOINTS.DELETE_SERVER, {
                 data: {
-                    id: id
+                    server_id: server_id
                 }
             });
             onUpdateSuccess();
