@@ -69,7 +69,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                     server_id: server_id
                 }
             });
-            onUpdateSuccess();
+            onUpdateSuccess({ isDeleted: true });
             onClose();
         } catch (err) {
             setError(err.response?.data?.message || "Failed to delete server.");

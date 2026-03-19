@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import HighlightText from "../../../utils/HighlightText";
 import getDaysAgo from "../../../utils/getDaysAgo";
 import truncateString from "../../../utils/truncateString";
@@ -11,6 +12,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     const menuRef = useRef(null);
     const actionButtonRef = useRef(null);
+    const navigate = useNavigate();
 
     // Close the menu if the user clicks anywhere else on the page
     useEffect(() => {
@@ -36,14 +38,23 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
 
             {/* HOSTNAME */}
             <td className="px-6 py-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform duration-300">
-                        <i className={`fa-solid fa-server text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
+                <button
+                    onClick={() => navigate(`/inspect/${server.server_id}/`)}
+                    className="flex items-center gap-3 group/host text-left outline-none"
+                >
+                    <div className="p-3 rounded-xl bg-white/5 group-hover/host:bg-indigo-500/10 group-hover/host:scale-110 transition-all duration-300">
+                        <i className="fa-solid fa-server text-gray-500 group-hover/host:text-indigo-400 transition-colors"></i>
                     </div>
-                    <span className="font-semibold text-gray-400 group-hover:text-indigo-400 transition-colors">
-                        <HighlightText text={server.hostname} query={query} field="host" />
-                    </span>
-                </div>
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-gray-400 group-hover/host:text-white transition-colors">
+                            <HighlightText text={server.hostname} query={query} field="host" />
+                        </span>
+                        {/* Optional: Add a subtle 'Click to inspect' hint that appears on hover */}
+                        <span className="text-[10px] text-indigo-500/0 group-hover/host:text-indigo-500/70 transition-all uppercase tracking-tighter font-bold">
+                            View Details
+                        </span>
+                    </div>
+                </button>
             </td>
 
             {/* OS VERSION */}
@@ -194,7 +205,10 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         anchorRef={actionButtonRef}
                     >
                         <button
-                            onClick={() => { console.log("Inspect", server.server_id); setIsMenuOpen(false); }}
+                            onClick={() => { 
+                                setIsMenuOpen(false); 
+                                navigate(`/inspect/${server.server_id}/`);
+                            }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
                         >
                             <i className="fa-solid fa-eye text-xs"></i>

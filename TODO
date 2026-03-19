@@ -4,13 +4,17 @@ Backend:
     - Add a method for verification when a user registers.
 
 Frontend:
+    
+    Dashboard - On the 'outdated servers' and 'patching disabled' box, make it so when clicked it takes you to /servers/ with the filter to show those servers
+
+    - Important: Dashboard needs a ratelimit for how many times it retires to get dashboard_stats url
+                - Have it where it will try 5 times waiting 3 seconds each time, then if that fails,
+                    it goes into a timer/loop where it will retry in 30 seconds, twice. then show error  
+
     - Ensure if verification is enabled, we properly follow that.
     - List all packages, how many servers using that package (regardless of version)
         - when inspecting a package, list versions and how many servers use it
     - Search for package name, package version = shows a list of servers with it installed
-
-    - When inspecting a server, have a spot that shows any problems, like out of date (30 days), or not rebooted (30 days)
-    - When using the 'Actions -> Configure' menu in /servers have the two options for now 'Enable/Disable Patching', ''
 
 
 General Needs:
@@ -25,3 +29,10 @@ General Needs:
         - Manage user accounts (Based on permission)
         - About section (maybe show updates?)
         - Link to the Django Admin page (if superuser)
+
+    
+    Script Stuff:
+        - Check to see if enable patching is true
+        - Section to configure the scripts .env and generates a link to download the configured script
+            - wget -O - https://example.com/files/script.sh | bash
+            - wget https://example.com -O my_script.py && python my_script.py

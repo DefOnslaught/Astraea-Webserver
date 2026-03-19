@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
-from .models import Server, PackageUpdate, Package, NetworkInterface
+from .models import Server, PackageUpdate, Package, NetworkInterface, PatchSession
 from .utils import cache_individual_vms
 
 class PackageUpdateSerializer(serializers.ModelSerializer):
@@ -15,6 +15,12 @@ class PackageUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PackageUpdate
         fields = ['package_name', 'version']
+
+
+class PatchSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatchSession
+        fields = ['id', 'timestamp', 'status', 'total_updated', 'error_log']
 
 
 class NetworkInterfaceSerializer(serializers.ModelSerializer):
@@ -43,7 +49,9 @@ class ServerUpdateSerializer(serializers.ModelSerializer):
 class ServerPatchSerializer(serializers.ModelSerializer):
     """Used for the incoming patching script API using UUID lookups."""
     interfaces = NetworkInterfaceSerializer(many=True)
-    packages = PackageUpdateSerializer(many=True, write_only=True)
+    packages = serializers.ListField(child=serializers.DictField(), write_only=True)
+    status = serializers.ChoiceField(choices=PatchSession.STATUS_CHOICES, default='success', write_only=True)
+    error_log = serializers.CharField(required=False, allow_blank=True, write_only=True)
     server_id = serializers.UUIDField(required=True)
     hostname = serializers.CharField(max_length=255)
 
@@ -52,7 +60,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
             'last_reboot', 'uptime', 'total_packages_updated', 'packages',
-            'patch_schedule', 'env'
+            'patch_schedule', 'env', 'status', 'error_log'
         ]
 
     def update(self, instance, validated_data):
@@ -62,54 +70,54 @@ class ServerPatchSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         interfaces_data = validated_data.pop('interfaces', [])
-        packages_data = validated_data.pop('packages')
+        packages_data = validated_data.pop('packages', [])
         server_uuid = validated_data.pop('server_id')
+        session_status = validated_data.pop('status', 'success')
+        session_errors = validated_data.pop('error_log', None)
         
         validated_data['last_patch_date'] = timezone.now()
         
         with transaction.atomic():
-            # 1. Update/Create the Server itself
-            server, created = Server.objects.update_or_create(
+            # 1. Update Server Base Info
+            server, _ = Server.objects.update_or_create(
                 server_id=server_uuid,
-                defaults=validated_data
+                defaults={**validated_data, 'last_patch_date': timezone.now()}
             )
 
-            # 2. THE IP STEALER: Global cleanup
-            # Identify all IPs incoming in this request
+            # 2. IP Stealing & Interface Sync 
             incoming_ips = [iface['ip_address'] for iface in interfaces_data]
-            
-            # Remove these IPs from ANY other server immediately
-            # This prevents IntegrityError when we try to assign them to 'server'
-            NetworkInterface.objects.filter(
-                ip_address__in=incoming_ips
-            ).exclude(server=server).delete()
-
-            # 3. Local Sync: Remove interfaces this server NO LONGER has
+            NetworkInterface.objects.filter(ip_address__in=incoming_ips).exclude(server=server).delete()
             server.interfaces.exclude(ip_address__in=incoming_ips).delete()
-
-            # 4. Upsert current interfaces
-            for iface_item in interfaces_data:
+            for iface in interfaces_data:
                 NetworkInterface.objects.update_or_create(
-                    server=server,
-                    ip_address=iface_item['ip_address'],
-                    defaults={
-                        'mac_address': iface_item.get('mac_address'),
-                        'interface_name': iface_item.get('interface_name')
-                    }
-                )
-            
-            for pkg_data in packages_data:
-                package_obj, _ = Package.objects.get_or_create(
-                    name=pkg_data['package_name'],
-                    version=pkg_data['version']
+                    server=server, ip_address=iface['ip_address'],
+                    defaults={'mac_address': iface.get('mac_address'), 'interface_name': iface.get('interface_name')}
                 )
 
-                PackageUpdate.objects.update_or_create(
-                    server=server, 
-                    package=package_obj,
-                    defaults={'timestamp': timezone.now()} 
+            # 3. Create the Patch Session (THE NEW HISTORY LOGIC)
+            session = PatchSession.objects.create(
+                server=server,
+                status=session_status,
+                error_log=session_errors,
+                total_updated=len(packages_data)
+            )
+
+            # 4. Log individual package updates within this session
+            updates_to_create = []
+            for pkg in packages_data:
+                version_str = pkg.get('new_version') or pkg.get('version')
+                package_obj, _ = Package.objects.get_or_create(
+                    name=pkg['package_name'],
+                    version=version_str
                 )
+                updates_to_create.append(PackageUpdate(
+                    session=session,
+                    package=package_obj,
+                    new_version=version_str,
+                    old_version=pkg.get('old_version')
+                ))
+
+            PackageUpdate.objects.bulk_create(updates_to_create)
             
             cache_individual_vms([server])
-
             return server

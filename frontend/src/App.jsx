@@ -7,6 +7,7 @@ import Logout from "./pages/Authentication/Logout";
 import Register from "./pages/Authentication/Register";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Servers from "./pages/Servers/Servers";
+import InspectServer from "./pages/InspectServer/InspectServer";
 import Profile from "./pages/Profile/Profile";
 import NotFound from "./pages/ErrorPages/NotFound";
 
@@ -26,6 +27,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/servers" element={<Servers />} />
+              <Route path="/inspect/:server_id/" element={<InspectServer />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

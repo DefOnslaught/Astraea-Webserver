@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from .factories import ServerFactory, PackageFactory
-from .models import Package, PackageUpdate, Server, APIKey, NetworkInterface
+from .models import Package, PackageUpdate, Server, APIKey, NetworkInterface, PatchSession
 from .utils import cache_individual_vms
 
 User = get_user_model()
@@ -95,7 +95,7 @@ class PatchingSystemTests(APITestCase):
         self.assertGreater(server.last_reboot, past_reboot)
         self.assertEqual(server.env, "Prod")
         self.assertEqual(Package.objects.count(), 2)
-        self.assertEqual(PackageUpdate.objects.filter(server=server).count(), 2)
+        self.assertEqual(PackageUpdate.objects.filter(session__server=server).count(), 2)
 
         # Check Individual Cache updated
         cached_data = cache.get(f"server_data:{server.server_id}")
@@ -215,9 +215,14 @@ class PatchingSystemTests(APITestCase):
         
         s1, s2, s3 = ServerFactory.create_batch(3)
 
-        PackageUpdate.objects.create(server=s1, package=pkg_v1)
-        PackageUpdate.objects.create(server=s2, package=pkg_v1)
-        PackageUpdate.objects.create(server=s3, package=pkg_v2)
+        sess1 = PatchSession.objects.create(server=s1, status='success')
+        sess2 = PatchSession.objects.create(server=s2, status='success')
+        sess3 = PatchSession.objects.create(server=s3, status='success')
+
+        # Update PackageUpdate to use the session instead of the server
+        PackageUpdate.objects.create(session=sess1, package=pkg_v1, new_version="3.10")
+        PackageUpdate.objects.create(session=sess2, package=pkg_v1, new_version="3.10")
+        PackageUpdate.objects.create(session=sess3, package=pkg_v2, new_version="3.11")
 
         url = reverse('package_search')
         response = self.client.get(url, {'q': 'python'})

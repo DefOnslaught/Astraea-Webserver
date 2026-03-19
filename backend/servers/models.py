@@ -37,14 +37,31 @@ class Package(models.Model):
     def __str__(self):
         return f"{self.name} v{self.version}"
 
-class PackageUpdate(models.Model):
-    """The historical log: Which server got which package and when."""
-    server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='updates')
-    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='installed_on')
+class PatchSession(models.Model):
+    """Groups a single run of the patching script."""
+    STATUS_CHOICES = [
+        ('success', 'Success'),
+        ('partial', 'Partial Failure'),
+        ('failed', 'Failed'),
+    ]
+    server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='patch_sessions')
     timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='success')
+    error_log = models.TextField(null=True, blank=True)
+    total_updated = models.IntegerField(default=0)
 
+    class Meta:
+        ordering = ['-timestamp']
+    
     def __str__(self):
-        return f"{self.server.hostname} -> {self.package}"
+        return self.server.hostname
+
+class PackageUpdate(models.Model):
+    """Historical log of a specific package within a session."""
+    session = models.ForeignKey(PatchSession, on_delete=models.CASCADE, related_name='package_details')
+    package = models.ForeignKey(Package, on_delete=models.CASCADE, related_name='usage_history')
+    old_version = models.CharField(max_length=100, null=True, blank=True)
+    new_version = models.CharField(max_length=100)
 
 class APIKey(models.Model):
     name = models.CharField(max_length=100, help_text="e.g., 'Production Linux Cluster'")

@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q
 
-from .models import Server, Package, APIKey
+from .models import Server, Package, APIKey, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
@@ -225,33 +225,38 @@ class PackageSearchView(APIView):
     def get(self, request):
         query = request.GET.get('q', '').strip().lower()
         if not query:
-            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
 
         cache_key = f"software_search:{query}"
         results = cache.get(cache_key)
 
         if results is None:
-
-            all_matches = Package.objects.filter(name__icontains=query).prefetch_related('installed_on__server')
+            # We prefetch through the session to the server to avoid N+1 queries
+            all_matches = Package.objects.filter(name__icontains=query).prefetch_related(
+                'usage_history__session__server'
+            )
 
             grouped_data = {}
             for pkg in all_matches:
                 if pkg.name not in grouped_data:
-                    grouped_data[pkg.name] = {
-                        "name": pkg.name,
-                        "versions": []
-                    }
+                    grouped_data[pkg.name] = {"name": pkg.name, "versions": []}
                 
-                updates = pkg.installed_on.all()
-                server_count = updates.count()
+                # Get all updates for this specific package version
+                updates = pkg.usage_history.all()
+                
+                # We want unique servers (in case a server patched the same pkg twice)
+                # We use a set to get unique hostnames from the nested relationship
+                unique_servers = {u.session.server for u in updates}
+                server_count = len(unique_servers)
+                
+                # Convert set to list for slicing the preview
+                server_list = list(unique_servers)
 
                 grouped_data[pkg.name]["versions"].append({
                     "package_id": pkg.id,
                     "version": pkg.version,
                     "server_count": server_count,
-                    "preview_servers": [
-                        u.server.hostname for u in updates[:3]
-                    ],
+                    "preview_servers": [s.hostname for s in server_list[:3]],
                     "has_more": server_count > 3
                 })
         
@@ -305,14 +310,106 @@ class InspectServerInfo(APIView):
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
 
         cache_key = f"server_data:{server_id}"
-        cached_data = cache.get(cache_key)
+        data = cache.get(cache_key)
 
-        if cached_data is None:
-            server = get_object_or_404(Server, server_id=server_id)
+        if data is None:
+            server = get_object_or_404(Server.objects.prefetch_related('interfaces'), server_id=server_id)
             cache_individual_vms([server])
-            cached_data = cache.get(cache_key)
+            data = cache.get(cache_key)
 
-        return Response(cached_data, status=status.HTTP_200_OK)
+        # Add recent history summary (not cached globally to keep data fresh)
+        recent_sessions = PatchSession.objects.filter(server__server_id=server_id)[:5]
+        data['recent_history'] = [{
+            'id': s.id,
+            'timestamp': s.timestamp,
+            'status': s.status,
+            'total': s.total_updated
+        } for s in recent_sessions]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class ServerPatchHistory(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        server_id = request.query_params.get('server_id')
+        if not server_id:
+            return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Fetch all sessions for this server
+        sessions = PatchSession.objects.filter(
+            server__server_id=server_id
+        ).order_by('-timestamp')
+
+        # Map to the format the Frontend HistoryTable expects
+        data = [{
+            'id': s.id,
+            'timestamp': s.timestamp,
+            'status': s.status,
+            'total': s.total_updated,
+            'error_log': s.error_log
+        } for s in sessions]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
+# TODO Fix to where it shows all installed packages (Requires more testing, likely with real data)
+class ServerPackageInventory(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        server_id = request.query_params.get('server_id')
+        if not server_id:
+            return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 1. Find the absolute latest successful session for this server
+        latest_session = PatchSession.objects.filter(
+            server__server_id=server_id,
+            status='success'
+        ).first() # ordering is -timestamp by default in your model
+
+        if not latest_session:
+            return Response([])
+
+        # 2. Get only the packages from THAT specific snapshot
+        updates = latest_session.package_details.select_related('package').all()
+
+        data = [{
+            'name': u.package.name,
+            'version': u.new_version,
+            'last_seen': latest_session.timestamp
+        } for u in updates]
+
+        return Response(sorted(data, key=lambda x: x['name']), status=status.HTTP_200_OK)
+
+
+class PatchSessionDetail(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        session_id = request.query_params.get('session_id')
+        if not session_id:
+            return Response({'message': "Missing Session ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        session = get_object_or_404(PatchSession, id=session_id)
+        
+        # Fetch individual package updates for this session
+        updates = session.package_details.select_related('package').all()
+
+        data = {
+            'id': session.id,
+            'timestamp': session.timestamp,
+            'status': session.status,
+            'error_log': session.error_log,
+            'updates': [{
+                'name': u.package.name,
+                'old_version': u.old_version,
+                'new_version': u.new_version
+            } for u in updates]
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class UpdateServerInfo(APIView):
