@@ -21,7 +21,6 @@ def _project_dashboard_fields(vm):
     return {
         "server_id": str(vm.get('server_id') if isinstance(vm, dict) else vm.server_id),
         "hostname": vm.get('hostname') if isinstance(vm, dict) else vm.hostname,
-        "ip_address": vm.get('ip_address') if isinstance(vm, dict) else vm.ip_address,
         "last_patch_date": vm.get('last_patch_date') if isinstance(vm, dict) else vm.last_patch_date,
     }
 
@@ -32,38 +31,45 @@ def refresh_dashboard_stats(vms=None):
 
     if vms is None:
         # DB Fallback (try to avoid this on the home page)
-        vms = list(Server.objects.all().values('id', 'server_id','hostname', 'ip_address', 'last_patch_date', 'os_version', 'last_reboot', 'env'))
+        vms = list(Server.objects.prefetch_related('interfaces').all())
+
+    def get_val(obj, attr, default=None):
+        """Helper to fetch attribute from either a Model instance or a Dictionary."""
+        if isinstance(obj, dict):
+            return obj.get(attr, default)
+        return getattr(obj, attr, default)
 
     total_servers = len(vms)
     total_servers_not_enabled = 0
     outdated_count = 0
 
     for vm in vms:
-        lp_date = vm.get('last_patch_date')
-        enabled = vm.get('enable_patching')
+        lp_date = get_val(vm, 'last_patch_date')
+        enabled = get_val(vm, 'enable_patching')
+        
         if lp_date is None or lp_date < time_threshold:
             outdated_count += 1
-        if enabled == False:
+        if enabled is False:
             total_servers_not_enabled += 1
 
     # Define a 'zero' time for comparison
     epoch_start = timezone.make_aware(datetime(1970, 1, 1))
 
     # 1. Get only the ones that are actually "outdated"
-    outdated_vms = [v for v in vms if v.get('last_patch_date') is None or v.get('last_patch_date') < time_threshold]
+    outdated_vms = [v for v in vms if get_val(v, 'last_patch_date') is None or get_val(v, 'last_patch_date') < time_threshold]
 
     # 2. Pick the 5 oldest from THAT filtered list
     at_risk_raw = heapq.nsmallest(
         5, outdated_vms, 
-        key=lambda x: x.get('last_patch_date') if x.get('last_patch_date') else epoch_start
+        key=lambda x: get_val(x, 'last_patch_date') if get_val(x, 'last_patch_date') else epoch_start
     )
 
     # Recent Activity: We want the LARGEST dates (newest).
     # We filter out None because a 'never patched' server is not 'recent activity'.
-    patched_vms = [v for v in vms if v.get('last_patch_date') is not None]
+    patched_vms = [v for v in vms if get_val(v, 'last_patch_date') is not None]
     recent_raw = heapq.nlargest(
         5, patched_vms, 
-        key=lambda x: x.get('last_patch_date')
+        key=lambda x: get_val(x, 'last_patch_date')
     )
 
     stats = {
@@ -82,75 +88,72 @@ def refresh_dashboard_stats(vms=None):
 
 def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=True, is_new=False, is_deleted=False):
     stats = cache.get("dashboard_stats")
-    if not stats:
+    if not stats or "total_servers" not in stats:
         return refresh_dashboard_stats()
     
     if "total_servers_not_enabled" not in stats:
         stats["total_servers_not_enabled"] = 0
 
     # Convert the model instance to a dict that matches your list format
-    vm_dict = {
+    vm_projection = {
         'server_id': str(instance.server_id),
         'hostname': instance.hostname,
-        'ip_address': instance.ip_address,
-        'last_patch_date': instance.last_patch_date,
+        'last_patch_date': instance.last_patch_date.isoformat() if instance.last_patch_date else None,
         'total_servers_not_enabled': instance.enable_patching,
     }
 
-    # 1. Handle Totals
+    # Helper for sorting
+    def parse_date(d_str):
+        if not d_str: return epoch_start
+        if isinstance(d_str, datetime): return d_str
+        return datetime.fromisoformat(d_str)
+
+    epoch_start = timezone.make_aware(datetime(1970, 1, 1))
+
+    # 1. Update Totals
     if is_new:
         stats["total_servers"] += 1
-        if instance.enable_patching == False:
+        if not instance.enable_patching:
             stats["total_servers_not_enabled"] += 1
     elif is_deleted:
-        stats["total_servers"] -= 1
-        if instance.enable_patching == False:
+        stats["total_servers"] = max(0, stats["total_servers"] - 1)
+        if not instance.enable_patching:
             stats["total_servers_not_enabled"] = max(0, stats["total_servers_not_enabled"] - 1)
     else:
+        # Handle toggle of enable_patching
         if was_enabled and not instance.enable_patching:
             stats["total_servers_not_enabled"] += 1
         elif not was_enabled and instance.enable_patching:
             stats["total_servers_not_enabled"] = max(0, stats["total_servers_not_enabled"] - 1)
 
+    # Handle Outdated counter
     if was_outdated and not is_outdated:
         stats["outdated_servers"] = max(0, stats["outdated_servers"] - 1)
     elif not was_outdated and is_outdated:
         stats["outdated_servers"] += 1
 
-    # 2. Handle Recent Activity List
-    if not is_deleted and instance.last_patch_date:
-        # Remove if already exists (to avoid duplicates), then add to top
-        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != instance.server_id]
-        stats["recent_activity"].insert(0, vm_dict)
-        # Keep only top 5
-        stats["recent_activity"] = sorted(
-            stats["recent_activity"], 
-            key=lambda x: x['last_patch_date'], 
-            reverse=True
-        )[:5]
+    # 2. Update Recent Activity and At Risk lists
+    # Remove existing entry if it exists to refresh it
+    stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != str(instance.server_id)]
+    stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['server_id'] != str(instance.server_id)]
 
-    # 3. Handle At Risk List
     if not is_deleted:
-        # Remove existing instance to update it
-        current_at_risk = [v for v in stats.get("at_risk", []) if v['server_id'] != instance.server_id]
-        
-        # ONLY add it back if it is actually outdated
+        # If patched recently, add to recent
+        if instance.last_patch_date:
+            stats["recent_activity"].insert(0, vm_projection)
+            # Re-sort to ensure correctness after a manual update
+            stats["recent_activity"].sort(key=lambda x: parse_date(x['last_patch_date']), reverse=True)
+            stats["recent_activity"] = stats["recent_activity"][:5]
+
+        # If currently outdated, add to at_risk
         if is_outdated:
-            current_at_risk.append(vm_dict)
-        
-        epoch_start = timezone.make_aware(datetime(1970, 1, 1))
-        stats["at_risk"] = sorted(
-            current_at_risk, 
-            key=lambda x: x['last_patch_date'] if x['last_patch_date'] else epoch_start
-        )[:5]
-    else:
-        # If deleted, just remove from lists
-        stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != instance.server_id]
-        stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['server_id'] != instance.server_id]
+            stats["at_risk"].append(vm_projection)
+            stats["at_risk"].sort(key=lambda x: parse_date(x['last_patch_date']))
+            stats["at_risk"] = stats["at_risk"][:5]
 
     stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)
-    logger.info(f"Cache has been successfully updated for 'dashboard_stats'")
+    logger.info(f"Cache has been successfully set for 'dashboard_stats'")
     return stats
 
 
@@ -187,12 +190,31 @@ def cache_individual_vms(vms):
             if hasattr(date_val, 'isoformat'):
                 return date_val.isoformat()
             return str(date_val)
+        
+        # --- NEW INTERFACE LOGIC ---
+        structured_interfaces = []
+        if isinstance(vm, Server):
+            # Map the actual model objects to a list of dicts
+            for i in vm.interfaces.all():
+                structured_interfaces.append({
+                    "name": i.interface_name or "Unknown",
+                    "ip": i.ip_address,
+                    "mac": i.mac_address or "N/A"
+                })
+        elif isinstance(vm, dict):
+            # Fallback if processing raw dictionary data
+            structured_interfaces = vm.get('interfaces', [])
+
+        # Create the comma-separated strings for high-level overview/search
+        ip_list = [iface['ip'] for iface in structured_interfaces]
+        mac_list = [iface['mac'] for iface in structured_interfaces]
 
         server_obj = {
             "server_id": server_id,
             "hostname": get_val('hostname', 'Unknown'),
-            "ip_address": get_val('ip_address', '0.0.0.0'),
-            "mac_address": get_val('mac_address', ''),
+            "ip_address": ", ".join(ip_list),
+            "mac_address": ", ".join(mac_list),
+            "interfaces": structured_interfaces, 
             "os_version": get_val('os_version', 'Unknown'),
             "last_reboot": format_date(get_val('last_reboot')),
             "uptime": get_val('uptime', ''),
@@ -244,7 +266,7 @@ def warm_cache_in_background():
         close_old_connections()
         cache.set("is_warming", True, timeout=300)
         try:
-            vms = list(Server.objects.values(*SERVER_CACHE_FIELDS))
+            vms = Server.objects.prefetch_related('interfaces').all()
             cache_individual_vms(vms)
             refresh_dashboard_stats(vms=vms)
             logger.info("Background cache warming completed.")

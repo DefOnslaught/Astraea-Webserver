@@ -1,11 +1,16 @@
 from django.contrib import admin
 
-from .models import Server, Package, PackageUpdate, APIKey
+from .models import Server, NetworkInterface, Package, PackageUpdate, APIKey
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
-    fields = ('hostname', 'ip_address', 'mac_address', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
-    list_display = ('server_id', 'hostname', 'ip_address', 'mac_address', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
+    fields = ('hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
+    list_display = ('server_id', 'hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
+
+@admin.register(NetworkInterface)
+class NetworkInterfaceAdmin(admin.ModelAdmin):
+    fields = ('server', 'ip_address', 'mac_address', 'interface_name')
+    list_display = ('server', 'ip_address', 'mac_address', 'interface_name')
 
 @admin.register(Package)
 class PackageAdmin(admin.ModelAdmin):

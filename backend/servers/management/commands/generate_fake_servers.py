@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from servers.models import Package, PackageUpdate
 from servers.factories import ServerFactory
+from servers.utils import cache_individual_vms
 import random
 
 class Command(BaseCommand):
@@ -53,6 +54,9 @@ class Command(BaseCommand):
                         server=server,
                         package=package
                     )
+
+                # Update the cache for each generated server so the UI reflects them immediately
+                cache_individual_vms([server])
 
                 if (i + 1) % 10 == 0:
                     self.stdout.write(f"Created {i + 1} servers...")

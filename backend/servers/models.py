@@ -4,8 +4,6 @@ from django.db import models
 class Server(models.Model):
     server_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     hostname = models.CharField(max_length=255, unique=True)
-    ip_address = models.GenericIPAddressField()
-    mac_address = models.CharField(max_length=17, null=True, blank=True)
     os_version = models.CharField(max_length=100, null=True, blank=True)
     uptime = models.CharField(max_length=100, null=True, blank=True)
     last_reboot = models.DateTimeField(null=True, blank=True)
@@ -17,6 +15,15 @@ class Server(models.Model):
 
     def __str__(self):
         return self.hostname
+
+class NetworkInterface(models.Model):
+    server = models.ForeignKey(Server, on_delete=models.CASCADE, related_name='interfaces')
+    ip_address = models.GenericIPAddressField(unique=True, db_index=True)
+    mac_address = models.CharField(max_length=17, db_index=True, null=True, blank=True)
+    interface_name = models.CharField(max_length=50, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Network Interface"
 
 class Package(models.Model):
     """The unique catalog of every package + version combination ever seen."""

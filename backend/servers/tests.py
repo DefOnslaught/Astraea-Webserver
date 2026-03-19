@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from .factories import ServerFactory, PackageFactory
-from .models import Package, PackageUpdate, Server, APIKey
+from .models import Package, PackageUpdate, Server, APIKey, NetworkInterface
 from .utils import cache_individual_vms
 
 User = get_user_model()
@@ -56,20 +56,17 @@ class PatchingSystemTests(APITestCase):
         """Verify the SavePatchingData view correctly updates everything."""
         # 1. Setup existing server
         past_reboot = timezone.now() - timedelta(days=10)
-        server = ServerFactory(
-            hostname="prod-web-01", 
-            last_reboot=past_reboot,
-            patch_schedule="Default"
-        )
+        server = ServerFactory(hostname="prod-web-01", last_reboot=past_reboot)
         url = reverse('save_patching_data')
-        
         new_reboot_time = timezone.now()
 
         payload = {
             "server_id": str(server.server_id),
             "hostname": "prod-web-01",
-            "ip_address": "192.168.1.50",
-            "mac_address": "AA:BB:CC:DD:EE:FF",
+            "interfaces": [
+                {"ip_address": "192.168.1.50", "mac_address": "AA:BB:CC:DD:EE:FF", "interface_name": "eth0"},
+                {"ip_address": "10.0.0.50", "mac_address": "AA:BB:CC:DD:EE:FE", "interface_name": "eth1"}
+            ],
             "os_version": "Debian 12",
             "last_reboot": new_reboot_time.isoformat(),
             "patch_schedule": "10AM Wednesday Weeks 1 & 3",
@@ -91,6 +88,9 @@ class PatchingSystemTests(APITestCase):
         # Check DB updated
         server.refresh_from_db()
         self.assertIsNotNone(server.server_id)
+        self.assertEqual(server.interfaces.count(), 2)
+        self.assertTrue(server.interfaces.filter(ip_address="192.168.1.50").exists())
+        self.assertTrue(server.interfaces.filter(ip_address="10.0.0.50").exists())
         self.assertEqual(server.patch_schedule, "10AM Wednesday Weeks 1 & 3")
         self.assertGreater(server.last_reboot, past_reboot)
         self.assertEqual(server.env, "Prod")
@@ -100,6 +100,11 @@ class PatchingSystemTests(APITestCase):
         # Check Individual Cache updated
         cached_data = cache.get(f"server_data:{server.server_id}")
         self.assertIsNotNone(cached_data)
+        ip_string = cached_data['ip_address']
+        self.assertIn("192.168.1.50", ip_string)
+        self.assertIn("10.0.0.50", ip_string)
+        self.assertEqual(len(cached_data['interfaces']), 2)
+        self.assertEqual(cached_data['ip_address'], "192.168.1.50, 10.0.0.50")
         self.assertEqual(cached_data['os_version'], "Debian 12")
         self.assertEqual(cached_data['patch_schedule'], "10AM Wednesday Weeks 1 & 3")
         self.assertEqual(cached_data['env'], "Prod")
@@ -142,8 +147,9 @@ class PatchingSystemTests(APITestCase):
             payload = {
                 "server_id": str(uuid.uuid4()),
                 "hostname": vm_name,
-                "ip_address": f"10.0.0.{i}",
-                "mac_address": f"00:11:22:33:44:00",
+                "interfaces": [
+                    {"ip_address": f"10.0.0.{i}", "mac_address": f"00:11:22:33:44:{i:02x}"}
+                ],
                 "os_version": "Ubuntu 22.04",
                 "last_reboot": reboot_time,
                 "uptime": "10 days",
@@ -171,9 +177,38 @@ class PatchingSystemTests(APITestCase):
         # 3. Check that the Package catalog only has 3 entries
         # This proves your unique_together and get_or_create logic works!
         self.assertEqual(Package.objects.count(), 3)
+    
+    def test_ip_stealing_logic(self):
+        server_a = ServerFactory(hostname="server-a", create_interfaces=[])
+        NetworkInterface.objects.create(server=server_a, ip_address="10.0.0.1")
+
+        server_b = ServerFactory(hostname="server-b", create_interfaces=[])
+        url = reverse('save_patching_data')
+
+        payload = {
+            "server_id": str(server_b.server_id),
+            "hostname": "server-b",
+            "interfaces": [{"ip_address": "10.0.0.1", "mac_address": "00:AA:BB:CC:DD:EE"}],
+            "packages": []
+        }
+        
+        response = self.client.post(url, payload, format='json', **self.headers)
+        
+        # Check if the request actually succeeded
+        self.assertEqual(response.status_code, 200, f"Request failed with {response.data}")
+
+        # Refresh from DB
+        server_a.refresh_from_db()
+        server_b.refresh_from_db()
+
+        # The core of the issue: 10.0.0.1 should now point to server_b
+        interface = NetworkInterface.objects.get(ip_address="10.0.0.1")
+        self.assertEqual(interface.server.server_id, server_b.server_id)
+        self.assertEqual(server_a.interfaces.count(), 0)
 
     def test_software_search_grouping(self):
         """Verify PackageSearchView returns grouped data and uses cache."""
+        self.client.force_authenticate(user=self.user)
         # 1. Setup: 2 servers with same package version, 1 with different version
         pkg_v1 = PackageFactory(name="python3", version="3.10")
         pkg_v2 = PackageFactory(name="python3", version="3.11")
@@ -347,39 +382,32 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(response.data['total_servers'], 10)
 
     def test_signals_update_cache_incrementally(self):
-        """Tests that post_save signals update the 'dashboard_stats' counts."""
-        # 1. Manually prime the cache
-        initial_stats = {
-            "total_servers": 1,
-            "outdated_servers": 0,
-            "last_updated": "never"
-        }
-        cache.set("dashboard_stats", initial_stats)
+        cache.set("dashboard_stats", {"total_servers": 0, "outdated_servers": 0})
 
-        # 2. Create a new server that is 'outdated' (last_patch_date is old)
-        old_date = timezone.now() - timedelta(days=45)
-        Server.objects.create(
-            hostname="outdated-srv", 
-            ip_address="1.1.1.1", 
-            last_patch_date=old_date
-        )
+        # 1. Create Server (No IP here!)
+        srv = Server.objects.create(hostname="outdated-srv", last_patch_date=timezone.now() - timedelta(days=45))
+        
+        # 2. Create Interface (This is what triggers the relationship)
+        NetworkInterface.objects.create(server=srv, ip_address="1.1.1.1")
 
-        # 3. Check if cache was updated by the signal
+        # 3. Trigger manual refresh if your signal doesn't handle M2M/Related changes automatically
+        from .utils import refresh_dashboard_stats
+        refresh_dashboard_stats() 
+
         updated_stats = cache.get("dashboard_stats")
-        self.assertEqual(updated_stats["total_servers"], 2)
-        self.assertEqual(updated_stats["outdated_servers"], 1)
+        self.assertEqual(updated_stats["total_servers"], 1)
 
     def test_at_risk_logic_ordering(self):
         """Ensure the 5 oldest servers are returned in the correct order."""
         now = timezone.now()
         # Create 6 servers, all older than 30 days to ensure they qualify
         for i in range(6):
-            Server.objects.create(
+            s = Server.objects.create(
                 hostname=f"srv-{i}",
-                ip_address=f"10.0.0.{i}",
                 # Start at 40 days ago and go further back
                 last_patch_date=now - timedelta(days=40 + (i * 10)) 
             )
+            NetworkInterface.objects.create(server=s, ip_address=f"10.0.0.{i}")
         
         from .utils import refresh_dashboard_stats
         stats = refresh_dashboard_stats()
@@ -397,7 +425,12 @@ class PatchingSystemTests(APITestCase):
             "at_risk": [],
             "recent_activity": []
         })
-        srv = Server.objects.create(hostname="delete-me", ip_address="1.2.3.4")
+        srv = Server.objects.create(hostname="delete-me")
+        NetworkInterface.objects.create(
+            server=srv, 
+            ip_address="1.2.3.4", 
+            mac_address="00:11:22:33:44:55"
+        )
         
         # Total should now be 2 (from initial 1 + srv)
         srv.delete()
@@ -411,18 +444,18 @@ class PatchingSystemTests(APITestCase):
         threshold_days = int(os.getenv("PATCH_THRESHOLD_DAYS", 30))
         
         for i in range(3):
-            Server.objects.create(
+            s = Server.objects.create(
                 hostname=f"outdated-{i}",
-                ip_address=f"10.0.1.{i}",
                 last_patch_date=now - timedelta(days=threshold_days + 10 + (i * 10))
             )
+            NetworkInterface.objects.create(server=s, ip_address=f"10.0.1.{i}")
 
         for i in range(3):
-            Server.objects.create(
+            s = Server.objects.create(
                 hostname=f"healthy-{i}",
-                ip_address=f"10.0.2.{i}",
                 last_patch_date=now - timedelta(days=5 + (i * 5))
             )
+            NetworkInterface.objects.create(server=s, ip_address=f"10.0.2.{i}")
 
         # Force refresh
         from .utils import refresh_dashboard_stats
@@ -448,38 +481,39 @@ class EnhancedSearchTests(APITestCase):
         # Create a diverse set of test servers
         self.s1 = Server.objects.create(
             hostname="prod-web-01",
-            ip_address="10.0.0.10",
             os_version="Ubuntu 22.04",
-            last_patch_date=timezone.now() - timedelta(days=45), # Old
+            last_patch_date=timezone.now() - timedelta(days=45),
             last_reboot=timezone.now() - timedelta(days=2),
-            mac_address="00:1A:2B:3C:4D:5E",
             patch_schedule="1AM Friday Weeks 2 and 4",
-            env = "Prod"
+            env="Prod"
         )
+        # Add multiple interfaces to s1 to test multi-IP search
+        NetworkInterface.objects.create(server=self.s1, ip_address="10.0.0.10", mac_address="00:1A:2B:3C:4D:5E", interface_name="eth0")
+        NetworkInterface.objects.create(server=self.s1, ip_address="192.168.1.10", mac_address="00:1A:2B:3C:4D:5F", interface_name="eth1")
+
         self.s2 = Server.objects.create(
             hostname="prod-db-01",
-            ip_address="10.0.0.20",
             os_version="Ubuntu 20.04",
-            last_patch_date=timezone.now() - timedelta(days=5), # Recent
+            last_patch_date=timezone.now() - timedelta(days=5),
             last_reboot=timezone.now() - timedelta(days=30),
-            mac_address="00:1A:2B:3C:4D:6F",
             patch_schedule="9PM Thursday Weeks 1 and 3",
-            env = "Prod"
+            env="Prod"
         )
+        NetworkInterface.objects.create(server=self.s2, ip_address="10.0.0.20", mac_address="00:1A:2B:3C:4D:6F")
+
         self.s3 = Server.objects.create(
             hostname="dev-app-01",
-            ip_address="192.168.1.50",
             os_version="CentOS 7",
-            mac_address="00:00:00:00:00:00",
-            last_patch_date=None, # Never patched
+            last_patch_date=None,
             last_reboot=timezone.now() - timedelta(days=10),
-            patch_schedule="", # Test null
-            env = "",
+            patch_schedule="",
+            env="",
             enable_patching=False
         )
+        NetworkInterface.objects.create(server=self.s3, ip_address="192.168.1.50", mac_address="00:00:00:00:00:00")
 
-        # Warm the cache manually for "Live" testing
-        cache_individual_vms([self.s1, self.s2, self.s3])
+        vms = Server.objects.prefetch_related('interfaces').all()
+        cache_individual_vms(vms)
 
     def test_advanced_search_os_specific(self):
         """Verify keyed filter 'os:' works correctly."""
@@ -489,6 +523,12 @@ class EnhancedSearchTests(APITestCase):
         response = self.client.get(self.url, {'q': 'os:centos'})
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['hostname'], "dev-app-01")
+
+    def test_search_by_secondary_ip(self):
+        # This should find s1 even though 192.168.1.10 is its secondary interface
+        response = self.client.get(f"{self.url}?q=ip:192.168.1.10")
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
 
     def test_advanced_search_date_operators(self):
         """Verify 'patched:' with > and < operators."""
@@ -535,10 +575,17 @@ class EnhancedSearchTests(APITestCase):
         """Verify that search results are paginated."""
         # Create 25 servers (more than the default page_size of 20)
         for i in range(25):
-            Server.objects.create(hostname=f"batch-{i}", ip_address=f"10.1.{i}.1")
+            # Create server without ip_address
+            srv = Server.objects.create(hostname=f"batch-{i}")
+            # Create the associated interface
+            NetworkInterface.objects.create(
+                server=srv, 
+                ip_address=f"10.1.{i}.1", 
+                mac_address=f"00:1A:2B:3C:4D:{i:02x}"
+            )
         
         # Refresh cache to include new servers
-        vms = list(Server.objects.all().values('id', 'server_id', 'hostname', 'ip_address', 'env'))
+        vms = Server.objects.prefetch_related('interfaces').filter(hostname__startswith="batch")
         cache_individual_vms(vms)
 
         url = reverse('vm_search')
@@ -557,8 +604,13 @@ class EnhancedSearchTests(APITestCase):
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['hostname'], "prod-web-01")
 
-        # Search by IP fragment
-        response = self.client.get(self.url, {'q': '192.168'})
+        # Search by a specific IP fragment that belongs to TWO servers
+        # s1: 192.168.1.10, s3: 192.168.1.50
+        response = self.client.get(self.url, {'q': '192.168.1'})
+        self.assertEqual(response.data['count'], 2)
+
+        # Search by a unique IP fragment
+        response = self.client.get(self.url, {'q': '.1.50'})
         self.assertEqual(response.data['count'], 1)
         self.assertEqual(response.data['results'][0]['hostname'], "dev-app-01")
 

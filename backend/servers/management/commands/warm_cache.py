@@ -17,7 +17,7 @@ class Command(BaseCommand):
         self.stdout.write("Fetching servers from database...")
 
         # Evaluate the queryset into a list immediately to hit DB once
-        vms = list(Server.objects.values(*SERVER_CACHE_FIELDS))
+        vms = Server.objects.prefetch_related('interfaces').all()
         
         # 1. Cache individual VM details
         cache_individual_vms(vms)

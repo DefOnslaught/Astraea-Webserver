@@ -75,9 +75,9 @@ class QuickVMSearchView(APIView):
         filter_map = {
             'id': lambda vm, v: v in vm['server_id'].lower(),
             'os': lambda vm, v: v in vm['os_version'].lower(),
-            'ip': lambda vm, v: v in vm['ip_address'].lower(),
             'host': lambda vm, v: v in vm['hostname'].lower(),
-            'mac': lambda vm, v: v in vm['mac_address'].lower(),
+            'ip': lambda vm, v: any(v in i['ip'].lower() for i in vm.get('interfaces', [])),
+            'mac': lambda vm, v: any(v in i['mac'].lower() for i in vm.get('interfaces', [])),
             'schedule': lambda vm, v: v in vm['patch_schedule'].lower(),
             'enabled': lambda vm, v: str(vm['enable_patching']).lower() == v.lower(),
             'env': lambda vm, v: self._apply_string_filter(vm.get('env'), v),
@@ -91,16 +91,18 @@ class QuickVMSearchView(APIView):
             is_match = True
             for key, val in filters:
                 condition = filter_map.get(key)
-                if condition:
-                    if not condition(vm, val):
-                        is_match = False
-                        break
-                else:
+                if condition and not condition(vm, val):
                     is_match = False
                     break
             
             if is_match and general_terms:
-                searchable_string = f"{vm['hostname']} {vm['ip_address']} {vm['os_version']} {vm['mac_address']} {vm['patch_schedule']} {vm['env']} {str(vm['enable_patching'])}".lower()
+                # Combine hostname, os, and all IPs/MACs into one string for general search
+                ifaces = vm.get('interfaces', [])
+                ips = " ".join([i['ip'] for i in ifaces])
+                macs = " ".join([i['mac'] for i in ifaces])
+                
+                searchable_string = f"{vm['hostname']} {ips} {vm['os_version']} {macs} {vm['patch_schedule']} {vm['env']}".lower()
+                
                 if not all(term in searchable_string for term in general_terms):
                     is_match = False
             
@@ -142,9 +144,9 @@ class QuickVMSearchView(APIView):
             lookup_map = {
                 'os': 'os_version', 
                 'host': 'hostname', 
-                'ip': 'ip_address', 
-                'id': 'server_id', 
-                'mac': 'mac_address',
+                'ip': 'interfaces__ip_address',
+                'mac': 'interfaces__mac_address',
+                'id': 'server_id',
                 'patched': 'last_patch_date',
                 'enabled': 'enable_patching',
                 'reboot': 'last_reboot',
@@ -172,14 +174,14 @@ class QuickVMSearchView(APIView):
         for term in general_terms:
             query &= (
                 Q(hostname__icontains=term) | 
-                Q(ip_address__icontains=term) |
+                Q(interfaces__ip_address__icontains=term) |
                 Q(os_version__icontains=term) |
-                Q(mac_address__icontains=term) |
+                Q(interfaces__mac_address__icontains=term) |
                 Q(env__icontains=term) |
                 Q(enabled__icontains=term)
             )
 
-        queryset = Server.objects.filter(query).order_by('hostname')
+        queryset = Server.objects.filter(query).prefetch_related('interfaces').distinct().order_by('hostname')
         
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request, view=self)

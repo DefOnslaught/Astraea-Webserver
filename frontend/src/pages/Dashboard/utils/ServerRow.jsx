@@ -9,7 +9,6 @@ const ServerRow = ({ server, type }) => (
             </div>
             <div>
                 <p className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">{server.hostname}</p>
-                <p className="text-[10px] text-gray-500 font-mono">{server.ip_address}</p>
             </div>
         </div>
 
