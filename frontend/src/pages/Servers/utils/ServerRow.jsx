@@ -41,7 +41,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         <i className={`fa-solid fa-server text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
                     </div>
                     <span className="font-semibold text-gray-400 group-hover:text-indigo-400 transition-colors">
-                        <HighlightText text={server.hostname} query={query} />
+                        <HighlightText text={server.hostname} query={query} field="host" />
                     </span>
                 </div>
             </td>
@@ -49,7 +49,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
             {/* OS VERSION */}
             <td className="px-6 py-4">
                 <span className="text-sm text-gray-400">
-                    <HighlightText text={server.os_version} query={query} />
+                    <HighlightText text={server.os_version} query={query} field="os" />
                 </span>
             </td>
 
@@ -136,6 +136,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         <HighlightText
                             text={truncateString(server.patch_schedule, 30)}
                             query={query}
+                            field="schedule"
                         />
                     </span>
                 </div>
@@ -167,7 +168,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                     return (
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${badgeStyle} transition-all duration-300 group-hover:scale-105`}>
                             <i className={`fa-solid ${icon} text-[9px]`}></i>
-                            <HighlightText text={envValue} query={query} />
+                            <HighlightText text={envValue} query={query} field="env" />
                         </div>
                     );
                 })()}

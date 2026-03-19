@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 
-const HighlightText = ({ text, query }) => {
+const HighlightText = ({ text, query, field }) => {
     // Return early if there's nothing to highlight or text is empty
     if (!query || !query.trim() || !text) return <span>{text}</span>;
 
-    const uniqueTerms = useMemo(() => {
+    const relevantTerms = useMemo(() => {
         // Regex for: (key):"quoted value" OR (key):unquotedValue OR generalTerm
         const tokenRegex = /(?:(\w+):)?(?:"([^"]+)"|([^\s]+))/g;
         const terms = new Set();
@@ -14,26 +14,32 @@ const HighlightText = ({ text, query }) => {
         tokenRegex.lastIndex = 0;
 
         while ((match = tokenRegex.exec(query.toLowerCase())) !== null) {
-            // match[2] is a quoted value, match[3] is an unquoted value/general term
-            const value = match[2] || match[3];
+            const key = match[1]; // e.g., "ip"
+            const value = match[2] || match[3]; // e.g., "10"
 
-            // FIX: Removed the "length > 1" check to allow single characters
             if (value) {
-                // Escape special characters to prevent regex injection (e.g., searching for ".")
-                const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                terms.add(escaped);
+                // HIGHLIGHT LOGIC:
+                // 1. If there is no key (e.g. just searching "10"), highlight everywhere.
+                // 2. If there IS a key, only highlight if it matches this component's 'field'.
+                const isGeneralTerm = !key;
+                const isMatchingField = key && field && key.toLowerCase() === field.toLowerCase();
+
+                if (isGeneralTerm || isMatchingField) {
+                    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    terms.add(escaped);
+                }
             }
         }
 
         // Sort by length descending: ensures "web-01" is matched before "web"
         return Array.from(terms).sort((a, b) => b.length - a.length);
-    }, [query]);
+    }, [query, field]);
 
     const highlightRegex = useMemo(() => {
-        if (uniqueTerms.length === 0) return null;
+        if (relevantTerms.length === 0) return null;
         // The 'gi' flags ensure global matching and case-insensitivity
-        return new RegExp(`(${uniqueTerms.join('|')})`, 'gi');
-    }, [uniqueTerms]);
+        return new RegExp(`(${relevantTerms.join('|')})`, 'gi');
+    }, [relevantTerms]);
 
     // If no valid regex could be built, return original text
     if (!highlightRegex) return <span>{text}</span>;
