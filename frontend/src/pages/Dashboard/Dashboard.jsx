@@ -140,7 +140,7 @@ const Dashboard = () => {
                     <div className="p-5 border-b border-white/5 bg-red-500/5 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Critical Attention</h2>
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Critical Attention</h2>
                         </div>
                         <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-1 rounded">Oldest Patch Dates</span>
                     </div>
@@ -163,7 +163,7 @@ const Dashboard = () => {
                     <div className="p-5 border-b border-white/5 bg-emerald-500/5 flex justify-between items-center">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Recently Patched</h2>
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Recently Patched</h2>
                         </div>
                         <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded">Successfully Patched</span>
                     </div>

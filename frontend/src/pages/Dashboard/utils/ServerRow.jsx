@@ -8,12 +8,12 @@ const ServerRow = ({ server, type }) => (
                 <i className={`fa-solid ${type === 'risk' ? 'fa-server text-red-400' : 'fa-circle-check text-emerald-400'} text-xs`}></i>
             </div>
             <div>
-                <p className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">{server.hostname}</p>
+                <p className="text-sm font-semibold text-gray-400 group-hover:text-indigo-400 transition-colors">{server.hostname}</p>
             </div>
         </div>
 
         <div className="text-right">
-            <p className="text-[11px] text-gray-400 font-medium">
+            <p className="text-[11px] text-gray-500 font-medium">
                 {getDaysAgo(server.last_patch_date)}
             </p>
             <p className="text-[9px] text-gray-600 uppercase font-bold tracking-tighter">
