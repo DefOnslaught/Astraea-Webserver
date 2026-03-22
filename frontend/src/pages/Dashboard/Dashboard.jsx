@@ -145,7 +145,7 @@ const Dashboard = () => {
                         <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-1 rounded">Oldest Patch Dates</span>
                     </div>
 
-                    <div className="p-2 flex-grow">
+                    <div className="p-2 grow">
                         {isLoading ? (
                             <ListSkeleton />
                         ) : stats?.at_risk?.length > 0 ? (
@@ -168,7 +168,7 @@ const Dashboard = () => {
                         <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded">Successfully Patched</span>
                     </div>
 
-                    <div className="p-2 flex-grow">
+                    <div className="p-2 grow">
                         {isLoading ? (
                             <ListSkeleton />
                         ) : stats?.recent_activity?.length > 0 ? (
