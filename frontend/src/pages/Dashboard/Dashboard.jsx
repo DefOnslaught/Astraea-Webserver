@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
-import { API_ENDPOINTS } from "../../utils/constants";
+import { API_ENDPOINTS, PATCH_THRESHOLD_DAYS } from "../../utils/constants";
 import ListSkeleton from "./utils/ListSkeleton";
 import EmptyState from "./utils/EmptyState";
 import ServerRow from "./utils/ServerRow";
@@ -15,6 +16,7 @@ const Dashboard = () => {
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isWarming, setIsWarming] = useState(false);
+    const navigate = useNavigate();
 
     const fetchDashboardData = async () => {
         try {
@@ -75,6 +77,7 @@ const Dashboard = () => {
                     icon="fa-server"
                     loading={isLoading}
                     color="text-indigo-400"
+                    onClick={() => navigate('/servers')}
                 />
 
                 {/* CARD 2: OUTDATED SERVERS */}
@@ -84,7 +87,8 @@ const Dashboard = () => {
                     icon="fa-triangle-exclamation"
                     loading={isLoading}
                     color={stats?.outdated_servers > 0 ? "text-amber-500" : "text-emerald-500"}
-                    subtext={stats?.outdated_servers > 0 ? "Action required" : "All systems current"}
+                    subtext={stats?.outdated_servers > 0 ? `Not patched in ${PATCH_THRESHOLD_DAYS}+ days` : "All systems current"}
+                    onClick={() => navigate(`/servers?q=patched:>${PATCH_THRESHOLD_DAYS}d`)}
                 />
 
                 {/* CARD 3: DISABLED SERVERS */}
@@ -96,6 +100,7 @@ const Dashboard = () => {
                     color={stats?.total_servers_not_enabled > 0 ? "text-slate-400" : "text-emerald-500/50"}
                     subtext="Exempt from automation"
                     glowColor="bg-slate-500/10"
+                    onClick={() => navigate('/servers?q=enabled:false')}
                 />
 
                 {/* CARD 4: SYSTEM STATUS */}

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.utils import timezone
 from django.db import close_old_connections
-from django.db.models import Max
+from django.db.models import Max, Q
 
 from .models import Server, PatchSession, PackageUpdate
 
@@ -21,6 +21,7 @@ def _project_dashboard_fields(vm):
         "server_id": str(vm.get('server_id') if isinstance(vm, dict) else vm.server_id),
         "hostname": vm.get('hostname') if isinstance(vm, dict) else vm.hostname,
         "last_patch_date": vm.get('last_patch_date') if isinstance(vm, dict) else vm.last_patch_date,
+        "total_servers_not_enabled": vm.get('enable_patching') if isinstance(vm, dict) else vm.enable_patching,
     }
 
 def refresh_dashboard_stats(vms=None):
@@ -149,6 +150,23 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
             stats["at_risk"].append(vm_projection)
             stats["at_risk"].sort(key=lambda x: parse_date(x['last_patch_date']))
             stats["at_risk"] = stats["at_risk"][:5]
+
+        # If after removing/updating, our lists are shorter than 5,
+        # we need to fetch the 'new' top candidates from the DB.
+        threshold = timezone.now() - timedelta(days=int(os.getenv("PATCH_THRESHOLD_DAYS", 30)))
+
+        if len(stats["at_risk"]) < 5 and stats["outdated_servers"] > len(stats["at_risk"]):
+            # Fetch only what we need to fill the gap
+            replacements = Server.objects.filter(
+                Q(last_patch_date__lt=threshold) | Q(last_patch_date__isnull=True)
+            ).order_by('last_patch_date')[:5]
+            stats["at_risk"] = [_project_dashboard_fields(v) for v in replacements]
+
+        if len(stats["recent_activity"]) < 5:
+            replacements = Server.objects.filter(
+                last_patch_date__isnull=False
+            ).order_by('-last_patch_date')[:5]
+            stats["recent_activity"] = [_project_dashboard_fields(v) for v in replacements]
 
     stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)

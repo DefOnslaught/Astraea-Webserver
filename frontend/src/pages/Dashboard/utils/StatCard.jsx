@@ -1,6 +1,6 @@
-const StatCard = ({ label, value, icon, loading, color, subtext, glowColor = "bg-indigo-500/5" }) => {
+const StatCard = ({ label, value, icon, loading, color, subtext, onClick, glowColor = "bg-indigo-500/5" }) => {
     return (
-        <div className="bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
+        <div onClick={onClick} className={`bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 ${onClick ? 'cursor-pointer active:scale-95' : ''}`}>
             <div className="flex justify-between items-start">
                 <div className="z-10">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{label}</p>

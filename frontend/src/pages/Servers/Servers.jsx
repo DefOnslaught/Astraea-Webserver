@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { API_ENDPOINTS } from "../../utils/constants";
 import api from "../../utils/api";
 import useDocumentTitle from "../../utils/useDocumentTitle";
@@ -10,10 +11,14 @@ import ServersSuccessToast from "./utils/ServersSuccessToast";
 const Servers = () => {
     useDocumentTitle('Servers | Astraea');
 
+    const [searchParams] = useSearchParams();
+    const queryFromUrl = searchParams.get('q') || "";
+    const observer = useRef();
+
     const [isLoading, setIsLoading] = useState(false);
     const [servers, setServers] = useState([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [activeQuery, setActiveQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(queryFromUrl);
+    const [activeQuery, setActiveQuery] = useState(queryFromUrl);
     const [nextPageUrl, setNextPageUrl] = useState(null);
     const [showScrollTop, setShowScrollTop] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -25,20 +30,29 @@ const Servers = () => {
 
     const fetchServers = useCallback(async (query = "", isLoadMore = false) => {
         if (isLoading) return;
+        if (isLoadMore && !nextPageUrl) return;
         setIsLoading(true);
 
         try {
-            // If loading more, use the 'next' URL from pagination; otherwise start fresh
+            // IMPORTANT: If we are loading more, we MUST use the nextPageUrl 
+            // provided by Django, and we do NOT pass the 'q' param manually 
+            // because it's already encoded in that URL.
             const url = isLoadMore ? nextPageUrl : API_ENDPOINTS.SERVER_SEARCH;
-            const res = await api.get(url, {
+            const config = {
                 params: isLoadMore ? {} : { q: query }
-            });
+            };
+
+            const res = await api.get(url, config);
 
             setTotalNodes(res.data.count || 0);
             const newServers = res.data.results || [];
+
             setServers(prev => isLoadMore ? [...prev, ...newServers] : newServers);
             setNextPageUrl(res.data.next);
-            if (!isLoadMore) setActiveQuery(query);
+
+            if (!isLoadMore) {
+                setActiveQuery(query);
+            }
         } catch (err) {
             console.error("Fetch error:", err);
         } finally {
@@ -47,13 +61,13 @@ const Servers = () => {
     }, [nextPageUrl, isLoading]);
 
 
-    const observer = useRef();
     const lastElementRef = useCallback(node => {
-        if (isLoading) return;
+        if (isLoading || !nextPageUrl) return; // Don't observe if loading or no more pages
         if (observer.current) observer.current.disconnect();
 
         observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && nextPageUrl) {
+            // Only trigger if intersecting AND we aren't already fetching
+            if (entries[0].isIntersecting && nextPageUrl && !isLoading) {
                 fetchServers(activeQuery, true);
             }
         });
@@ -69,7 +83,7 @@ const Servers = () => {
 
 
     useEffect(() => {
-        fetchServers();
+        fetchServers(queryFromUrl);
     }, []);
 
 
@@ -250,7 +264,7 @@ const Servers = () => {
                                     */}
                                     {isLoading && servers.length > 0 && (
                                         <tr>
-                                            <td colSpan="6" className="py-4 text-center">
+                                            <td colSpan="8" className="py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-widest animate-pulse">
                                                     <i className="fa-solid fa-circle-notch animate-spin"></i>
                                                     Loading More Nodes...
@@ -263,7 +277,7 @@ const Servers = () => {
 
                             {!isLoading && servers.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" className="py-20 text-center">
+                                    <td colSpan="8" className="py-20 text-center">
                                         <i className="fa-solid fa-box-open text-4xl text-gray-700 mb-4 block"></i>
                                         <p className="text-gray-500">No servers match your search criteria.</p>
                                     </td>

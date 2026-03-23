@@ -6,6 +6,7 @@ import truncateString from "../../../utils/truncateString";
 import { PATCH_THRESHOLD_DAYS } from "../../../utils/constants";
 import ConfigureServerModal from "./ConfigureServerModal";
 import ActionDropdown from "./ActionDropdown";
+import getRelativeTime from "../../../utils/getRelativeTime";
 
 const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -133,6 +134,12 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                                     {isUnknown ? "Never" : getDaysAgo(server.last_patch)}
                                 </span>
                             </div>
+                            <div className="flex items-center gap-2 pl-4">
+                                <i className="fa-solid fa-clock-rotate-left text-[9px] text-gray-600"></i>
+                                <span className="text-[10px] text-gray-500 font-mono">
+                                    {getRelativeTime(server.last_patch)}
+                                </span>
+                            </div>
                         </div>
                     );
                 })()}
@@ -141,29 +148,51 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
             {/* Last Status */}
             <td className="px-6 py-4">
                 {(() => {
-                    const status = server.last_patch_status || 'unknown';
+                    const status = (server.last_patch_status || 'unknown').toLowerCase();
 
-                    // Map status to colors
-                    const statusMap = {
-                        success: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]",
-                        failed: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse",
-                        partial: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]",
-                        unknown: "bg-gray-600"
+                    // Comprehensive Style Map
+                    const styleMap = {
+                        success: {
+                            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+                            text: "text-emerald-400",
+                            bg: "bg-emerald-500/5 border-emerald-500/10"
+                        },
+                        failed: {
+                            dot: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse",
+                            text: "text-red-400",
+                            bg: "bg-red-500/5 border-red-500/10"
+                        },
+                        partial: {
+                            dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]",
+                            text: "text-amber-400",
+                            bg: "bg-amber-500/5 border-amber-500/10"
+                        },
+                        unknown: {
+                            dot: "bg-gray-500",
+                            text: "text-gray-500",
+                            bg: "bg-gray-500/5 border-gray-500/10"
+                        }
                     };
 
+                    const theme = styleMap[status] || styleMap.unknown;
+
                     return (
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                                <div className={`h-2 w-2 rounded-full ${statusMap[status]}`}></div>
-                                <span className="text-xs font-medium text-gray-400">
-                                    {server.last_patch ? getDaysAgo(server.last_patch) : "Never"}
+                        <div className="flex items-center">
+                            {/* Inline Badge Container */}
+                            <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${theme.bg} transition-all duration-300`}>
+                                {/* Status Dot */}
+                                <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`}></div>
+
+                                {/* Status Label - Kept on the same line */}
+                                <span className={`text-[11px] font-bold uppercase tracking-wider ${theme.text}`}>
+                                    {status}
                                 </span>
+
+                                {/* Conditional "Action Required" icon for Failed/Partial */}
+                                {(status === 'failed' || status === 'partial') && (
+                                    <i className={`fa-solid fa-circle-exclamation text-[10px] ${theme.text} ml-1`}></i>
+                                )}
                             </div>
-                            {status !== 'success' && status !== 'unknown' && (
-                                <span className="text-[10px] pl-4 text-red-400 font-bold uppercase tracking-tighter">
-                                    Last Run {status}
-                                </span>
-                            )}
                         </div>
                     );
                 })()}
