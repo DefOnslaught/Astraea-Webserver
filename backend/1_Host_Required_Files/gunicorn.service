@@ -12,8 +12,10 @@ ExecStart=/opt/Astraea-Webserver/backend/venv/bin/gunicorn \
           --access-logfile - \
           --worker-class gevent \
           --workers 4 \
+          --preload \
+          --max-requests 5000 \
+          --max-requests-jitter 100 \
           --bind unix:/run/gunicorn.sock \
-          --timeout 500 \
           backend.wsgi:application
 
 # Warm the cache immediately after Gunicorn starts
