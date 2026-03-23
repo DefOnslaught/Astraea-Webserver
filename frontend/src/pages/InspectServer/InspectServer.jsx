@@ -5,6 +5,7 @@ import { API_ENDPOINTS } from "../../utils/constants";
 import ConfigureServerModal from '../Servers/utils/ConfigureServerModal';
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import SuccessToast from '../../components/SuccessToast';
+import SectionLoader from '../../components/SectionLoader';
 import {
     Server, Shield, Globe, Cpu, Cog, X, Loader2,
     ChevronLeft, Package, Clock, AlertTriangle, Search
@@ -16,7 +17,11 @@ const InspectServer = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [serverInfo, setServerInfo] = useState(null);
     const [history, setHistory] = useState([]);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+    const [historyError, setHistoryError] = useState("");
     const [packages, setPackages] = useState([]);
+    const [isPackagesLoading, setIsPackagesLoading] = useState(true);
+    const [packagesError, setPackagesError] = useState("");
     const [error, setError] = useState("");
     const [isConfigOpen, setIsConfigOpen] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -31,6 +36,7 @@ const InspectServer = () => {
             const res = await api.get(`${API_ENDPOINTS.INSPECT_SERVER}?server_id=${server_id}`);
             setServerInfo(res.data);
             if (res.data.recent_history) setHistory(res.data.recent_history);
+            if (res.data.recent_packages) setPackages(res.data.recent_packages);
         } catch (err) {
             setError("Critical: Could not connect to Astraea backend.");
         } finally {
@@ -39,13 +45,29 @@ const InspectServer = () => {
     };
 
     const fetchFullHistory = async () => {
-        const res = await api.get(`${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}`);
-        setHistory(res.data);
+        if (history.length > 0) return;
+
+        try {
+            const res = await api.get(`${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}`);
+            setHistory(res.data);
+        } catch (error) {
+            setHistoryError("Critical: Could not connect to Astraea backend.");
+        } finally {
+            setIsHistoryLoading(false);
+        }
     };
 
     const fetchPackages = async () => {
-        const res = await api.get(`${API_ENDPOINTS.SERVER_PACKAGES}?server_id=${server_id}`);
-        setPackages(res.data);
+        if (history.length > 0) return;
+
+        try {
+            const res = await api.get(`${API_ENDPOINTS.SERVER_PACKAGES}?server_id=${server_id}`);
+            setPackages(res.data);
+        } catch (error) {
+            setPackagesError("Critical: Could not connect to Astraea backend.");
+        } finally {
+            setIsPackagesLoading(false);
+        }
     };
 
     const handleSuccess = (data) => {
@@ -144,8 +166,8 @@ const InspectServer = () => {
                         </div>
                     )}
 
-                    {activeTab === 'history' && <HistoryTable history={history} onSelectSession={setSelectedSession} />}
-                    {activeTab === 'packages' && <PackageList packages={packages} />}
+                    {activeTab === 'history' && <HistoryTable history={history} onSelectSession={setSelectedSession} error={historyError} loading={isHistoryLoading} />}
+                    {activeTab === 'packages' && <PackageList packages={packages} error={packagesError} loading={isPackagesLoading} />}
                 </div>
             </div>
             {/* RENDER MODAL */}
@@ -186,9 +208,12 @@ const TabBtn = ({ active, onClick, label, icon }) => (
     </button>
 );
 
-const HistoryTable = ({ history, onSelectSession }) => {
-    // Safety check: if history somehow becomes null or non-array
+const HistoryTable = ({ history, onSelectSession, error, loading }) => {
     if (!Array.isArray(history)) return <div className="p-4 text-slate-500 italic">No history available.</div>;
+
+    if (history.length === 0 && loading) return <div className="max-h-100 text-slate-500 italic"><SectionLoader label='Loading Patch History' /></div>;
+
+    if (history.length === 0 && error) return <div className="p-10 text-red-500 flex items-center gap-2"><AlertTriangle />{error}</div>;
 
     return (
         <div className="overflow-x-auto">
@@ -202,6 +227,7 @@ const HistoryTable = ({ history, onSelectSession }) => {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
+
                     {history.map(session => (
                         <tr key={session.id} className="hover:bg-slate-800/30 transition-colors group">
                             <td className="py-4 text-slate-300 font-mono text-sm">
@@ -217,8 +243,8 @@ const HistoryTable = ({ history, onSelectSession }) => {
                             </td>
                             <td className="py-4">
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${session.status === 'success'
-                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                     }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${session.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
                                     {session.status.toUpperCase()}
@@ -241,6 +267,17 @@ const HistoryTable = ({ history, onSelectSession }) => {
                             </td>
                         </tr>
                     ))}
+                    
+
+                    {!loading && history.length === 0 && !error && (
+                        <tr>
+                            <td colSpan="6" className="py-20 text-center">
+                                <i className="fa-solid fa-box-open text-4xl text-gray-700 mb-4 block"></i>
+                                <p className="text-gray-500">No Patch History to show.</p>
+                            </td>
+                        </tr>
+                    )}
+                    
                 </tbody>
             </table>
         </div>
@@ -279,7 +316,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
     }, [session.id]);
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl max-h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
                 {/* Modal Header */}
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
@@ -361,7 +398,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
     );
 };
 
-const PackageList = ({ packages }) => {
+const PackageList = ({ packages, error, loading }) => {
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedTerm, setDebouncedTerm] = useState("");
     const [isSearching, setIsSearching] = useState(false);
@@ -396,6 +433,10 @@ const PackageList = ({ packages }) => {
             </div>
         );
     }
+
+    if (packages.length === 0 && loading) return <div className="max-h-100 text-slate-500 italic"><SectionLoader label='Loading Packages' /></div>;
+
+    if (error) return <div className="p-10 text-red-500 flex items-center gap-2"><AlertTriangle />{error}</div>;
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -447,7 +488,7 @@ const PackageList = ({ packages }) => {
                             </div>
 
                             {pkg.last_seen && (
-                                <div className="mt-auto pt-3 flex items-center gap-2 border-t border-slate-700/50 mt-3">
+                                <div className="pt-3 flex items-center gap-2 border-t border-slate-700/50 mt-3">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                     <span className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">
                                         Observed {new Date(pkg.last_seen).toLocaleDateString()}
