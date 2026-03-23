@@ -33,9 +33,19 @@ class NetworkInterfaceSerializer(serializers.ModelSerializer):
 
 class ServerSearchSerializer(serializers.ModelSerializer):
     """Used for the Quick Search Results."""
+    last_patch_status = serializers.SerializerMethodField()
+
     class Meta:
         model = Server
-        fields = ['id', 'server_id', 'hostname', 'os_version', 'last_reboot', 'last_patch_date', 'uptime', 'patch_schedule', 'enable_patching', 'env']
+        fields = [
+            'id', 'server_id', 'hostname', 'os_version', 
+            'last_reboot', 'last_patch_date', 'last_patch_status',
+            'uptime', 'patch_schedule', 'enable_patching', 'env'
+        ]
+
+    def get_last_patch_status(self, obj):
+        latest = obj.patch_sessions.only('status').first()
+        return latest.status if latest else "unknown"
 
 
 class ServerUpdateSerializer(serializers.ModelSerializer):

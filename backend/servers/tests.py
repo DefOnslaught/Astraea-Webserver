@@ -270,6 +270,20 @@ class PatchingSystemTests(APITestCase):
         """Verify that inspecting a server via the frontend properly uses Redis and DB."""
         server = ServerFactory(hostname="woah-this-vm")
         
+        # Create a dummy patch session so the view has something to find
+        session = PatchSession.objects.create(
+            server=server,
+            status='success',
+            total_updated=5
+        )
+        # Create a dummy package update
+        package = Package.objects.create(name="openssl", version="3.0.1")
+        PackageUpdate.objects.create(
+            session=session,
+            package=package,
+            new_version="3.0.1"
+        )
+
         server_cache_key = f"server_data:{server.server_id}"
         self.assertIsNotNone(cache.get(server_cache_key))
         

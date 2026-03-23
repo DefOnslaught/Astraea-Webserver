@@ -34,7 +34,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
     }
 
     return (
-        <tr ref={innerRef} className="group hover:bg-white/[0.02] transition-colors">
+        <tr ref={innerRef} className="group hover:bg-white/2 transition-colors">
 
             {/* HOSTNAME */}
             <td className="px-6 py-4">
@@ -45,12 +45,12 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                     <div className="p-3 rounded-xl bg-white/5 group-hover/host:bg-indigo-500/10 group-hover/host:scale-110 transition-all duration-300">
                         <i className="fa-solid fa-server text-gray-500 group-hover/host:text-indigo-400 transition-colors"></i>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="font-semibold text-gray-400 group-hover/host:text-white transition-colors">
+                    <div className="flex flex-col relative justify-center">
+                        <span className="font-semibold text-gray-400 group-hover/host:text-white transition-colors leading-tight">
                             <HighlightText text={server.hostname} query={query} field="host" />
                         </span>
-                        {/* Optional: Add a subtle 'Click to inspect' hint that appears on hover */}
-                        <span className="text-[10px] text-indigo-500/0 group-hover/host:text-indigo-500/70 transition-all uppercase tracking-tighter font-bold">
+
+                        <span className="absolute top-full left-0 text-[10px] text-indigo-500 opacity-0 group-hover/host:opacity-70 transition-all uppercase tracking-tighter font-bold whitespace-nowrap">
                             View Details
                         </span>
                     </div>
@@ -103,6 +103,8 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                     );
                 })()}
             </td>
+
+            {/* Last Patched */}
             <td className="px-6 py-4 text-sm text-gray-400 font-mono">
                 {(() => {
                     const patchDaysInMs = PATCH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
@@ -131,6 +133,37 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                                     {isUnknown ? "Never" : getDaysAgo(server.last_patch)}
                                 </span>
                             </div>
+                        </div>
+                    );
+                })()}
+            </td>
+
+            {/* Last Status */}
+            <td className="px-6 py-4">
+                {(() => {
+                    const status = server.last_patch_status || 'unknown';
+
+                    // Map status to colors
+                    const statusMap = {
+                        success: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+                        failed: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse",
+                        partial: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]",
+                        unknown: "bg-gray-600"
+                    };
+
+                    return (
+                        <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <div className={`h-2 w-2 rounded-full ${statusMap[status]}`}></div>
+                                <span className="text-xs font-medium text-gray-400">
+                                    {server.last_patch ? getDaysAgo(server.last_patch) : "Never"}
+                                </span>
+                            </div>
+                            {status !== 'success' && status !== 'unknown' && (
+                                <span className="text-[10px] pl-4 text-red-400 font-bold uppercase tracking-tighter">
+                                    Last Run {status}
+                                </span>
+                            )}
                         </div>
                     );
                 })()}

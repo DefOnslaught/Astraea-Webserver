@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.core.cache import cache
 
-from .models import Server, APIKey
+from .models import Server, APIKey, PatchSession
 from .utils import cache_individual_vms, update_dashboard_counts, remove_vm_from_index
 
 @receiver(pre_save, sender=Server)
@@ -43,6 +43,12 @@ def sync_cache_on_save(sender, instance, created, **kwargs):
         was_enabled=getattr(instance, '_was_enabled', True),
         is_new=created
     )
+
+@receiver(post_save, sender=PatchSession)
+def update_cache_on_patch(sender, instance, created, **kwargs):
+    """When a patch session is recorded, update the server's cached status."""
+    if created:
+        cache_individual_vms([instance.server])
 
 @receiver(post_delete, sender=Server)
 def sync_cache_on_delete(sender, instance, **kwargs):

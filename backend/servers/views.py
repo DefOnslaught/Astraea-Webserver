@@ -83,7 +83,8 @@ class QuickVMSearchView(APIView):
             'env': lambda vm, v: self._apply_string_filter(vm.get('env'), v),
             'reboot': lambda vm, v: evaluate_comparison(vm['last_reboot'], v),
             'patched': lambda vm, v: evaluate_comparison(vm['last_patch'], v),
-            'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v)
+            'uptime': lambda vm, v: evaluate_comparison(vm['uptime'], v),
+            'status': lambda vm, v: v.lower() in (vm.get('last_patch_status') or 'unknown').lower()
         }
 
         results = []
@@ -101,7 +102,7 @@ class QuickVMSearchView(APIView):
                 ips = " ".join([i['ip'] for i in ifaces])
                 macs = " ".join([i['mac'] for i in ifaces])
                 
-                searchable_string = f"{vm['hostname']} {ips} {vm['os_version']} {macs} {vm['patch_schedule']} {vm['env']}".lower()
+                searchable_string = f"{vm['hostname']} {ips} {vm['os_version']} {macs} {vm['patch_schedule']} {vm['env']} {vm.get('last_patch_status', 'unknown')}".lower()
                 
                 if not all(term in searchable_string for term in general_terms):
                     is_match = False
@@ -151,7 +152,8 @@ class QuickVMSearchView(APIView):
                 'enabled': 'enable_patching',
                 'reboot': 'last_reboot',
                 'schedule': 'patch_schedule',
-                'env': 'env'
+                'env': 'env',
+                'status': 'patch_sessions__status'
             }
             field = lookup_map.get(key)
             if not field: continue
@@ -178,10 +180,11 @@ class QuickVMSearchView(APIView):
                 Q(os_version__icontains=term) |
                 Q(interfaces__mac_address__icontains=term) |
                 Q(env__icontains=term) |
+                Q(patch_sessions__status__icontains=term) |
                 Q(enabled__icontains=term)
             )
 
-        queryset = Server.objects.filter(query).prefetch_related('interfaces').distinct().order_by('hostname')
+        queryset = Server.objects.filter(query).prefetch_related('interfaces', 'patch_sessions').distinct().order_by('hostname')
         
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request, view=self)
@@ -317,14 +320,31 @@ class InspectServerInfo(APIView):
             cache_individual_vms([server])
             data = cache.get(cache_key)
 
-        # Add recent history summary (not cached globally to keep data fresh)
-        recent_sessions = PatchSession.objects.filter(server__server_id=server_id)[:5]
+        # Add recent history summary
+        recent_sessions = PatchSession.objects.filter(server__server_id=server_id)
         data['recent_history'] = [{
             'id': s.id,
             'timestamp': s.timestamp,
             'status': s.status,
-            'total': s.total_updated
+            'total': s.total_updated,
+            'error_log': s.error_log
         } for s in recent_sessions]
+
+        # Add Packages in the inventory
+        latest_session = PatchSession.objects.filter(
+            server__server_id=server_id,
+            status='success'
+        ).first()
+
+        if latest_session:
+            updates = latest_session.package_details.select_related('package').all()
+            data['recent_packages'] = [{
+                'name': u.package.name,
+                'version': u.new_version,
+                'last_seen': latest_session.timestamp
+            } for u in updates]
+        else:
+            data['recent_packages'] = []
 
         return Response(data, status=status.HTTP_200_OK)
 

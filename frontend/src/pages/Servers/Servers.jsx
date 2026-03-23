@@ -218,6 +218,7 @@ const Servers = () => {
                                 <th className="px-6 py-4">OS Version</th>
                                 <th className="px-6 py-4">Last Reboot</th>
                                 <th className="px-6 py-4">Last Patched</th>
+                                <th className="px-6 py-4">Last Status</th>
                                 <th className="px-6 py-4">Patching Schedule</th>
                                 <th className="px-6 py-4">Environment</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
@@ -232,7 +233,6 @@ const Servers = () => {
                             ) : (
                                 <>
                                     {servers.map((server, index) => {
-                                        const isLastElement = servers.length === index + 1;
                                         return (
                                             <ServerRow
                                                 key={server.server_id}

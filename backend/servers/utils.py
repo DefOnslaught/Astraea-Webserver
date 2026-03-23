@@ -191,7 +191,7 @@ def cache_individual_vms(vms):
                 return date_val.isoformat()
             return str(date_val)
         
-        # --- NEW INTERFACE LOGIC ---
+        # Interface logic
         structured_interfaces = []
         if isinstance(vm, Server):
             # Map the actual model objects to a list of dicts
@@ -204,6 +204,13 @@ def cache_individual_vms(vms):
         elif isinstance(vm, dict):
             # Fallback if processing raw dictionary data
             structured_interfaces = vm.get('interfaces', [])
+        
+        # Determine last known status
+        last_status = "Unknown" 
+        if isinstance(vm, Server):
+            latest_session = vm.patch_sessions.only('status').first()
+            if latest_session:
+                last_status = latest_session.status
 
         # Create the comma-separated strings for high-level overview/search
         ip_list = [iface['ip'] for iface in structured_interfaces]
@@ -221,6 +228,7 @@ def cache_individual_vms(vms):
             "env": get_val('env', ''),
             "patch_schedule": get_val('patch_schedule'),
             "last_patch": format_date(get_val('last_patch_date')),
+            "last_patch_status": last_status,
             "enable_patching": get_val('enable_patching', True),
             "total_packages_updated": get_val('total_packages_updated', '')
         }

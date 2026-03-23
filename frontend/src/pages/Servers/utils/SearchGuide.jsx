@@ -10,6 +10,7 @@ const SearchGuide = ({ isOpen, onClose }) => {
         { key: "env:", desc: "Filter by Environment", ex: "env:Prod or env:none" },
         { key: "reboot:", desc: "Filter by date length (d, w, m, y)", ex: "reboot:>14d" },
         { key: "patched:", desc: "Filter by date length (d, w, m, y)", ex: "patched:>3d" },
+        { key: "status:", desc: "Filter by Last Status", ex: "status:success" },
         { key: "enabled:", desc: "Filter by Patching enabled", ex: "enabled:false" },
         { key: "schedule:", desc: "Filter by Patching Schedule", ex: "schedule:10am wednesday" },
     ];
