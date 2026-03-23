@@ -5,8 +5,8 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.core.cache import cache
 
-from .models import Server, APIKey, PatchSession
-from .utils import cache_individual_vms, update_dashboard_counts, remove_vm_from_index
+from .models import Server, APIKey, PatchSession, PackageUpdate
+from .utils import cache_individual_vms, update_dashboard_counts, remove_vm_from_index, refresh_package_search_index
 
 @receiver(pre_save, sender=Server)
 def capture_old_state(sender, instance, **kwargs):
@@ -50,6 +50,20 @@ def update_cache_on_patch(sender, instance, created, **kwargs):
     if created:
         cache_individual_vms([instance.server])
 
+@receiver(post_save, sender=PackageUpdate)
+def update_package_index_on_new_pkg(sender, instance, created, **kwargs):
+    """
+    Ensure the global package search index updates when new packages are logged,
+    but with a debounce to prevent database thrashing.
+    """
+    if created:
+        lock_key = "package_index_refresh_lock"
+        # Try to set a lock for 60 seconds. 
+        # .add() only returns True if the key didn't exist.
+        if cache.add(lock_key, "locked", timeout=60):
+            # Only the first package in a batch triggers the refresh
+            refresh_package_search_index()
+
 @receiver(post_delete, sender=Server)
 def sync_cache_on_delete(sender, instance, **kwargs):
     cache.delete(f"server_data:{instance.server_id}")
@@ -64,6 +78,8 @@ def sync_cache_on_delete(sender, instance, **kwargs):
         is_outdated=False, 
         is_deleted=True
     )
+
+    refresh_package_search_index()
 
 
 @receiver([post_save, post_delete], sender=APIKey)

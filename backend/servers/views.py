@@ -1,16 +1,18 @@
 import logging, re
-from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Max
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 from .models import Server, Package, APIKey, PatchSession, PackageUpdate
-from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms
+from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
 
@@ -222,51 +224,88 @@ class QuickVMSearchView(APIView):
         return Response({"results": serializer.data, "is_partial": is_partial})
 
 
+class PackageSearchPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class PackageSearchView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = PackageSearchPagination
 
     def get(self, request):
         query = request.GET.get('q', '').strip().lower()
+        all_packages = cache.get("package_search_index")
+
+        # Fallback if cache is cold
+        if all_packages is None:
+            all_packages = refresh_package_search_index()
+
         if not query:
-            return Response({'message': "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+            return self._paginate_list(all_packages, request)
 
-        cache_key = f"software_search:{query}"
-        results = cache.get(cache_key)
+        # Simple but effective filtering on the cached list
+        search_terms = query.split()
+        results = [
+            pkg for pkg in all_packages 
+            if all(term in pkg['search_stack'] for term in search_terms)
+        ]
 
-        if results is None:
-            # We prefetch through the session to the server to avoid N+1 queries
-            all_matches = Package.objects.filter(name__icontains=query).prefetch_related(
-                'usage_history__session__server'
-            )
+        return self._paginate_list(results, request)
 
-            grouped_data = {}
-            for pkg in all_matches:
-                if pkg.name not in grouped_data:
-                    grouped_data[pkg.name] = {"name": pkg.name, "versions": []}
-                
-                # Get all updates for this specific package version
-                updates = pkg.usage_history.all()
-                
-                # We want unique servers (in case a server patched the same pkg twice)
-                # We use a set to get unique hostnames from the nested relationship
-                unique_servers = {u.session.server for u in updates}
-                server_count = len(unique_servers)
-                
-                # Convert set to list for slicing the preview
-                server_list = list(unique_servers)
+    def _paginate_list(self, data_list, request):
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(data_list, request, view=self)
+        if page is not None:
+            return paginator.get_paginated_response(page)
+        return Response({"results": data_list})
 
-                grouped_data[pkg.name]["versions"].append({
-                    "package_id": pkg.id,
-                    "version": pkg.version,
-                    "server_count": server_count,
-                    "preview_servers": [s.hostname for s in server_list[:3]],
-                    "has_more": server_count > 3
-                })
+class PackageServerListView(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = PackageSearchPagination
+
+    # Cache this view for 5 minutes based on the URL parameters (name, version, page)
+    @method_decorator(cache_page(60 * 5))
+    def get(self, request):
+        package_name = request.GET.get('name')
+        version = request.GET.get('version')
         
-            results = list(grouped_data.values())
-            cache.set(cache_key, results, timeout=900)
+        if not package_name or not version:
+            return Response({"error": "Missing parameters"}, status=400)
+
+        # 1. Identify the latest session IDs for every server
+        latest_session_ids = PatchSession.objects.filter(status='success') \
+            .values('server') \
+            .annotate(latest_id=Max('id')) \
+            .values_list('latest_id', flat=True)
+
+        # 2. Optimized Query: We use select_related to join Server and 
+        # get the status directly from the session object instead of a Subquery
+        active_instances = PackageUpdate.objects.filter(
+            session_id__in=latest_session_ids,
+            package__name=package_name,
+            new_version=version
+        ).select_related('session__server').only(
+            'session__server__hostname', 
+            'session__server__server_id', 
+            'session__server__os_version',
+            'session__status'
+        ).order_by('session__server__hostname')
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(active_instances, request)
         
-        return Response(results, status=status.HTTP_200_OK)
+        data = [
+            {
+                "hostname": update.session.server.hostname,
+                "server_id": update.session.server.server_id,
+                "os_version": update.session.server.os_version,
+                "last_patch_status": update.session.status, 
+            }
+            for update in page
+        ]
+        
+        return paginator.get_paginated_response(data)
 
 
 class SavePatchingData(APIView):

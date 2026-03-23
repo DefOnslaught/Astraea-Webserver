@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     DashboardStatsView, 
     QuickVMSearchView, 
-    PackageSearchView, 
+    PackageSearchView,
+    PackageServerListView,
     SavePatchingData,
     DeleteServer,
     CreateAPIKeyView,
@@ -17,6 +18,7 @@ urlpatterns = [
     path('dashboard/', DashboardStatsView.as_view(), name='dashboard_stats'),
     path('search/', QuickVMSearchView.as_view(), name='vm_search'),
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
+    path('software/server_list/', PackageServerListView.as_view(), name='package_server_list'),
     path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
     path('inspect/', InspectServerInfo.as_view(), name='inspect_server'),
     path('inspect/history/', ServerPatchHistory.as_view(), name='inspect_history'),

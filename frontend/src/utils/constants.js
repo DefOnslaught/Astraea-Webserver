@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     DASHBOARD_STATS: "api/servers/dashboard/stats/",
     SERVER_SEARCH: "api/servers/search/",
     PACKAGE_SEARCH: "api/servers/software/search/",
+    PACKAGE_SERVER_LIST: "api/servers/software/server_list/",
 
     UPDATE_SERVER: "api/servers/patching/update/",
     DELETE_SERVER: "api/servers/patching/delete/",

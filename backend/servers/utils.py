@@ -3,10 +3,9 @@ from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.utils import timezone
 from django.db import close_old_connections
-from django.db.models import Q
+from django.db.models import Max
 
-from .models import Server
-from .constants import SERVER_CACHE_FIELDS
+from .models import Server, PatchSession, PackageUpdate
 
 logger = logging.getLogger('django')
 
@@ -259,6 +258,52 @@ def remove_vm_from_index(server_id):
     
     if len(updated_index) != len(current_index):
         cache.set("server_search_index", updated_index, timeout=None)
+
+
+def refresh_package_search_index():
+    """
+    Lean aggregation for the searchable index. 
+    Excludes server lists to maximize performance.
+    """
+    latest_session_ids = PatchSession.objects.filter(status='success') \
+        .values('server') \
+        .annotate(latest_id=Max('id')) \
+        .values_list('latest_id', flat=True)
+
+    # We only need the package details and the count
+    active_updates = PackageUpdate.objects.filter(session_id__in=latest_session_ids) \
+        .select_related('package')
+
+    grouped_map = {}
+    for update in active_updates:
+        pkg = update.package
+        
+        if pkg.name not in grouped_map:
+            grouped_map[pkg.name] = {
+                "name": pkg.name,
+                "versions": {},
+                "search_stack": pkg.name.lower()
+            }
+        
+        name_entry = grouped_map[pkg.name]
+        if pkg.version not in name_entry["versions"]:
+            name_entry["versions"][pkg.version] = 0
+        
+        name_entry["versions"][pkg.version] += 1
+
+    final_index = []
+    for pkg_name, data in grouped_map.items():
+        # Convert versions to a sorted list of dicts: [{"v": "1.0", "count": 5}, ...]
+        sorted_versions = [
+            {"version": v, "count": c} 
+            for v, c in sorted(data["versions"].items(), reverse=True)
+        ]
+        data["versions"] = sorted_versions
+        final_index.append(data)
+
+    final_index = sorted(final_index, key=lambda x: x['name'])
+    cache.set("package_search_index", final_index, timeout=None)
+    return final_index
 
 
 def warm_cache_in_background():

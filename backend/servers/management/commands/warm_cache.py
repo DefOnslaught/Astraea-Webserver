@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.core.cache import cache
 
 from servers.models import Server
-from servers.utils import refresh_dashboard_stats, cache_individual_vms
+from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
 from servers.constants import SERVER_CACHE_FIELDS
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
@@ -24,5 +24,8 @@ class Command(BaseCommand):
         
         # 2. Cache Dashboard stats using the same list
         refresh_dashboard_stats(vms=vms)
+
+        # 3. Cache all packages that are latest success session for easy searching
+        refresh_package_search_index()
         
         self.stdout.write(self.style.SUCCESS(f"Successfully warmed cache for {len(vms)} servers."))

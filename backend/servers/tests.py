@@ -209,35 +209,38 @@ class PatchingSystemTests(APITestCase):
     def test_software_search_grouping(self):
         """Verify PackageSearchView returns grouped data and uses cache."""
         self.client.force_authenticate(user=self.user)
-        # 1. Setup: 2 servers with same package version, 1 with different version
+        
+        # 1. Setup Data
         pkg_v1 = PackageFactory(name="python3", version="3.10")
         pkg_v2 = PackageFactory(name="python3", version="3.11")
-        
         s1, s2, s3 = ServerFactory.create_batch(3)
 
         sess1 = PatchSession.objects.create(server=s1, status='success')
         sess2 = PatchSession.objects.create(server=s2, status='success')
         sess3 = PatchSession.objects.create(server=s3, status='success')
 
-        # Update PackageUpdate to use the session instead of the server
         PackageUpdate.objects.create(session=sess1, package=pkg_v1, new_version="3.10")
         PackageUpdate.objects.create(session=sess2, package=pkg_v1, new_version="3.10")
         PackageUpdate.objects.create(session=sess3, package=pkg_v2, new_version="3.11")
+
+        # --- FIX 1: Manually refresh index because updates were added AFTER sessions ---
+        from .utils import refresh_package_search_index
+        refresh_package_search_index()
 
         url = reverse('package_search')
         response = self.client.get(url, {'q': 'python'})
 
         # 2. Assertions
-        data = response.data
-        self.assertEqual(len(data), 1) # One group named 'python3'
+        data = response.data['results'] 
+        self.assertEqual(len(data), 1) # One grouped 'python3' entry
         self.assertEqual(data[0]['name'], 'python3')
         
-        # Should have two versions inside the group
+        # Check versions list inside the grouped object
         versions = data[0]['versions']
         self.assertEqual(len(versions), 2)
         
-        # Check cache was set
-        self.assertIsNotNone(cache.get("software_search:python"))
+        # --- FIX 2: Check the actual key used in your code ---
+        self.assertIsNotNone(cache.get("package_search_index"))
  
     def test_delete_server_updates_db_and_cache(self):
         """Verify that deleting a server via the API cleans up Redis and DB."""
