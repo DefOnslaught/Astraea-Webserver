@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
+from configuration.utils import cache_active_api_keys
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
 
@@ -23,5 +24,8 @@ class Command(BaseCommand):
 
         # 3. Cache all packages that are latest success session for easy searching
         refresh_package_search_index()
+
+        # 4. Cache all active API keys so patching script auth goes quickly
+        cache_active_api_keys()
         
         self.stdout.write(self.style.SUCCESS(f"Successfully warmed cache for {len(vms)} servers."))
