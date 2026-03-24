@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.core.cache import cache
 
-from .models import Server, APIKey, PatchSession, PackageUpdate
+from .models import Server, PatchSession, PackageUpdate
 from .utils import cache_individual_vms, update_dashboard_counts, remove_vm_from_index, refresh_package_search_index
 
 @receiver(pre_save, sender=Server)
@@ -80,8 +80,3 @@ def sync_cache_on_delete(sender, instance, **kwargs):
     )
 
     refresh_package_search_index()
-
-
-@receiver([post_save, post_delete], sender=APIKey)
-def clear_key_cache(sender, **kwargs):
-    cache.delete('valid_api_key_hashes')

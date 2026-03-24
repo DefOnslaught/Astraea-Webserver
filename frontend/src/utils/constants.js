@@ -27,7 +27,10 @@ export const API_ENDPOINTS = {
     SERVER_PACKAGES: "api/servers/inspect/packages/",
     SESSION_DETAILS: "api/servers/inspect/patch_session/",
 
-    PATCHING_API_KEY_CREATE: "api/servers/patching/api-key/create/",
+    API_KEY_CREATE: "api/config/api-key/create/",
+    API_KEY_GET_ALL: "api/config/api-key/all/",
+    API_KEY_UPDATE: "api/config/api-key/update/",
+    API_KEY_DELETE: "api/config/api-key/delete/",
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

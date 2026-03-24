@@ -1,32 +1,85 @@
 Backend:
     - Figure out a way to send notifications (celery maybe)
-    - Maybe cache all the packages?
-    - Add a method for verification when a user registers.
+    - Add a method for verification when a user registers. (Can be enabled via settings.py, env)
+
+    - Going to need to implement Celery for the heavy cache loads.
+        To use Celery for:
+            - warm_cache command
+            - refresh_dashboard_stats
+            - cache_individual_vms
+            - refresh_package_search_index
+    
+    - Configuration Page:
+        - When we are grabbing the UUID to change the env settings, we get the changes from the database
 
 Frontend:
-    
-    Dashboard - On the 'outdated servers' and 'patching disabled' box, make it so when clicked it takes you to /servers/ with the filter to show those servers
 
     - Important: Dashboard needs a ratelimit for how many times it retires to get dashboard_stats url
                 - Have it where it will try 5 times waiting 3 seconds each time, then if that fails,
                     it goes into a timer/loop where it will retry in 30 seconds, twice. then show error  
 
     - Ensure if verification is enabled, we properly follow that.
-    - List all packages, how many servers using that package (regardless of version)
-        - when inspecting a package, list versions and how many servers use it
-    - Search for package name, package version = shows a list of servers with it installed
 
+
+    - About Page (opened via clicking the version)
+        - check for updates (front-end only, react goes out and checks version from git?)
+        - Version history
+        - About section
 
 General Needs:
 
+
+    Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits
+        - User signs in, when we are making their auth cookies, we also make ones for the site
+        - Things to Save: 
+            - Sidebar closed/open
+            
+
+    For the inspect server section
+        - Add a search bar to 'Patch History'
+
     Configuration Page:
-        - Notification area to  configure when to send notifications (on fail, on success) and where to send them
-        - Have a section for patching that allows you to enable/disable patching system wide
-        - Have a spot to delete package data that is not used by any server
-        - Have a tool to create cron schedule
+            
+        
+        Purpose of this '/configuration/' page:
+                - Handles configuration for the whole site that is not in '.env'
+                - Also handles creation/configuration/maintaining of Astraea Patching Script to create easy install methods
+            
+            Important things to remember:
+                - include the functions needed to make the proper API endpoint calls
+                - I think a tab bar going horizontal would blend in better with the vertical sidebar
+                
+            
+            Things to include (I am thinking a tab design, each section(tab) has it's own tab):
+
+                Notification section:
+                    - Notification area to  configure when to send notifications (on fail, on success, system hasn't been updated in a while) and where to send them (email, discord), not sure how to save this data yet.
+                    - You create new services to connect to for sending notifications (not sure how to properly save this data)
+                
+                API Key section:
+                    - Ability to create/delete api keys (Will update model to save plain-text since it's not important to hash keys in this case)
+                    - Neatly list all API keys (full key, so it's easy to copy and paste into scripts)
+
+                
+                System Wide Settings section:
+                    - Have a section for patching that allows you to enable/disable patching system wide
+                    - Enable/Disable account creation validation (meaning no email to verify to create account)
+                    - Database purging area to delete package data that is not used by any server (with confirmation button/modal)
+        
+
+                Astraea Patching Agent section (Will need to be organized properly)
+                    - Section to upload/replace the current saved version of the 'Astraea Agent' (served when the updating/install script needs to grab a copy from the server)
+                        - (In the patching script upload section) include a version section to change the version of the agent for the auto updating.
+                    - Section to make installation easy where the user inputs the fields they want to change in the Patching Agent .env (such as, 'Patching Schedule', 'Environment')
+                        - In this section, also include a tool to create cron schedule, make it user friendly
+                    - When the user clicks 'Create' or something, it sends this data to the backend 'API_ENDPOINT.AGENT_CREATION'
+                    - Important: The backend view will return a uuid (small one), we must add this url to the instruction box that offers methods of installing the patching script on the linux hos
+                        - I.E '- wget -O - https://example.com/api/config/install_script/{small_uuid} | bash'
 
     Administration Page:
         - Manage user accounts (Based on permission)
+            - change password
+            - change permissions (grant 'is_staff' to view /admin/ page)
         - About section (maybe show updates?)
         - Link to the Django Admin page (if superuser)
 

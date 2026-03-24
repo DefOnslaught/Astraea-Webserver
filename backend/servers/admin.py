@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Server, NetworkInterface, Package, PackageUpdate, APIKey, PatchSession
+from .models import Server, NetworkInterface, Package, PackageUpdate, PatchSession
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
@@ -26,8 +26,3 @@ class PatchSessionAdmin(admin.ModelAdmin):
 class PackageUpdateAdmin(admin.ModelAdmin):
     fields = ('session', 'package', 'old_version', 'new_version')
     list_display = ('session', 'package', 'old_version', 'new_version')
-
-@admin.register(APIKey)
-class APIKeyAdmin(admin.ModelAdmin):
-    fields = ('name', 'created_at', 'last_used', 'is_active')
-    list_display = ('name', 'created_at', 'last_used', 'is_active')

@@ -1,0 +1,81 @@
+import { useState } from "react";
+import {
+    Settings, Bell, Key, Cpu
+} from "lucide-react";
+import useDocumentTitle from "../../utils/useDocumentTitle";
+import SectionLoader from "../../components/SectionLoader";
+import SuccessToast from "../../components/SuccessToast";
+import GeneralSettings from "./utils/GeneralSettings";
+import ApiKeySettings from "./utils/ApiKeySettings";
+import AgentSettings from "./utils/AgentSettings";
+import NotificationSettings from "./utils/NotificationSettings";
+
+const Configuration = () => {
+    useDocumentTitle('Configuration | Astraea');
+
+    // State Management
+    const [activeTab, setActiveTab] = useState("general");
+    const [successMsg, setSuccessMsg] = useState("");
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [error, setError] = useState("");
+
+    const triggerSuccess = (msg) => {
+        setSuccessMsg(msg);
+        setShowSuccess(true);
+        setError("");
+    };
+
+    // --- Main Render ---
+
+    const tabs = [
+        { id: 'general', label: 'System Settings', icon: <Settings className="w-4 h-4" /> },
+        { id: 'notifications', label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
+        { id: 'api', label: 'API Keys', icon: <Key className="w-4 h-4" /> },
+        { id: 'agent', label: 'Astraea Agent', icon: <Cpu className="w-4 h-4" /> },
+    ];
+
+    return (
+        <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+            {showSuccess && <SuccessToast message={successMsg} onClose={() => setShowSuccess(false)} />}
+
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-white tracking-tight">Configuration</h1>
+                <p className="text-gray-400 mt-2">Manage system-wide settings, API access, and agent deployment.</p>
+            </div>
+
+            <div className="flex gap-8 border-b border-white/5 mb-8">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => { setActiveTab(tab.id); setError(""); }}
+                        className={`pb-4 text-sm font-medium capitalize transition-all relative flex items-center gap-2 ${activeTab === tab.id ? "text-indigo-400" : "text-gray-500 hover:text-gray-300"
+                            }`}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                        {activeTab === tab.id && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 animate-in fade-in zoom-in duration-300" />
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {error && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in shake duration-300">
+                    {error}
+                </div>
+            )}
+
+            {/* TAB CONTENT AREAS */}
+            <div className="mt-4">
+                {activeTab === "general" && <GeneralSettings triggerSuccess={triggerSuccess} setError={setError} />}
+                {activeTab === "api" && <ApiKeySettings triggerSuccess={triggerSuccess} setError={setError} />}
+                {activeTab === "notifications" && <NotificationSettings triggerSuccess={triggerSuccess} setError={setError} />}
+                {activeTab === "agent" && <AgentSettings triggerSuccess={triggerSuccess} setError={setError} />}
+            </div>
+        </div>
+    );
+};
+
+export default Configuration;

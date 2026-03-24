@@ -11,7 +11,7 @@ from django.db.models import Q, Max
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
-from .models import Server, Package, APIKey, PatchSession, PackageUpdate
+from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
@@ -537,24 +537,3 @@ class DeleteServer(APIView):
         except Exception as e:
             logger.error(f"Unable to delete server `{server_id}`: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class CreateAPIKeyView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        name = request.data.get('name', 'Unnamed Key')
-        
-        plain_key, hashed_key = APIKey.generate_key()
-        
-        APIKey.objects.create(
-            name=name,
-            key_hash=hashed_key
-        )
-        
-        # Return the PLAIN KEY to the user so they can save it in their script
-        return Response({
-            "message": "API Key created. Copy this now; you won't see it again!",
-            "plain_key": plain_key,
-            "name": name
-        }, status=status.HTTP_201_CREATED)

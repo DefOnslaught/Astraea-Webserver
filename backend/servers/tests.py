@@ -9,8 +9,9 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 
 from .factories import ServerFactory, PackageFactory
-from .models import Package, PackageUpdate, Server, APIKey, NetworkInterface, PatchSession
+from .models import Package, PackageUpdate, Server, NetworkInterface, PatchSession
 from .utils import cache_individual_vms
+from configuration.models import APIKey
 
 User = get_user_model()
 
@@ -22,24 +23,23 @@ class PatchingSystemTests(APITestCase):
 
         # 2. Setup standard user for authenticated views
         self.user = User.objects.create_user(
-            email="test@example.com", 
+            email="test@example.com",
             username="testuser", 
             password="password123"
         )
         self.client.force_authenticate(user=self.user)
 
         # 3. Setup API Key for the patching views
-        # We generate the tuple: (plain_text_key, hashed_version)
-        plain_key, hashed_key = APIKey.generate_key()
+        key = APIKey.generate_key()
         
         # Save the HASH to the database
         self.api_key_obj = APIKey.objects.create(
             name="Test Key", 
-            key_hash=hashed_key
+            key=key
         )
         
         # Save the PLAIN TEXT to the headers for use in tests
-        self.headers = {'HTTP_X_API_KEY': plain_key}
+        self.headers = {'HTTP_X_API_KEY': key}
 
     def test_unauthenticated_access_denied(self):
         """Verify that a user without a token gets a 403."""
@@ -328,49 +328,6 @@ class PatchingSystemTests(APITestCase):
         cached_data = cache.get(server_cache_key)
         self.assertIsNotNone(cached_data)
         self.assertEqual(cached_data['enable_patching'], False)
-
-    def test_create_api_key_success(self):
-        """Verify authenticated users can generate an API key and it's hashed in DB."""
-        url = reverse('create_api_key')  # Ensure this matches your urls.py name
-        data = {"name": "Production-Cluster-01"}
-
-        # 1. Act: Create the key
-        response = self.client.post(url, data, format='json')
-
-        # 2. Assertions for Response
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('plain_key', response.data)
-        self.assertEqual(response.data['name'], "Production-Cluster-01")
-
-        # 3. Assertions for Database
-        # Verify the plain key IS NOT in the database
-        plain_key = response.data['plain_key']
-        self.assertFalse(APIKey.objects.filter(key_hash=plain_key).exists())
-
-        # Verify the hash of the plain key IS in the database
-        import hashlib
-        expected_hash = hashlib.sha256(plain_key.encode()).hexdigest()
-        self.assertTrue(APIKey.objects.filter(key_hash=expected_hash).exists())
-
-    def test_api_key_signal_clears_cache(self):
-        """Verify that creating an APIKey clears the Redis key_hash cache."""
-        # 1. Manually set the cache
-        cache.set('valid_api_key_hashes', ['old-hash-1', 'old-hash-2'])
-
-        # 2. Trigger the signal by creating a new key
-        _, hashed = APIKey.generate_key()
-        APIKey.objects.create(name="Signal Test", key_hash=hashed)
-
-        # 3. Assert the cache was deleted by the signal
-        self.assertIsNone(cache.get('valid_api_key_hashes'))
-
-    def test_create_api_key_unauthenticated_denied(self):
-        """Verify unauthenticated users cannot create API keys."""
-        self.client.force_authenticate(user=None)
-        url = reverse('create_api_key')
-        
-        response = self.client.post(url, {"name": "Hacker-Key"})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     @patch('servers.views.warm_cache_in_background')
     def test_dashboard_cold_cache_triggers_warming(self, mock_warm):

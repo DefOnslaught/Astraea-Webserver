@@ -8,6 +8,7 @@ urlpatterns = [
 
     path('api/users/', include('users.urls')),
     path('api/servers/', include('servers.urls')),
+    path('api/config/', include('configuration.urls')),
 
     # React entry
     re_path(r"", frontend_view),

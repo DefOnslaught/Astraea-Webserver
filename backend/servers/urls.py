@@ -6,7 +6,6 @@ from .views import (
     PackageServerListView,
     SavePatchingData,
     DeleteServer,
-    CreateAPIKeyView,
     UpdateServerInfo,
     InspectServerInfo,
     ServerPatchHistory,
@@ -26,5 +25,4 @@ urlpatterns = [
     path('inspect/patch_session/', PatchSessionDetail.as_view(), name='inspect_patch_session'),
     path('patching/update/', UpdateServerInfo.as_view(), name='update_server'),
     path('patching/delete/', DeleteServer.as_view(), name='delete_server'),
-    path('patching/api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
 ]

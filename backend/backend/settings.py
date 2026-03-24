@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'backend',
     'users',
     'servers',
+    'configuration',
 ]
 
 MIDDLEWARE = [
