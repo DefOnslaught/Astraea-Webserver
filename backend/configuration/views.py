@@ -6,8 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
 from backend.settings import DEBUG
-from .models import APIKey
+from .models import APIKey, SysConfig
 from .serializers import ApiKeyUpdateSerializer, APIKeySerializer
+from .utils import get_sys_config
 
 logger = logging.getLogger('django')
 
@@ -65,6 +66,8 @@ class UpdateAPIKey(APIView):
         serializer = ApiKeyUpdateSerializer(api_key, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            if DEBUG:
+                logger.info(f"Successfully updated API key: {api_key.name}")
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -88,3 +91,31 @@ class DeleteAPIKey(APIView):
             logger.critical(f"Failed deleting API Key: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class SystemConfig(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data = get_sys_config()
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        data = request.data.get('data')
+
+        if data is None:
+            return Response({'message': "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            config = SysConfig.objects.first()
+            if not config:
+                config = SysConfig()
+            config.patching_enabled = data['patching_enabled']
+            config.skip_email_validation = data['skip_email_validation']
+            config.save()
+            if DEBUG:
+                logger.info(f"Successfully updated System Settings")
+            return Response({'message': 'Successfully updated System Settings'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f'Unable to update System Settings: {str(e)}')
+            return Response({'message': f'Unable to update System Settings: {str(e)}'}, status=status.HTTP_200_OK)

@@ -17,8 +17,11 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await api.get(API_ENDPOINTS.SYSTEM_SETTINGS);
-                setSystemSettings(res.data);
+                const res = await api.get(API_ENDPOINTS.SYSTEM_CONFIG);
+                setSystemSettings({
+                    patchingEnabled: res.data.patching_enabled,
+                    skipEmailValidation: res.data.skip_email_validation,
+                });
             } catch (err) {
                 setError("Failed to load system settings.");
             } finally {
@@ -31,7 +34,13 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
     const handleSaveSystemSettings = async () => {
         setIsSaving(true);
         try {
-            await api.put(API_ENDPOINTS.SYSTEM_SETTINGS, systemSettings);
+            const payload = {
+                data: {
+                    patching_enabled: systemSettings.patchingEnabled,
+                    skip_email_validation: systemSettings.skipEmailValidation,
+                }
+            };
+            await api.patch(API_ENDPOINTS.SYSTEM_CONFIG, payload);
             triggerSuccess("System settings updated successfully.");
         } catch (err) {
             setError("Failed to update settings.");
@@ -43,7 +52,7 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
     const handlePurgeDatabase = async () => {
         setIsPurging(true);
         try {
-            await api.post(API_ENDPOINTS.PURGE_DATABASE);
+            await api.post(API_ENDPOINTS.PURGE_OLD_PACKAGES);
             triggerSuccess("Orphaned package data purged.");
             setShowPurgeConfirm(false);
         } catch (err) {

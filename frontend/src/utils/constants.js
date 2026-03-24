@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     SERVER_SEARCH: "api/servers/search/",
     PACKAGE_SEARCH: "api/servers/software/search/",
     PACKAGE_SERVER_LIST: "api/servers/software/server_list/",
+    PURGE_OLD_PACKAGES: "api/servers/software/purge_old_packages/",
 
     UPDATE_SERVER: "api/servers/patching/update/",
     DELETE_SERVER: "api/servers/patching/delete/",
@@ -31,6 +32,7 @@ export const API_ENDPOINTS = {
     API_KEY_GET_ALL: "api/config/api-key/all/",
     API_KEY_UPDATE: "api/config/api-key/update/",
     API_KEY_DELETE: "api/config/api-key/delete/",
+    SYSTEM_CONFIG: "api/config/sysconfig/",
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

@@ -16,3 +16,8 @@ class APIKey(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SysConfig(models.Model):
+    patching_enabled = models.BooleanField(default=True)
+    skip_email_validation = models.BooleanField(default=True)

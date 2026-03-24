@@ -11,6 +11,7 @@ from django.db.models import Q, Max
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
+from backend.settings import DEBUG
 from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
@@ -469,6 +470,34 @@ class PatchSessionDetail(APIView):
         }
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class PurgeDatabaseOldPackagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # 1. Identify packages not present in any PackageUpdate record
+            # 'usage_history' is the related_name from your PackageUpdate model
+            orphaned_packages = Package.objects.filter(usage_history__isnull=True)
+            
+            count = orphaned_packages.count()
+            
+            # 2. Perform the deletion
+            orphaned_packages.delete()
+            if DEBUG:
+                logger.info(f"Database Purge: Removed {count} orphaned packages.")
+            
+            return Response({
+                'message': f'Successfully purged {count} orphaned packages.',
+                'purged_count': count
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f'Database purge failed: {str(e)}')
+            return Response({
+                'message': f'Internal server error during purge: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UpdateServerInfo(APIView):

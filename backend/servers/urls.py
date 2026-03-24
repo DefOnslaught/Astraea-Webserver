@@ -10,7 +10,8 @@ from .views import (
     InspectServerInfo,
     ServerPatchHistory,
     ServerPackageInventory,
-    PatchSessionDetail
+    PatchSessionDetail,
+    PurgeDatabaseOldPackagesView
 )
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path('search/', QuickVMSearchView.as_view(), name='vm_search'),
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
     path('software/server_list/', PackageServerListView.as_view(), name='package_server_list'),
+    path('software/purge_old_packages/', PurgeDatabaseOldPackagesView.as_view(), name='purge_old_packages'),
     path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
     path('inspect/', InspectServerInfo.as_view(), name='inspect_server'),
     path('inspect/history/', ServerPatchHistory.as_view(), name='inspect_history'),

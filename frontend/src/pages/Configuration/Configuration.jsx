@@ -3,7 +3,6 @@ import {
     Settings, Bell, Key, Cpu
 } from "lucide-react";
 import useDocumentTitle from "../../utils/useDocumentTitle";
-import SectionLoader from "../../components/SectionLoader";
 import SuccessToast from "../../components/SuccessToast";
 import GeneralSettings from "./utils/GeneralSettings";
 import ApiKeySettings from "./utils/ApiKeySettings";
