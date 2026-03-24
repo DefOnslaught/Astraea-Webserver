@@ -125,7 +125,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                                     onChange={(e) => setFormData({ ...formData, enable_patching: e.target.checked })}
                                     className="sr-only peer"
                                 />
-                                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                             </label>
                         </div>
 
@@ -170,7 +170,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
 
                         {!showDeleteConfirm ? (
                             <div className="flex items-center justify-between p-4 border border-red-500/20 rounded-xl bg-red-500/5">
-                                <div className="max-w-[200px]">
+                                <div className="max-w-50">
                                     <p className="text-xs font-bold text-gray-300">Remove Server</p>
                                     <p className="text-[10px] text-gray-500 leading-tight mt-1">Permanently delete this node from Astraea inventory.</p>
                                 </div>
