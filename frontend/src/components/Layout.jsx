@@ -112,7 +112,7 @@ function Layout({ children }) {
                 ${isSidebarOpen ? 'w-54' : 'w-20'}`}
             >
                 {/* Subtle Inner Glow */}
-                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-b from-indigo-500/2 to-transparent pointer-events-none" />
 
                 <div className="relative p-3 space-y-1 flex-1 overflow-y-auto no-scrollbar">
                     <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
@@ -123,7 +123,7 @@ function Layout({ children }) {
                 </div>
 
                 {/* Footer with Versioning */}
-                <div className="relative p-4 mt-auto border-t border-white/[0.05] bg-black/20 flex flex-col items-center justify-center gap-2">
+                <div className="relative p-4 mt-auto border-t border-white/5 bg-black/20 flex flex-col items-center justify-center gap-2">
                     {isSidebarOpen ? (
                         <div className="flex flex-col items-center animate-in fade-in duration-500">
                             <span className="text-[10px] font-mono tracking-[0.2em] text-gray-600 uppercase">
@@ -157,7 +157,7 @@ const SidebarLink = ({ to, icon, label, isOpen, isActive }) => (
         relative flex items-center p-3 rounded-xl transition-all duration-200 group
         ${isActive
             ? 'bg-indigo-500/10 text-indigo-400 shadow-[inset_0_0_12px_rgba(99,102,241,0.05)]'
-            : 'text-gray-400 hover:bg-white/[0.03] hover:text-gray-200'}
+            : 'text-gray-400 hover:bg-white/3 hover:text-gray-200'}
     `}>
         {/* Active Indicator Bar */}
         {isActive && (

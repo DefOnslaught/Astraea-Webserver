@@ -195,7 +195,7 @@ const Profile = () => {
             {activeTab === "general" ? (
                 /* --- GENERAL TAB --- */
                 <div className="bg-gray-800/50 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                    <div className="p-8 border-b border-white/5 bg-gradient-to-r from-indigo-500/10 to-transparent flex items-center gap-6">
+                    <div className="p-8 border-b border-white/5 bg-linear-to-r from-indigo-500/10 to-transparent flex items-center gap-6">
                         <div className="h-20 w-20 rounded-full bg-indigo-500 flex items-center justify-center text-3xl font-bold text-white shadow-indigo-500/20 shadow-lg">
                             {profile?.username?.charAt(0).toUpperCase()}
                         </div>
@@ -234,7 +234,7 @@ const Profile = () => {
     
                     {/* Password Section */}
                     <div className="bg-gray-800/50 border border-white/5 rounded-2xl overflow-hidden shadow-xl">
-                        <div className="p-6 border-b border-white/5 bg-gradient-to-r from-indigo-500/5 to-transparent">
+                        <div className="p-6 border-b border-white/5 bg-linear-to-r from-indigo-500/5 to-transparent">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-indigo-500/10">
                                     <i className="fa-solid fa-shield-halved text-indigo-400"></i>
@@ -371,7 +371,7 @@ const Profile = () => {
                     <div className="bg-red-500/5 border border-red-500/10 rounded-2xl overflow-hidden shadow-xl">
                         <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 flex-shrink-0">
+                                <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
                                     <i className="fa-solid fa-bolt-lightning text-xl"></i>
                                 </div>
                                 <div>

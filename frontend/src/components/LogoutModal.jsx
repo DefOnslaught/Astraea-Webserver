@@ -13,7 +13,7 @@ const LogoutModal = ({ isOpen, onConfirm, onCancel, title, description, confirmL
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-gray-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
                 <div className="flex items-center gap-4 text-red-500 mb-4">
                     <div className="bg-red-500/10 p-3 rounded-full">

@@ -196,7 +196,7 @@ const Register = () => {
                             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-white/5 pt-3">
                                 {requirements.map((req, index) => (
                                     <div key={index} className="flex items-center gap-2 transition-all duration-300">
-                                        <div className={`flex-shrink-0 h-4 w-4 rounded-full flex items-center justify-center transition-colors ${req.met ? 'bg-emerald-500/20' : 'bg-gray-800'}`}>
+                                        <div className={`shrink-0 h-4 w-4 rounded-full flex items-center justify-center transition-colors ${req.met ? 'bg-emerald-500/20' : 'bg-gray-800'}`}>
                                             {req.met ? (
                                                 <i className="fa-solid fa-check text-[10px] text-emerald-500"></i>
                                             ) : (
