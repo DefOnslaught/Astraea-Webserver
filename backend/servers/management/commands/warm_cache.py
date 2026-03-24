@@ -1,9 +1,7 @@
 from django.core.management.base import BaseCommand
-from django.core.cache import cache
 
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
-from servers.constants import SERVER_CACHE_FIELDS
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
 
@@ -11,8 +9,6 @@ class Command(BaseCommand):
     help = 'Warms the Redis cache for servers and dashboard'
 
     def handle(self, *args, **kwargs):
-        # Removes old data that may be in cache from before starting django
-        cache.clear()
         
         self.stdout.write("Fetching servers from database...")
 

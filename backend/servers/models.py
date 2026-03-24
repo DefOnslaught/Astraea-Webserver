@@ -2,16 +2,16 @@ import secrets, hashlib, uuid
 from django.db import models
 
 class Server(models.Model):
-    server_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    hostname = models.CharField(max_length=255, unique=True)
+    server_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
+    hostname = models.CharField(max_length=255, unique=True, db_index=True)
     os_version = models.CharField(max_length=100, null=True, blank=True)
     uptime = models.CharField(max_length=100, null=True, blank=True)
     last_reboot = models.DateTimeField(null=True, blank=True)
-    last_patch_date = models.DateTimeField(null=True, blank=True)
+    last_patch_date = models.DateTimeField(null=True, blank=True, db_index=True)
     patch_schedule = models.CharField(max_length=100, null=True, blank=True)
-    enable_patching = models.BooleanField(default=True)
+    enable_patching = models.BooleanField(default=True, db_index=True)
     env = models.CharField(max_length=100, null=True, blank=True)
-    total_packages_updated = models.IntegerField(default=0)
+    total_packages_updated = models.IntegerField(default=0, db_index=True)
 
     def __str__(self):
         return self.hostname
@@ -52,6 +52,9 @@ class PatchSession(models.Model):
 
     class Meta:
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['server', '-timestamp']),
+        ]
     
     def __str__(self):
         return self.server.hostname
