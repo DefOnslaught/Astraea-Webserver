@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-    Bell, Save, Plus, Mail, Hash, Trash2,
-    Settings, AlertCircle, Loader2, X, Info
+    Bell, Save, Plus, Mail, Hash, Trash2, Edit3,
+    Settings, AlertTriangle, Loader2, X, Info, RefreshCw
 } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
@@ -11,6 +11,9 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [services, setServices] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedService, setSelectedService] = useState(null);
+    const [serviceToDelete, setServiceToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Notification Logic Triggers
     const [notifyTriggers, setNotifyTriggers] = useState({
@@ -20,25 +23,25 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
         outOfDate: true
     });
 
-    // --- Data Fetching with Failsafes ---
+    // --- Data Fetching ---
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [servicesRes, settingsRes] = await Promise.all([
-                api.get(API_ENDPOINTS.NOTIFY_SERVICES).catch(() => ({ data: [] })),
-                api.get(API_ENDPOINTS.NOTIFY_SETTINGS).catch(() => ({ data: null }))
-            ]);
 
-            // Strict Array Check: Handle 404 HTML or unexpected objects
+            const settingsRes = await api.get(API_ENDPOINTS.NOTIFY_SETTINGS);
+            setNotifyTriggers({
+                failed: settingsRes.data.failed,
+                success: settingsRes.data.success,
+                partial: settingsRes.data.partial,
+                outOfDate: settingsRes.data.out_of_date,
+            });
+
+            const servicesRes = await api.get(API_ENDPOINTS.NOTIFY_SERVICES);
+
             if (Array.isArray(servicesRes.data)) {
                 setServices(servicesRes.data);
             } else {
-                setServices([]); // Force empty array if backend sends junk
-            }
-
-            // Object Check for settings
-            if (settingsRes.data && typeof settingsRes.data === 'object' && !Array.isArray(settingsRes.data)) {
-                setNotifyTriggers(prev => ({ ...prev, ...settingsRes.data }));
+                setServices([]);
             }
         } catch (err) {
             setError("Communication error with notification engine.");
@@ -52,10 +55,16 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
     }, []);
 
     // --- Handlers ---
-    const handleToggleService = async (id, currentStatus) => {
+    const handleToggleService = async (service) => {
         try {
-            await api.patch(`${API_ENDPOINTS.NOTIFY_SERVICES}${id}/`, { active: !currentStatus });
-            setServices(services.map(s => s.id === id ? { ...s, active: !s.active } : s));
+            const payload = {
+                data: {
+                    id: service.id,
+                    active: !service.active
+                }
+            };
+            await api.patch(API_ENDPOINTS.NOTIFY_SERVICES, payload);
+            setServices(services.map(s => s.id === service.id ? { ...s, active: !s.active } : s));
             triggerSuccess("Service status updated.");
         } catch (err) {
             setError("Failed to update service status.");
@@ -63,20 +72,38 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
     };
 
     const handleDeleteService = async (id) => {
+        setIsDeleting(true);
         try {
-            await api.delete(`${API_ENDPOINTS.NOTIFY_SERVICES}${id}/`);
-            setServices(services.filter(s => s.id !== id));
-            triggerSuccess("Notification service removed.");
+            const payload = { data: { id: id } };
+            const res = await api.delete(API_ENDPOINTS.NOTIFY_SERVICES, { data: payload });
+
+            if (res.status === 200) {
+                setServices(services.filter(s => s.id !== id));
+                triggerSuccess("Notification service removed.");
+                setServiceToDelete(null);
+            }
         } catch (err) {
             setError("Delete request failed.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     const handleSaveTriggers = async () => {
         setIsSaving(true);
         try {
-            await api.post(API_ENDPOINTS.NOTIFY_SETTINGS, notifyTriggers);
-            triggerSuccess("Global trigger logic updated.");
+            const payload = {
+                data: {
+                    failed: notifyTriggers.failed,
+                    success: notifyTriggers.success,
+                    partial: notifyTriggers.partial,
+                    out_of_date: notifyTriggers.outOfDate,
+                }
+            };
+            const res = await api.patch(API_ENDPOINTS.NOTIFY_SETTINGS, payload);
+            if (res.status === 200) {
+                triggerSuccess("Global trigger logic updated.");
+            }
         } catch (err) {
             setError("Failed to save triggers.");
         } finally {
@@ -139,7 +166,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                 </div>
             </div>
 
-            {/* 2. Services Management */}
+            {/* Services Management */}
             <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6 shadow-xl">
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -147,7 +174,10 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                         <p className="text-xs text-gray-600 mt-0.5">Where Astraea sends alerts</p>
                     </div>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => {
+                            setSelectedService(null);
+                            setIsModalOpen(true);
+                        }}
                         className="p-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded-xl transition-all border border-indigo-500/20"
                     >
                         <Plus className="w-5 h-5" />
@@ -155,56 +185,88 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                 </div>
 
                 <div className="space-y-3">
-                    {services.length > 0 ? (
-                        services.map(service => (
-                            <div key={service.id} className="group flex items-center justify-between p-4 bg-gray-900/80 border border-white/5 rounded-2xl hover:bg-gray-900 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-xl ${service.type === 'discord' ? 'bg-indigo-500/10' : 'bg-emerald-500/10'}`}>
-                                        {service.type === 'discord' ? <Hash className="w-5 h-5 text-indigo-400" /> : <Mail className="w-5 h-5 text-emerald-400" />}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold text-white tracking-tight">{service.name}</p>
-                                        <p className="text-[10px] text-gray-500 font-mono truncate max-w-50 md:max-w-xs opacity-60">
-                                            {service.type === 'smtp' ? `To: ${service.recipients || 'Registered Users'}` : service.url}
+                    {services.map(service => (
+                        <div key={service.id} className="relative overflow-hidden group">
+                            {serviceToDelete === service.id ? (
+                                // --- CONFIRM DELETE UI ---
+                                <div className="flex items-center justify-between p-4 bg-red-900/20 border border-red-500/40 rounded-2xl animate-in zoom-in-95 duration-200">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-5 h-5 text-red-500" />
+                                        <p className="text-xs font-bold text-red-400 italic">
+                                            Remove "{service.name}"?
                                         </p>
                                     </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setServiceToDelete(null)}
+                                            className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-300 text-[10px] font-bold uppercase hover:bg-white/10 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteService(service.id)}
+                                            disabled={isDeleting}
+                                            className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase hover:bg-red-500 shadow-lg shadow-red-900/40 disabled:opacity-50"
+                                        >
+                                            {isDeleting ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Confirm"}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => handleToggleService(service.id, service.active)}
-                                        className={`text-[9px] font-black px-2.5 py-1 rounded-full border transition-all ${service.active
-                                                ? 'border-emerald-500/40 text-emerald-500 bg-emerald-500/10'
-                                                : 'border-gray-700 text-gray-500 bg-gray-800/50'
-                                            }`}
+                            ) : (
+                                // --- STANDARD ROW UI ---
+                                    <div className="flex items-center justify-between p-4 bg-gray-900/80 border border-white/5 rounded-2xl hover:bg-gray-800/80 hover:border-indigo-500/30 transition-all group/row cursor-pointer"
+                                        onClick={() => { setSelectedService(service); setIsModalOpen(true); }}
                                     >
-                                        {service.active ? 'LIVE' : 'OFF'}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteService(service.id)}
-                                        className="p-2 text-gray-700 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-white/5 rounded-2xl bg-gray-900/20 grayscale">
-                            <AlertCircle className="w-8 h-8 text-gray-700 mb-2" />
-                            <p className="text-xs text-gray-600 font-bold uppercase tracking-widest">No Services Configured</p>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl transition-colors ${service.type === 'discord' ? 'bg-indigo-500/10 group-hover/row:bg-indigo-500/20' : 'bg-emerald-500/10 group-hover/row:bg-emerald-500/20'}`}>
+                                                {service.type === 'discord' ? <Hash className="w-5 h-5 text-indigo-400" /> : <Mail className="w-5 h-5 text-emerald-400" />}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-bold text-white tracking-tight">{service.name}</p>
+                                                    {/* Visual Indicator for Edit */}
+                                                    <Edit3 className="w-3 h-3 text-indigo-400 opacity-0 group-hover/row:opacity-100 transition-opacity" />
+                                                </div>
+                                                <p className="text-[10px] text-gray-500 font-mono truncate max-w-xs opacity-60">
+                                                    {service.type === 'smtp' ? service.recipients || 'Default Recipients' : service.url}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                                            {/* Note: stopPropagation prevents the row click (edit) when clicking toggle/delete */}
+                                            <button
+                                                onClick={() => handleToggleService(service)}
+                                                className={`text-[9px] font-black px-2.5 py-1 rounded-full border transition-all ${service.active ? 'border-emerald-500/40 text-emerald-500 bg-emerald-500/10' : 'border-gray-700 text-gray-500'}`}
+                                            >
+                                                {service.active ? 'LIVE' : 'OFF'}
+                                            </button>
+                                            <button
+                                                onClick={() => setServiceToDelete(service.id)}
+                                                className="p-2 text-gray-700 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                            )}
                         </div>
-                    )}
+                    ))}
                 </div>
             </div>
 
             {/* Service Creation Modal */}
             {isModalOpen && (
                 <AddServiceModal
+                    service={selectedService}
                     onClose={() => setIsModalOpen(false)}
-                    onSuccess={(newService) => {
-                        setServices([...services, newService]);
+                    onSuccess={(updatedService) => {
+                        if (selectedService) {
+                            setServices(services.map(s => s.id === updatedService.id ? updatedService : s));
+                        } else {
+                            setServices([...services, updatedService]);
+                        }
                         setIsModalOpen(false);
-                        triggerSuccess("New channel connected.");
                     }}
                     setError={setError}
                 />
@@ -214,34 +276,60 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
 };
 
 // --- Modal Component ---
-const AddServiceModal = ({ onClose, onSuccess, setError }) => {
+const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState({
-        name: "",
-        type: "discord",
-        discordWebhook: "", // For Discord Webhook
-        recipients: "" // For SMTP Additional
+        name: service?.name || "",
+        type: service?.type || "discord",
+        discordWebhook: service?.url || "",
+        recipients: service?.recipients || "",
+        active: service ? service.active : true
     });
+
+    useEffect(() => {
+        setFormData({
+            name: service?.name || "",
+            type: service?.type || "discord",
+            discordWebhook: service?.url || "",
+            recipients: service?.recipients || "",
+            active: service ? service.active : true
+        });
+    }, [service]);
+
+    const isEditing = !!service;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
         try {
-            const res = await api.post(API_ENDPOINTS.NOTIFY_SERVICES, formData);
+            const payload = {
+                data: {
+                    ...formData,
+                    id: service?.id
+                }
+            };
+
+            let res;
+            if (isEditing) {
+                res = await api.patch(API_ENDPOINTS.NOTIFY_SERVICES, payload);
+            } else {
+                res = await api.post(API_ENDPOINTS.NOTIFY_SERVICES, payload);
+            }
             onSuccess(res.data);
         } catch (err) {
-            setError("Failed to create service.");
+            setError(isEditing ? "Failed to update service." : "Failed to connect service.");
         } finally {
             setIsSaving(false);
         }
-    };
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-gray-900 border border-white/10 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-indigo-500/5">
                     <h2 className="text-lg font-bold text-white uppercase tracking-tighter flex items-center gap-2">
-                        <Settings className="w-4 h-4 text-indigo-400" /> Add Notification Channel
+                        <Settings className={`w-4 h-4 ${isEditing ? 'text-amber-400' : 'text-indigo-400'}`} />
+                        {isEditing ? 'Modify Service' : 'Add Notification Channel'}
                     </h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
                         <X className="w-5 h-5" />
@@ -317,9 +405,22 @@ const AddServiceModal = ({ onClose, onSuccess, setError }) => {
                     <button
                         type="submit"
                         disabled={isSaving}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl text-sm font-bold mt-4 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+                        className={`w-full py-4 rounded-xl text-sm font-bold mt-4 shadow-lg flex items-center justify-center gap-2 transition-all ${isEditing
+                                ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20'
+                                : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
+                            } text-white`}
                     >
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Connect Channel"}
+                        {isSaving ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isEditing ? (
+                            <>
+                                <Save className="w-4 h-4" /> Update Service
+                            </>
+                        ) : (
+                            <>
+                                <Plus className="w-4 h-4" /> Connect Service
+                            </>
+                        )}
                     </button>
                 </form>
             </div>
