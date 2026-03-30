@@ -58,7 +58,7 @@ M_SILENT = $(MAKE) --no-print-directory
 # This reads the 'real' time from the output and wraps it in your CYAN styling
 define PRINT_TIME
     @if [ -f $(1) ]; then \
-        printf "$(BOLD_CYAN)Finished in: $$(grep real $(1) | awk '{print $$2}')s$(RESET)\n"; \
+        printf "$(BOLD_CYAN)Finished in: $$(grep real $(1) | awk '{print $$2}')s at $$(date +"%T")$(RESET)\n"; \
         rm -f $(1); \
     fi
 endef
@@ -139,6 +139,8 @@ run-buildBackend-internal:
 	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput || exit 1
 	@sudo systemctl restart gunicorn
 	@sudo systemctl restart nginx
+	@sudo systemctl restart astraea-worker
+	@sudo systemctl restart astraea-beat
 
 run-buildFrontend-internal:
 	@echo "$(GREEN)Starting frontend build...$(RESET)"
@@ -148,17 +150,22 @@ run-buildFrontend-internal:
 deploy-internal: test-deploy buildFrontend
 	@echo "$(GREEN)Finalizing Deployment...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput
+	@$(VENV_PYTHON) backend/manage.py clear_cache
 	@sudo systemctl restart gunicorn
 	@sudo systemctl restart nginx
+	@sudo systemctl restart astraea-worker
+	@sudo systemctl restart astraea-beat
 	@echo "$(BOLD_GREEN)Deployment Successful!$(RESET)"
 
 restart-internal:
 	@$(VENV_PYTHON) backend/manage.py clear_cache
 	@sudo systemctl restart gunicorn
 	@sudo systemctl restart nginx
+	@sudo systemctl restart astraea-worker
+	@sudo systemctl restart astraea-beat
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: setupGunicorn setupNginx virtualenv
+initialSetup-internal: setupCelery setupGunicorn setupNginx virtualenv
 	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py makemigrations
@@ -169,10 +176,14 @@ virtualenv:
 	@python3 -m venv backend/venv
 	@backend/venv/bin/pip install -r backend/requirements.txt
 
+setupCelery:
+	@echo "$(CYAN)Starting Celery Files$(RESET)"
+	@sudo systemctl daemon-reload
+	@sudo systemctl enable astraea-worker.service && sudo systemctl enable astraea-beat.service
+	@echo "$(GREEN)Celery Setup Complete$(RESET)"
+
 setupGunicorn:
-	@echo "$(CYAN)Creating Gunicorn Service Files$(RESET)"
-	@sudo cp backend/1_Host_Required_Files/gunicorn.service /etc/systemd/system/
-	@sudo cp backend/1_Host_Required_Files/gunicorn.socket /etc/systemd/system/
+	@echo "$(CYAN)Starting Gunicorn Files$(RESET)"
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable gunicorn.service && sudo systemctl enable gunicorn.socket
 	@echo "$(GREEN)Gunicorn Setup Complete$(RESET)"
@@ -242,8 +253,8 @@ help:
 	@echo "$(BLUE)buildFrontend$(RESET) - $(CYAN)Builds Frontend$(RESET)"
 	@echo "$(BLUE)test$(RESET) - $(CYAN)Runs all backend test$(RESET)"
 	@echo "$(BLUE)test-only$(RESET) - $(CYAN)Runs specific app tests: make test-only app=servers.tests.PatchingSystemTests$(RESET)"
-	@echo "$(BLUE)deploy$(RESET) - $(CYAN)Deploy project, to skip unit testing: make deploy skip=yes$(RESET)"
-	@echo "$(BLUE)initialSetup$(RESET) - $(CYAN)Configures any migrates$(RESET)"
+	@echo "$(BLUE)deploy$(RESET) - $(CYAN)Deploy project, to run unit testing: make deploy skip=no$(RESET)"
+	@echo "$(BLUE)initialSetup$(RESET) - $(CYAN)Does the nessaccery processes for initial setup$(RESET)"
 	@echo "$(BLUE)restart$(RESET) - $(CYAN)Restarts core system web services$(RESET)"
 	@echo "$(BLUE)clearCache$(RESET) - $(CYAN)Clears the cache$(RESET)"
 	@echo "$(BLUE)clean$(RESET) - $(CYAN)Cleans up python cache, test artifacts, and build files$(RESET)"

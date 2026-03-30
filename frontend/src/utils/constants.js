@@ -35,6 +35,8 @@ export const API_ENDPOINTS = {
     SYSTEM_CONFIG: "api/config/sysconfig/",
     NOTIFY_SETTINGS: "api/config/notify_settings/",
     NOTIFY_SERVICES: "api/config/notify_services/",
+    TEST_DISCORD: "api/notifications/test/discord/",
+    TEST_EMAIL: "api/notifications/test/email/",
     AGENT_CREATE_CONFIG: "api/config/agent_create_config/",
     AGENT_UPLOAD: "api/config/upload_agent_file/",
     AGENT_INSTALL_CONFIGS: "api/config/agent_install_configs/",

@@ -1,6 +1,8 @@
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
+from celery.schedules import crontab
+from datetime import timedelta
 import os
 
 load_dotenv()
@@ -58,6 +60,7 @@ INSTALLED_APPS = [
     'users',
     'servers',
     'configuration',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -76,7 +79,10 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / '..' / 'frontend' / 'dist'],
+        'DIRS': [
+            BASE_DIR / '..' / 'frontend' / 'dist',
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -96,7 +102,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
@@ -194,6 +200,32 @@ TIME_ZONE = 'America/Toronto'
 USE_I18N = True
 
 USE_TZ = True
+
+"""
+    Celery
+"""
+CELERY_BROKER_URL = os.getenv("CELERY_REDIS_URL", "redis://127.0.0.1:6379/1")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_REDIS_URL", "redis://127.0.0.1:6379/1")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ENABLE_UTC = False
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+    'reconcile-pending-notifications-every-30-mins': {
+        'task': 'notifications.tasks.reconcile_notifications',
+        'schedule': timedelta(minutes=30),
+    },
+    'cleanup-old-notifications-hourly': {
+        'task': 'notifications.tasks.delete_sent_notifications',
+        'schedule': timedelta(hours=1),
+    },
+    'check-outdated-servers-daily': {
+        'task': 'notifications.tasks.notify_out_of_date',
+        'schedule': crontab(hour=10, minute=0),
+    },
+}
 
 
 # Static files (CSS, JavaScript, Images)

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
     Bell, Save, Plus, Mail, Hash, Trash2, Edit3,
-    Settings, AlertTriangle, Loader2, X, Info, RefreshCw
+    Settings, AlertTriangle, Loader2, X, Info, RefreshCw,
+    ShieldCheck, CheckCircle2, AlertCircle
 } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
@@ -278,6 +279,8 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
 // --- Modal Component ---
 const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
     const [isSaving, setIsSaving] = useState(false);
+    const [isTesting, setIsTesting] = useState(false);
+    const [testResult, setTestResult] = useState(null);
     const [formData, setFormData] = useState({
         name: service?.name || "",
         type: service?.type || "discord",
@@ -295,6 +298,8 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
             active: service ? service.active : true
         });
     }, [service]);
+
+    useEffect(() => { setTestResult(null); }, [formData]);
 
     const isEditing = !!service;
 
@@ -322,6 +327,37 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
             setIsSaving(false);
         }
     }
+
+    const testService = async (e) => {
+        e.preventDefault();
+        setIsTesting(true);
+        setTestResult(null);
+
+        try {
+            let res;
+            const payload = {
+                data: formData.type === 'discord'
+                    ? { url: formData.discordWebhook, name: formData.name }
+                    : { name: formData.name, recipients: formData.recipients }
+            };
+
+            const endpoint = formData.type === 'discord'
+                ? API_ENDPOINTS.TEST_DISCORD
+                : API_ENDPOINTS.TEST_EMAIL;
+
+            res = await api.post(endpoint, payload);
+
+            if (res.data === true) {
+                setTestResult('success');
+            } else {
+                setTestResult('error');
+            }
+        } catch (err) {
+            setTestResult('error');
+        } finally {
+            setIsTesting(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -401,6 +437,41 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
                             </div>
                         </div>
                     )}
+
+                    <div className="flex items-center gap-3 pt-2">
+                        <button
+                            type="button"
+                            // Disable if testing, if Discord URL is missing, OR if we already have a success
+                            disabled={
+                                isTesting ||
+                                (formData.type === 'discord' && !formData.discordWebhook) ||
+                                testResult === 'success'
+                            }
+                            onClick={testService}
+                            className={`flex-1 py-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${testResult === 'success'
+                                    ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10 cursor-not-allowed' :
+                                    testResult === 'error'
+                                        ? 'border-red-500 text-red-500 bg-red-500/10 animate-shake' :
+                                        'border-white/10 text-gray-400 hover:bg-white/5 active:scale-95'
+                                }`}
+                        >
+                            {isTesting ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : testResult === 'success' ? (
+                                <CheckCircle2 className="w-3 h-3" />
+                            ) : testResult === 'error' ? (
+                                <AlertCircle className="w-3 h-3" />
+                            ) : (
+                                <ShieldCheck className="w-3 h-3" />
+                            )}
+
+                            {testResult === 'success'
+                                ? 'Connection Verified'
+                                : testResult === 'error'
+                                    ? 'Connection Failed'
+                                    : 'Test Connection'}
+                        </button>
+                    </div>
 
                     <button
                         type="submit"

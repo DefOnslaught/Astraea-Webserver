@@ -1,0 +1,19 @@
+[Unit]
+Description=Astraea Celery Worker
+After=network.target redis.service
+
+[Service]
+Type=forking
+User=darren
+Group=www-data
+WorkingDirectory=/opt/Astraea-Webserver/backend
+RuntimeDirectory=celery
+ExecStart=/opt/Astraea-Webserver/backend/venv/bin/celery -A backend multi start worker \
+    --pidfile=/run/celery/worker.pid \
+    --logfile=/opt/Astraea-Webserver/backend/logs/celery-worker.log --loglevel=INFO
+ExecStop=/opt/Astraea-Webserver/backend/venv/bin/celery multi stopwait worker \
+    --pidfile=/run/celery/worker.pid
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

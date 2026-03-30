@@ -6,6 +6,7 @@ __pycache__
 db.sqlite3
 staticfiles/
 protected_storage/
+celerybeat-schedule
 
 # Test files
 .*_time

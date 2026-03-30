@@ -67,6 +67,22 @@ else
     echo "⚠️  Warning: gunicorn.service not found in expected path."
 fi
 
+# Replace username in Astraea Worker service file
+if [ -f "backend/1_Host_Required_Files/astraea-worker.service" ]; then
+    sed -i "s/darren/$TARGET_USER/g" backend/1_Host_Required_Files/astraea-worker.service
+    echo "✅ Updated astraea-worker.service"
+else
+    echo "⚠️  Warning: astraea-worker.service not found in expected path."
+fi
+
+# Replace username in Astraea Beat service file
+if [ -f "backend/1_Host_Required_Files/astraea-beat.service" ]; then
+    sed -i "s/darren/$TARGET_USER/g" backend/1_Host_Required_Files/astraea-beat.service
+    echo "✅ Updated astraea-beat.service"
+else
+    echo "⚠️  Warning: astraea-beat.service not found in expected path."
+fi
+
 # 6. Set Directory Permissions
 # Assuming script is run from inside the Astraea-Webserver directory
 PROJECT_ROOT=$(pwd)
@@ -79,6 +95,6 @@ sudo chmod -R 750 "$PROJECT_ROOT"
 echo "-------------------------------------------------------"
 echo "✅ Setup Complete!"
 echo "1. Ensure your database 'astraea' is created."
-echo "2. Edit your .env files."
+echo "2. Edit your .env files. (backend/.env & frontend/.env)"
 echo "3. Run 'make initialSetup' to finish the deployment."
 echo "-------------------------------------------------------"

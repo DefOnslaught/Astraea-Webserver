@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: auto; border: 1px solid #3498db; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            ⚠️ Maintenance Required
+        </h2>
+        
+        <p>Astraea has identified servers that have exceeded the <strong>{{ PATCH_THRESHOLD_DAYS }} day</strong> patching threshold.</p>
+        
+        <div style="background: #ebf5fb; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <p style="margin: 0; color: #2c3e50;"><strong>Summary:</strong></p>
+            <p style="margin: 5px 0;">{{ msg }}</p>
+        </div>
+
+        <p>Please log in to the Astraea Dashboard to investigate.</p>
+
+        <p style="font-size: 12px; color: #888; margin-top: 30px;">
+            Inventory Check: {{ created_at|date:"Y-m-d H:i" }}
+        </p>
+    </div>
+</body>
+</html>
