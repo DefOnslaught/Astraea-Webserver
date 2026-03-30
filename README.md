@@ -24,7 +24,7 @@ Follow these steps to get the Astraea environment running manually.
 
 ### 2. Database Preparation
 
-Astraea requires a MySQL or MariaDB database. It is highly recommended to create a dedicated database user rather than using root.
+Astraea requires a MySQL or Postgres database. It is highly recommended to create a dedicated database user rather than using root.
 
 **Login to your Database Server**
 ```bash
