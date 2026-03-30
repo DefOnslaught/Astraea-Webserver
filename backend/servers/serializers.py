@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.db import transaction
 from .models import Server, PackageUpdate, Package, NetworkInterface, PatchSession
 from .utils import cache_individual_vms
+from notifications.models import PendingNotification
+from notifications.tasks import process_notification
 
 class PackageUpdateSerializer(serializers.ModelSerializer):
     """
@@ -129,5 +131,17 @@ class ServerPatchSerializer(serializers.ModelSerializer):
 
             PackageUpdate.objects.bulk_create(updates_to_create)
             
+            # 5. Creates the notification for celery to send
+            msg_body = f"Patching session {session_status} for {server.hostname}."
+            new_note = PendingNotification.objects.create(
+                msg=msg_body,
+                status=session_status,
+                extra_data={
+                    'server_name': server.hostname,
+                    'updates_count': len(updates_to_create),
+                }
+            )
+            transaction.on_commit(lambda: process_notification.delay(new_note.id))
+
             cache_individual_vms([server])
             return server
