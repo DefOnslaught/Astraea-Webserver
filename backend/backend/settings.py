@@ -166,6 +166,20 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_SAMESITE": "Lax",       # CSRF protection
 }
 
+
+""" 
+    EMAIL
+"""
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+ENABLE_EMAIL = os.getenv('ENABLE_EMAIL')
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+EMAIL_PORT = os.getenv('EMAIL_PORT')
+EMAIL_USE_TLS= os.getenv('EMAIL_USE_TLS')
+
+
 # Patching related options
 PATCH_THRESHOLD_DAYS = os.getenv("PATCH_THRESHOLD_DAYS", "30")
 

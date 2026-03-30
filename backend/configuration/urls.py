@@ -1,5 +1,9 @@
 from django.urls import path
-from .views import CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, UpdateAPIKey, SystemConfig
+from .views import (
+    CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, 
+    UpdateAPIKey, SystemConfig, NotificationSettingsView, 
+    NotificationServicesView, AgentCreateConfigView, AgentInstallScriptView,
+    AgentFileHandlerView, AgentUploadHandlerView)
 
 urlpatterns = [
     path('api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
@@ -7,4 +11,10 @@ urlpatterns = [
     path('api-key/update/', UpdateAPIKey.as_view(), name='update_api_key'),
     path('api-key/delete/', DeleteAPIKey.as_view(), name='delete_api_key'),
     path('sysconfig/', SystemConfig.as_view(), name='system_config'),
+    path('notify_settings/', NotificationSettingsView.as_view(), name='notify_settings'),
+    path('notify_services/', NotificationServicesView.as_view(), name='notify_services'),
+    path('agent_create_config/', AgentCreateConfigView.as_view(), name='agent_create_config'),
+    path('install_script/<str:uid>/', AgentInstallScriptView.as_view(), name='agent_install_script'),
+    path('agent_file/', AgentFileHandlerView.as_view(), name='agent_file_handler'),
+    path('upload_agent_file/', AgentUploadHandlerView.as_view(), name='agent_upload_handler'),
 ]

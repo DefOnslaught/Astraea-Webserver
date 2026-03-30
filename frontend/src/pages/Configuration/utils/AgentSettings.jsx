@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
     FileCode, Upload, RefreshCw, Terminal, CheckCircle2, Loader2,
-    Copy, Key, Calendar, Info, ChevronRight, Settings2, Command,
-    ChevronDown
+    Copy, Key, Calendar, ChevronRight, Settings2, Command, ChevronDown
 } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
@@ -15,6 +14,8 @@ const AgentTab = ({ triggerSuccess, setError }) => {
     const [scriptVersion, setScriptVersion] = useState("");
     const [uploading, setUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [currentVersion, setCurrentVersion] = useState(null);
+    const [downloading, setDownloading] = useState(false);
 
     // Config States
     const [availableKeys, setAvailableKeys] = useState([]);
@@ -49,6 +50,22 @@ const AgentTab = ({ triggerSuccess, setError }) => {
             }
         };
         fetchApiKeys();
+
+        const fetchCurrentVersion = async () => {
+            try {
+                const res = await api.get(API_ENDPOINTS.AGENT_UPLOAD, {
+                    params: { version: true }
+                });
+                if (res.status === 200) {
+                    setCurrentVersion(res.data.version);
+                }
+            } catch (err) {
+                setError("Could not load current version.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCurrentVersion();
     }, []);
 
     const currentKeyData = availableKeys.find(k => k.name === agentConfig.apiKeyName);
@@ -61,7 +78,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
     // --- Handlers ---
     const handleScriptUpload = async () => {
         if (!selectedFile || !scriptVersion) {
-            setError("Version and file are required.");
+            setError("Version and File are required.");
             return;
         }
         const formData = new FormData();
@@ -77,6 +94,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                 triggerSuccess(`Master Script updated to v${scriptVersion}`);
                 setSelectedFile(null);
                 setScriptVersion("");
+                setCurrentVersion(scriptVersion);
             }
         } catch (err) {
             setError("Upload failed. Ensure the file is a valid Python script.");
@@ -85,9 +103,41 @@ const AgentTab = ({ triggerSuccess, setError }) => {
         }
     };
 
+    const handleScriptDownload = async () => {
+        setDownloading(true);
+        try {
+            const res = await api.get(API_ENDPOINTS.AGENT_UPLOAD, {
+                responseType: 'blob',
+            });
+
+            if (res.status === 200) {
+                // Create a blob from the response
+                const blob = new Blob([res.data], { type: 'application/gzip' });
+                const url = window.URL.createObjectURL(blob);
+
+                // Create a temporary link element
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'astraea_agent.tar.gz');
+
+                // Append to body, click, and cleanup
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                triggerSuccess("Download started.");
+            }
+        } catch (err) {
+            setError("Failed to download script, is one uploaded?");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     const handleCreateAgentInstaller = async () => {
         try {
-            const res = await api.post(API_ENDPOINTS.AGENT_CREATION, agentConfig);
+            const res = await api.post(API_ENDPOINTS.AGENT_CREATE_CONFIG, agentConfig);
             setInstallUrl(`${window.location.origin}/api/config/install_script/${res.data.uuid}`);
             triggerSuccess("Deployment one-liner generated.");
         } catch (err) {
@@ -133,11 +183,36 @@ const AgentTab = ({ triggerSuccess, setError }) => {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* 1. SCRIPT UPLOAD SECTION */}
             <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6">
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                        <FileCode className="w-5 h-5 text-indigo-400" /> Master Agent Source
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-1">This script is served to all clients during updates.</p>
+                <div className="mb-6 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <FileCode className="w-5 h-5 text-indigo-400" /> Master Agent Source
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">This script is served to all clients during updates.</p>
+                    </div>
+
+                    {/* Top Right Info & Download */}
+                    <div className="flex items-center gap-3">
+                        {currentVersion && (
+                            <div className="flex flex-col items-end mr-2">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Current Version</span>
+                                <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                    {currentVersion}
+                                </span>
+                            </div>
+                        )}
+                        <button
+                            onClick={handleScriptDownload}
+                            disabled={downloading}
+                            title="Download current master script"
+                            className="p-2.5 bg-gray-800 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-gray-700 transition-all flex items-center gap-2"
+                        >
+                            {downloading && (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            )}
+                            <span className="text-xs font-medium pr-1">Download</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-gray-900/40 p-5 rounded-2xl border border-white/5">
@@ -145,7 +220,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                         <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block ml-1">Version</label>
                         <input
                             type="text"
-                            placeholder="v2.1.0"
+                            placeholder="Specify Version"
                             value={scriptVersion}
                             onChange={(e) => setScriptVersion(e.target.value)}
                             className="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
