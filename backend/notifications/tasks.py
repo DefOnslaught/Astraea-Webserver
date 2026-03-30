@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 
 from backend.settings import PATCH_THRESHOLD_DAYS, DEBUG
 from servers.models import Server
-from .models import PendingNotification, NotificationService
+from configuration.models import NotificationService, NotificationSettings
+from .models import PendingNotification
 from .discord_utils import send_msg
 from .email_utils import send_notification_email
 
@@ -21,26 +22,41 @@ def process_notification(self, notification_id):
     except PendingNotification.DoesNotExist:
         return
 
+    n_settings = NotificationSettings.objects.first()
+    if not n_settings:
+        n_settings, _ = NotificationSettings.objects.get_or_create()
+    
+    
+    check_field = 'out_of_date' if notification.status == 'outdated' else notification.status
+    is_enabled = getattr(n_settings, check_field, True)
+
+    if not is_enabled:
+        if DEBUG:
+            logger.info(f"Notification {notification_id} suppressed by global settings.")
+        # Mark as sent so it doesn't keep showing up in 'unresolved' lists
+        notification.notifications_sent = True
+        notification.save()
+        return
+
     notification.last_attempt = timezone.now()
     notification.save()
 
     active_services = NotificationService.objects.filter(active=True)
+    if not active_services.exists():
+        return
+
     sent_service_ids = notification.successful_services.values_list('id', flat=True)
     
-    errors = []
     for service in active_services:
         if service.id in sent_service_ids:
             continue
-        
+
         s_type = service.type.lower()
         try:
             success = False
-            if s_type == 'discord' or s_type == 'discord webhook':
+            if 'discord' in s_type:
                 success = send_msg(message=notification.msg, url=service.url, patch_status=notification.status)
-            elif s_type == 'slack':
-                # In future versions, will be adding slack support
-                pass
-            elif s_type == 'email' or s_type == 'smtp':
+            elif 'email' in s_type or 'smtp' in s_type:
                 recipient_list = User.objects.filter(is_active=True).values_list('email', flat=True) # Gets all active user emails
                 additional_recipients = service.recipients
                 if additional_recipients:
@@ -50,19 +66,12 @@ def process_notification(self, notification_id):
 
             if success:
                 notification.successful_services.add(service)
-                if DEBUG:
-                    logger.info(f"Successfully sent {s_type} for notification ID: {notification.id}")
-            else:
-                if DEBUG:
-                    logger.warning(f"Failed to send {s_type} for notification ID: {notification.id}")
         except Exception as e:
             notification.retry_count += 1
-            errors.append(f"{service.name}: {str(e)}")
-
+            logger.error(f"Error sending to {service.name}: {str(e)}")
 
     notification.notifications_sent = True
-    PendingNotification.objects.filter(id=notification_id).update(notifications_sent=True, last_attempt=timezone.now())
-
+    notification.save()
     if DEBUG:
         logger.info(f"Successfully processed notification ID {notification_id}")
 
