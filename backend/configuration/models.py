@@ -71,6 +71,7 @@ class AgentInstallConfig(models.Model):
         ('week2and4', 'Patching Week 2 & 4'),
     ]
     
+    label = models.CharField(max_length=100, help_text="A friendly name for this configuration")
     api_key = models.ForeignKey('APIKey', on_delete=models.CASCADE, related_name='install_configs')
     uid = models.CharField(max_length=12, unique=True, editable=False, db_index=True)
     exe_logic = models.CharField(default='default', choices=EXE_TYPES, max_length=20)

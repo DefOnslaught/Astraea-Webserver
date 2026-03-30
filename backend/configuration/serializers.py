@@ -44,7 +44,7 @@ class AgentInstallConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentInstallConfig
-        fields = ['uuid', 'apiKeyName', 'helperScript', 'environment', 'schedule']
+        fields = ['uuid', 'label', 'apiKeyName', 'helperScript', 'environment', 'schedule']
 
     def validate_apiKeyName(self, value):
         """Custom validation to ensure the key is actually active."""

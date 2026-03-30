@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import {
     FileCode, Upload, RefreshCw, Terminal, CheckCircle2, Loader2,
-    Copy, Key, Calendar, ChevronRight, Settings2, Command, ChevronDown
+    Copy, Key, Calendar, ChevronRight, Settings2, Command, ChevronDown,
+    History
 } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
 import CronModal from "./modals/CronModal";
+import ConfigListModal from "./modals/ConfigListModal";
 
 const AgentTab = ({ triggerSuccess, setError }) => {
     // --- State Management ---
@@ -20,14 +22,16 @@ const AgentTab = ({ triggerSuccess, setError }) => {
     // Config States
     const [availableKeys, setAvailableKeys] = useState([]);
     const [agentConfig, setAgentConfig] = useState({
+        label: "",
         schedule: "0 0 * * *",
         environment: "production",
         apiKeyName: "",
-        helperScript: "default"
+        helperScript: "standard"
     });
 
     const [installUrl, setInstallUrl] = useState("");
     const [showCronModal, setShowCronModal] = useState(false);
+    const [showConfigModal, setShowConfigModal] = useState(false);
 
     // --- Data Fetching ---
     useEffect(() => {
@@ -233,10 +237,10 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                             onClick={() => fileInputRef.current.click()}
                             className="cursor-pointer bg-gray-800 border border-white/10 rounded-xl px-4 py-2 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all flex items-center justify-between"
                         >
-                            <span className="truncate">{selectedFile ? selectedFile.name : "Select .tar or .zip"}</span>
+                            <span className="truncate">{selectedFile ? selectedFile.name : "Select .tar or .zip "}</span>
                             <Upload className="w-4 h-4 text-indigo-400" />
                         </div>
-                        <input type="file" ref={fileInputRef} hidden accept=".zip, .tar" onChange={(e) => setSelectedFile(e.target.files[0])} />
+                        <input type="file" ref={fileInputRef} hidden accept=".zip, .tar.gz, .tar" onChange={(e) => setSelectedFile(e.target.files[0])} />
                     </div>
 
                     <div className="md:col-span-3 flex items-end">
@@ -260,6 +264,21 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                     </h3>
 
                     <div className="space-y-5">
+                        {/* Config Label Field */}
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block ml-1">Configuration Label</label>
+                            <div className="relative group">
+                                <input
+                                    required
+                                    type="text"
+                                    placeholder="e.g. Ubuntu Web Servers - Prod"
+                                    value={agentConfig.label}
+                                    onChange={(e) => setAgentConfig({ ...agentConfig, label: e.target.value })}
+                                    className="w-full bg-gray-900 border border-white/10 rounded-xl px-10 py-3 text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
+                                />
+                                <Settings2 className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-500" />
+                            </div>
+                        </div>
                         {/* API Key Selection */}
                         <div>
                             <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block ml-1">Assigned API Key</label>
@@ -291,7 +310,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                     onChange={(e) => setAgentConfig({ ...agentConfig, helperScript: e.target.value })}
                                     className="w-full bg-gray-900 border border-white/10 rounded-xl px-10 py-3 text-white text-sm appearance-none focus:border-indigo-500/50 outline-none cursor-pointer"
                                 >
-                                    <option value="default">Standard (Every Execution)</option>
+                                    <option value="standard">Standard (Every Execution)</option>
                                     <option value="week1and3">Patching Week 1 & 3</option>
                                     <option value="week2and4">Patching Week 2 & 4</option>
                                 </select>
@@ -309,9 +328,9 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                     onChange={(e) => setAgentConfig({ ...agentConfig, environment: e.target.value })}
                                     className="w-full bg-gray-900 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500/50 outline-none"
                                 >
-                                    <option value="production">Production</option>
-                                    <option value="pre-prod">Pre-Production</option>
-                                    <option value="dev">Development</option>
+                                    <option value="Production">Production</option>
+                                    <option value="Pre-Prod">Pre-Production</option>
+                                    <option value="Dev">Development</option>
                                 </select>
                             </div>
                             <div>
@@ -349,9 +368,18 @@ const AgentTab = ({ triggerSuccess, setError }) => {
 
                 {/* Right Column: Output */}
                 <div className="lg:col-span-2 bg-gray-800/40 border border-white/5 rounded-2xl p-6 flex flex-col">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Linux One-Liner
-                    </h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400" /> Linux One-Liner
+                        </h3>
+                        <button
+                            onClick={() => setShowConfigModal(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs text-gray-400 hover:text-white transition-all"
+                        >
+                            <History className="w-3.5 h-3.5" />
+                            History
+                        </button>
+                    </div>
 
                     <div className="flex-1 flex flex-col justify-center">
                         {installUrl ? (
@@ -386,6 +414,12 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                     currentValue={agentConfig.schedule}
                     onSave={(val) => setAgentConfig({ ...agentConfig, schedule: val })}
                     onClose={() => setShowCronModal(false)}
+                />
+            )}
+
+            {showConfigModal && (
+                <ConfigListModal
+                    onClose={() => setShowConfigModal(false)}
                 />
             )}
         </div>

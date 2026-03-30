@@ -320,6 +320,7 @@ class AgentHandlerTests(APITestCase):
         
         # Use the field names expected by the Serializer (React-style)
         data = {
+            "label": "Test Config",
             "apiKeyName": "Test-Key-01",
             "helperScript": "week1and3",
             "environment": "staging",
@@ -334,6 +335,7 @@ class AgentHandlerTests(APITestCase):
         
         # Verify Database entry exists with mapped fields
         config = AgentInstallConfig.objects.get(uid=response.data['uuid'])
+        self.assertEqual(config.label, "Test Config")
         self.assertEqual(config.api_key, api_key)
         self.assertEqual(config.exe_logic, "week1and3")
         self.assertEqual(config.cron, "0 0 * * 1")

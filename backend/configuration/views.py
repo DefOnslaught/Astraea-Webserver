@@ -92,7 +92,7 @@ class DeleteAPIKey(APIView):
                 logger.info(f"Successfully deleted API Key `{key_name}`")
             return Response({'message': f'API Key {key_name} deleted successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.critical(f"Failed deleting API Key: {str(e)}")
+            logger.error(f"Failed deleting API Key: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -429,3 +429,40 @@ class AgentUploadHandlerView(APIView):
             if os.path.exists(temp_path):
                 os.remove(temp_path)
             return Response({'message': f"Internal error during processing: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetAgentInstallConfigs(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        configs = AgentInstallConfig.objects.all()
+
+        data = [{
+            'label': config.label,
+            'key': str(config.api_key),
+            'uid': config.uid,
+            'exe_logic': config.exe_logic,
+            'environment': config.environment,
+            'cron': config.cron,
+            'created_at': config.created_at
+        } for config in configs]
+
+        return Response(data, status=status.HTTP_200_OK)
+
+class DeleteAgentInstallConfig(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        uid = request.data.get('uid')
+        if not uid:
+            return Response({'message': "Missing UID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            config = get_object_or_404(AgentInstallConfig, uid=uid)
+            created_at = config.created_at
+            config.delete()
+            if DEBUG:
+                logger.info(f"Successfully deleted Agent Install Config made at {created_at}")
+            return Response({'message': f'Successfully deleted Agent Install Config made at {created_at}"'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Failed deleting Agent Install Config: {str(e)}")
+            return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

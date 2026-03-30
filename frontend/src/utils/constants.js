@@ -37,6 +37,8 @@ export const API_ENDPOINTS = {
     NOTIFY_SERVICES: "api/config/notify_services/",
     AGENT_CREATE_CONFIG: "api/config/agent_create_config/",
     AGENT_UPLOAD: "api/config/upload_agent_file/",
+    AGENT_INSTALL_CONFIGS: "api/config/agent_install_configs/",
+    DELETE_AGENT_INSTALL_CONFIG: "api/config/delete_agent_install_config/",
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

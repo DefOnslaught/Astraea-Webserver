@@ -24,6 +24,11 @@ const Configuration = () => {
         setError("");
     };
 
+    const showError = (msg) => {
+        setError(msg);
+        setTimeout(() => setError(""), 3000);
+    };
+
     // --- Main Render ---
 
     const tabs = [
@@ -68,10 +73,10 @@ const Configuration = () => {
 
             {/* TAB CONTENT AREAS */}
             <div className="mt-4">
-                {activeTab === "general" && <GeneralSettings triggerSuccess={triggerSuccess} setError={setError} />}
-                {activeTab === "api" && <ApiKeySettings triggerSuccess={triggerSuccess} setError={setError} />}
-                {activeTab === "notifications" && <NotificationSettings triggerSuccess={triggerSuccess} setError={setError} />}
-                {activeTab === "agent" && <AgentSettings triggerSuccess={triggerSuccess} setError={setError} />}
+                {activeTab === "general" && <GeneralSettings triggerSuccess={triggerSuccess} setError={showError} />}
+                {activeTab === "api" && <ApiKeySettings triggerSuccess={triggerSuccess} setError={showError} />}
+                {activeTab === "notifications" && <NotificationSettings triggerSuccess={triggerSuccess} setError={showError} />}
+                {activeTab === "agent" && <AgentSettings triggerSuccess={triggerSuccess} setError={showError} />}
             </div>
         </div>
     );

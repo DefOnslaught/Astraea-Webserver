@@ -3,7 +3,7 @@ from .views import (
     CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, 
     UpdateAPIKey, SystemConfig, NotificationSettingsView, 
     NotificationServicesView, AgentCreateConfigView, AgentInstallScriptView,
-    AgentFileHandlerView, AgentUploadHandlerView)
+    AgentFileHandlerView, AgentUploadHandlerView, GetAgentInstallConfigs, DeleteAgentInstallConfig)
 
 urlpatterns = [
     path('api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
@@ -17,4 +17,6 @@ urlpatterns = [
     path('install_script/<str:uid>/', AgentInstallScriptView.as_view(), name='agent_install_script'),
     path('agent_file/', AgentFileHandlerView.as_view(), name='agent_file_handler'),
     path('upload_agent_file/', AgentUploadHandlerView.as_view(), name='agent_upload_handler'),
+    path('agent_install_configs/', GetAgentInstallConfigs.as_view(), name="agent_install_configs"),
+    path('delete_agent_install_config/', DeleteAgentInstallConfig.as_view(), name="delete_agent_install_config"),
 ]
