@@ -26,7 +26,7 @@ def process_notification(self, notification_id):
     if not n_settings:
         n_settings, _ = NotificationSettings.objects.get_or_create()
     
-    
+
     check_field = 'out_of_date' if notification.status == 'outdated' else notification.status
     is_enabled = getattr(n_settings, check_field, True)
 
@@ -57,7 +57,7 @@ def process_notification(self, notification_id):
             if 'discord' in s_type:
                 success = send_msg(message=notification.msg, url=service.url, patch_status=notification.status)
             elif 'email' in s_type or 'smtp' in s_type:
-                recipient_list = User.objects.filter(is_active=True).values_list('email', flat=True) # Gets all active user emails
+                recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True)) # Gets all active user emails
                 additional_recipients = service.recipients
                 if additional_recipients:
                     extra_list = [r.strip() for r in additional_recipients.split(',') if r.strip()]
