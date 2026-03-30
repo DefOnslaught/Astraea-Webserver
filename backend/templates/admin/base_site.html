@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+    <link rel="shortcut icon" href="/assets/favicon.ico" />
+{% endblock %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Astraea Administration{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        <span style="color: #3498db;">Astraea</span> Central Management
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
