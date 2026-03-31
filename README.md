@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-18+-61dafb?logo=react&logoColor=black)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Astraea** is a high-performance Server Patching Management system designed to provide a unified command center for infrastructure maintenance. It works in tandem with the **Astraea Agent** to automated patching toggles, patching history, view all packages installed in your infrastructure across distributed Linux environments.
+**Astraea** is a high-performance Server Patching Management system designed to provide a unified command center for infrastructure maintenance. It works in tandem with the [Astraea Agent](https://github.com/DefOnslaught/Astraea-Agent) to automate patching toggles, track patching history, and monitor installed packages across distributed Linux environments.
 
 ---
 
@@ -26,6 +26,7 @@ Before installation, ensure your host meets the following requirements:
 
 | Component | Requirement | Purpose |
 | :--- | :--- | :--- |
+| **OS** | Ubuntu/Debian/RHEL/Arch | Supported by automated `setup.sh` |
 | **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
 | **Node.js** | v18+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
@@ -38,7 +39,7 @@ Before installation, ensure your host meets the following requirements:
 
 ### 1. Environment Preparation
 
-Clone the repository to `/opt/Astraea-Webserver` and run the initial setup script:
+The included `setup.sh` automates dependency installation, Nginx site configuration, and system permissions.
 
 ```bash
 cd /opt
@@ -47,6 +48,8 @@ cd Astraea-Webserver
 chmod +x setup.sh
 ./setup.sh
 ```
+
+*Note: The script will prompt for your preferred system user and Nginx `server_name`.*
 
 ### 2. Database Configuration
 
@@ -85,29 +88,30 @@ Edit the environment files to link your database and secret keys. (copy .env_exa
 1. **Backend:** `backend/.env`
 2. **Frontend:** `frontend/.env`
 
-### 4. Generate Secret Key
+### 4. Core Initialization
 
-If you haven't defined a `SECRET_KEY` in your `.env`, generate one now:
+Run the Makefile's initial setup. This creates the Python virtual environment (`venv`), installs project-specific requirements, and prepares Gunicorn.
 
 ```bash
-backend/venv/bin/python backend/manage.py generate_secret_key
+# This creates the venv and installs all Python/Node dependencies
+make initialSetup
 ```
 
-### 5. Deployment via Makefile
+### 5. Finalizing Deployment
 
-The included Makefile automates the heavy lifting of service configuration and migration.
+Once the environment is initialized, generate your unique security keys and deploy the services.
 
 ```bash
-# Initialize venv, dependencies, Nginx, and Gunicorn
-make initialSetup
+# Generate a Django Secret Key (if not manually set in .env)
+backend/venv/bin/python backend/manage.py generate_secret_key
 
-# Run migrations and deploy the stack
+# Run migrations, build frontend assets, and restart services
 make deploy
 ```
 
 ---
 
-## 🔐 Superuser Setup
+## 🔐 Administration
 
 ### Create Superuser
 
