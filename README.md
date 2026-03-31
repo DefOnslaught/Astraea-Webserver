@@ -1,187 +1,162 @@
-# Astraea: Centralized Patching Manager
+# 🌌 Astraea: Centralized Patching Manager
 
-Astraea is a robust Server Patching Management system designed to provide a unified dashboard for system updates. It works in tandem with the Astraea Agent to monitor installed packages, schedule patches, and track system health across your infrastructure.
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-6.0+-092e20?logo=django&logoColor=white)](https://www.djangoproject.com/)
+[![React](https://img.shields.io/badge/React-18+-61dafb?logo=react&logoColor=black)](https://reactjs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 🛠 Prerequisites For Bare Metal (Non Docker)
+**Astraea** is a high-performance Server Patching Management system designed to provide a unified command center for infrastructure maintenance. It works in tandem with the **Astraea Agent** to automated patching toggles, patching history, view all packages installed in your infrastructure across distributed Linux environments.
 
-    Python 3.10+ - Required for Django 6.0 features
+---
 
-    Redis Server 6.0+ - Used for Astraea background tasks
+## 🏗️ Architecture Overview
 
-    Node.js v18+ - Required for Vite
+Astraea utilizes a central Hub-and-Spoke model:
 
-    Nginx - To serve the content
+* **Astraea Dashboard:** A Django/React web interface for administrators.
+* **Task Engine:** Redis & Celery-powered asynchronous workers for handling fleet-wide patch triggers.
+* **Remote Agents:** Lightweight Python agent installed on target nodes that report back to the Centralized Manager via a secure REST API.
+* **Caching:** Powered by **Redis**, our caching layer is built with absolute speed in mind. By offloading frequently accessed session data and volatile system metrics to an in-memory store, Astraea ensures **extremely fast results** and a highly responsive UI, even when managing a massive fleet of distributed agents.
 
-    MySQL/MariaDB 8.0 / 10.5 - Ensure utf8mb4 encoding is used
+---
 
-    Assumes Parent Directory is /opt
+## 🛠️ Prerequisites (Bare Metal)
+
+Before installation, ensure your host meets the following requirements:
+
+| Component | Requirement | Purpose |
+| :--- | :--- | :--- |
+| **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
+| **Node.js** | v18+ | Vite Frontend Tooling |
+| **Redis** | 6.0+ | Message Broker for Background Tasks |
+| **Database** | MySQL 8.0+ / ProstgreSQL 15+ | Relational Data Store (utf8mb4) |
+| **Web Server** | Nginx | Reverse Proxy & Static File Hosting |
+
+---
 
 ## 🚀 Installation (Bare Metal)
 
-Follow these steps to get the Astraea environment running manually.
+### 1. Environment Preparation
 
-### 1. Run Quick Install Script
+Clone the repository to `/opt/Astraea-Webserver` and run the initial setup script:
 
 ```bash
+cd /opt
+git clone https://github.com/DefOnslaught/Astraea-Webserver.git
+cd Astraea-Webserver
+chmod +x setup.sh
 ./setup.sh
 ```
 
-### 2. Database Preparation
+### 2. Database Configuration
 
-Astraea requires a MySQL or Postgres database. It is highly recommended to create a dedicated database user rather than using root.
+Choose the block corresponding to your database engine. Replace `your_secure_password` with a strong credential.
 
-**Login to your Database Server**
+#### Option A: MySQL / MariaDB
 
-```bash
-# Enter your admin password when prompted
-mysql -u root -p
-```
-
-**Execute the following SQL commands**
-
-Replace `your_secure_password` with a strong password of your choice.
-
-```bash
--- 1. Create the database with UTF8MB4 support for modern emoji/special char handling
+```sql
+-- Create database with proper encoding for Django
 CREATE DATABASE astraea CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- 2. Create a dedicated user for the Astraea application
--- Use 'localhost' if the DB is on the same machine, or '%' if it is remote
-CREATE USER 'astraea_user'@'%' IDENTIFIED BY 'your_secure_password';
-
--- 3. Grant all privileges on the astraea database to this user
-GRANT ALL PRIVILEGES ON astraea.* TO 'astraea_user'@'%';
-
--- 4. Apply the changes
+-- Create user (Use 'localhost' if DB is on the same machine as Astraea)
+CREATE USER 'astraea_user'@'localhost' IDENTIFIED BY 'your_secure_password';
+GRANT ALL PRIVILEGES ON astraea.* TO 'astraea_user'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
 ```
 
-> [!TIP]
-> **Keep these credentials handy!** You will need to input the Database Name (`astraea`), User (`astraea_user`), and `Password` into your `backend/.env` file in the next step.
+#### Option B: PostgreSQL
 
-**🧪 Quick Verification**
+```sql
+-- Create database
+CREATE DATABASE astraea;
 
-Before proceeding to the application setup, you can verify the credentials work by trying to log in as the new user:
-
-```bash
-mysql -u astraea_user -p your_secure_password
+-- Create user and grant privileges
+CREATE USER astraea_user WITH PASSWORD 'your_secure_password';
+ALTER ROLE astraea_user SET client_encoding TO 'utf8';
+ALTER ROLE astraea_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE astraea_user SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE astraea TO astraea_user;
 ```
 
-### 3. Edit Required Files
+### 3. Application Secrets
 
-Files to edit in-order for the webserver and frontend to work correctly
+Edit the environment files to link your database and secret keys.
 
-    backend/.env
-    backend/backend/settings.py - Verify settings look correct most info is handled via .env
-    frontend/.env
+1. **Backend:** `backend/.env`
+2. **Frontend:** `frontend/.env`
 
-### 3. Run Required Make Commands
->
-> [!WARNING]
-> This assumes the full directory of the webserver is `/opt/Astraea-Webserver` if it's not, you will have to edit the files in `backend/1_Host_Required_Files`.</br>
+### 4. Generate Secret Key
 
-Leverage the Makefile to handle the virtual environment, Python dependencies, and initial database migrations:
-
-**Initial Setup**
-
-Creates Gunicorn System Files/Nginx config & log files, Python venv, installs dependencies, configures any migrations
-
-```bash
-make initialSetup
-```
-
-**Build & Deploy**
-
-Runs unit tests, builds the frontend and backend, and restarts services.
-
-```bash
-make deploy
-```
-
-### 4. First-Time Configuration
-
-Once the deployment is successful, you need to set up your administrative account and prepare the system.
-
-**Create Superuser**
-
-```bash
-# Run this from the root directory
-backend/venv/bin/python backend/manage.py createsuperuser
-```
-
-**Create Secret Key**
-
-If you have not created a Secret Key for `backend/.env` do so now, and save it
+If you haven't defined a `SECRET_KEY` in your `.env`, generate one now:
 
 ```bash
 backend/venv/bin/python backend/manage.py generate_secret_key
 ```
 
-**Verify System Health**
+### 5. Deployment via Makefile
 
-Run the status check to ensure everything is communicating correctly:
-
-```bash
-make status
-```
-
-### ⌨️ Makefile Commands reference
-
-The Makefile is the primary way to interact with the Astraea environment, below are some of the primary commands used when building, or wanting to easily restart the stack.
-
-| Command      | Args     | Description |
-|--------------|----------|----------|
-| make status | | Primary Health Check. Shows service status, disk usage, and pending migrations.  |
-| make initialSetup | | Creates Python venv, installs dependencies, configures any migrations, creates Gunicorn service files, Nginx config files and log files. |
-| make deploy | skip=no | Runs unit tests, builds the frontend and backend, and restarts services. *arg used to skip test -Optional |
-| make buildBackend | skip=yes | Builds Backend, restarts services. *arg used to skip test -Optional |
-| make buildFrontend | | Builds Frontend |
-| make test | skip=yes | Executes the Django test suite. *arg used to skip test -Optional |
-| make test-only | app=app.tests | Runs specific app tests. *arg usage: app=servers.tests.PatchingSystemTests |
-| make clearCache | | Clears the cache. |
-| make docker-up | | Builds and Starts the Docker Container. |
-| make docker-down | | Brings down the containers. |
-| make docker-status | | Shows status of the containers. |
-| make docker-logs | | Shows the logs. |
-
-## 🐳 Installing With Docker
->
-> [!WARNING]
-> This requires you to install the `docker-compose-plugin`, find how to install it at [Docker Docs](https://docs.docker.com/compose/install/linux/)
-
-### Before Running Commands
-
-Before running the command below, ensure your `backend/.env` is updated for the container network
+The included Makefile automates the heavy lifting of service configuration and migration.
 
 ```bash
-DB_HOST=db
-REDIS_URL=redis://redis:6379/1
-DB_PASSWORD=your_secure_password - Must match with the docker-compose.yml `MYSQL_ROOT_PASSWORD`
+# Initialize venv, dependencies, Nginx, and Gunicorn
+make initialSetup
+
+# Run migrations and deploy the stack
+make deploy
 ```
 
-Ensure your `frontend/.env` is correctly pointing to your server (if testing locally, localhost will work)
+---
+
+## 🔐 Superuser Setup
+
+### Create Superuser
+
+Grant yourself full access to the administration dashboard:
 
 ```bash
-VITE_API_URL=http://localhost
+backend/venv/bin/python backend/manage.py createsuperuser
 ```
 
-**Build and Start**
+> [!IMPORTANT]
+> **RBAC Visibility:** Only users marked as `is_staff` or `is_superuser` will see the **Administration** tab in the sidebar. With no access to Django's Admin page.
+
+---
+
+## 🐳 Containerized Deployment (Docker)
+
+For rapid deployment or testing, use the provided Docker Compose configuration.
+
+### Configuration
+
+Update `backend/.env` for internal container networking:
+
+* `DB_HOST=db`
+* `REDIS_URL=redis://redis:6379/0`
+
+### Build & Up
 
 ```bash
 make docker-up
 ```
 
-> [!WARNING]
-> **Security:** Change the password of the default admin account immediately upon first login!
+**Default Credentials:**
 
-**Default Admin Credentials**
+* **URL:** `http://localhost/`
+* **Admin User:** `admin@astraea.local`
+* **Password:** `AstraeaAdmin123!`
 
-```bash
-Username = 'admin@astraea.local'
-Password = 'AstraeaAdmin123!'
-```
+---
 
-**Accessing the Administrator Dashboard**
+## ⌨️ Makefile Commands Reference
 
-The Administrator Dashboard is available at `http://localhost/admin/`
+| Command | Description |
+| :--- | :--- |
+| `make status` | **Primary Health Check.** Shows service status and pending migrations. |
+| `make initialSetup` | Configures venv, Nginx, Gunicorn, and logs. |
+| `make deploy` | Runs tests, builds both tiers, and restarts services. |
+| `make buildBackend` | Rebuilds the Django core and restarts Gunicorn. |
+| `make buildFrontend` | Rebuilds the Vite/React static assets. |
+| `make test` | Executes the full Django test suite. |
+| `make clearCache` | Purges the Redis cache and temporary files. |
+
+---
