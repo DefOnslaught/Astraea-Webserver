@@ -80,7 +80,7 @@ GRANT ALL PRIVILEGES ON DATABASE astraea TO astraea_user;
 
 ### 3. Application Secrets
 
-Edit the environment files to link your database and secret keys.
+Edit the environment files to link your database and secret keys. (copy .env_example to make .env files)
 
 1. **Backend:** `backend/.env`
 2. **Frontend:** `frontend/.env`
@@ -143,12 +143,18 @@ REDIS_URL=redis://redis:6379/0
 CELERY_REDIS_URL=redis://redis:6379/1
 ```
 
+Update your `frontend/.env` to use Dockers internal networking.
+
+```env
+VITE_API_URL=web
+```
+
 ### 2. Launch the Stack
 
 Run the following command from the root directory:
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### 3. Access & Health
