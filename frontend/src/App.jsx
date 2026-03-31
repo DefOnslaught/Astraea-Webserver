@@ -11,6 +11,8 @@ import InspectServer from "./pages/InspectServer/InspectServer";
 import Packages from "./pages/Packages/Packages";
 import PackageVersionDetail from "./pages/Packages/PackageVersionDetail";
 import Configuration from "./pages/Configuration/Configuration";
+import Administration from "./pages/Administration/Administration";
+import UserInspection from "./pages/InspectUser/UserInspection";
 import Profile from "./pages/Profile/Profile";
 import NotFound from "./pages/ErrorPages/NotFound";
 
@@ -34,6 +36,8 @@ function App() {
               <Route path="/packages" element={<Packages />} />
               <Route path="/packages/:packageName/instances" element={<PackageVersionDetail />} />
               <Route path="/configuration" element={<Configuration />} />
+              <Route path="/administration" element={<Administration />} />
+              <Route path="/administration/users/inspect/:username" element={<UserInspection />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

@@ -1,43 +1,48 @@
 import { useNavigate } from "react-router-dom";
 import useDocumentTitle from "../../utils/useDocumentTitle";
+import { ShieldAlert } from "lucide-react";
 
-const AccessForbidden = () => {
+const AccessForbidden = ({ isEmbedded = false }) => {
     useDocumentTitle('403 - Access Forbidden | Astraea');
     const navigate = useNavigate();
 
-    return (
-        <div className="flex min-h-screen flex-col justify-center items-center px-6 lg:px-8 text-center">
-            {/* Large 404 text with a subtle glow */}
-            <p className="text-base font-semibold text-indigo-500">403</p>
+    const containerClasses = isEmbedded
+        ? "relative w-full py-20 flex flex-col justify-center items-center text-center bg-gray-900/50 border border-white/5 rounded-2xl overflow-hidden"
+        : "flex min-h-screen flex-col justify-center items-center px-6 lg:px-8 text-center relative overflow-hidden";
 
-            <h1 className="mt-4 text-5xl font-semibold tracking-tight text-white sm:text-7xl">
+    return (
+        <div className={containerClasses}>
+            <div className="relative mb-4">
+                <ShieldAlert className="w-12 h-12 text-indigo-500/20 absolute -top-4 -left-4 animate-pulse" />
+            </div>
+
+            <h1 className="text-3xl mt-10 font-bold tracking-tight text-white sm:text-5xl">
                 Access Forbidden
             </h1>
 
-            <p className="mt-6 text-lg font-medium text-gray-400 sm:text-xl/8">
-                Sorry, you don't have permission to access this page.
+            <p className="mt-4 text-gray-400 max-w-md mx-auto text-sm sm:text-base px-6">
+                Your account does not have the necessary administrative privileges to view or manage this page.
             </p>
 
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-                {/* Primary Action */}
+            <div className="mt-10 flex items-center justify-center gap-x-4">
                 <button
                     onClick={() => navigate("/")}
-                    className="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-indigo-500 transition-all"
+                    className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white shadow-lg shadow-indigo-900/20 hover:bg-indigo-500 transition-all"
                 >
-                    Go back home
+                    Return Home
                 </button>
 
-                {/* Secondary Action */}
-                <button
-                    onClick={() => window.history.back()}
-                    className="text-sm font-semibold text-gray-300 hover:text-white"
-                >
-                    Previous Page <span aria-hidden="true">&rarr;</span>
-                </button>
+                {!isEmbedded && (
+                    <button
+                        onClick={() => window.history.back()}
+                        className="text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+                    >
+                        Go Back
+                    </button>
+                )}
             </div>
 
-            {/* Subtle decorative background element */}
-            <div className="absolute -z-10 blur-3xl opacity-20 pointer-events-none">
+            <div className="absolute -z-10 blur-3xl opacity-10 pointer-events-none">
                 <div className="h-64 w-64 bg-indigo-500 rounded-full"></div>
             </div>
         </div>

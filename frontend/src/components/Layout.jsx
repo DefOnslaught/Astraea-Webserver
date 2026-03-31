@@ -16,6 +16,7 @@ function Layout({ children }) {
     const navigate = useNavigate();
     
     const username = user?.username || "User";
+    const hasAdminAccess = user?.is_staff || user?.is_superuser;
 
     if (loading && !isAuthorized) {
         return <div className="min-h-screen bg-gray-900" />;
@@ -119,7 +120,15 @@ function Layout({ children }) {
                     <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
                     <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
                     <SidebarLink to="/configuration" icon="fa-gears" label="Configuration" isOpen={isSidebarOpen} isActive={pathname === "/configuration"} />
-                    <SidebarLink to="/administration" icon="fa-users-gear" label="Administration" isOpen={isSidebarOpen} isActive={pathname === "/administration"} />
+                    {hasAdminAccess && (
+                        <SidebarLink
+                            to="/administration"
+                            icon="fa-users-gear"
+                            label="Administration"
+                            isOpen={isSidebarOpen}
+                            isActive={pathname === "/administration"}
+                        />
+                    )}
                 </div>
 
                 {/* Footer with Versioning */}

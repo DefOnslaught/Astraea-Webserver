@@ -85,7 +85,17 @@ class TokenOPView(TokenObtainPairView):
                 status=status.HTTP_406_NOT_ACCEPTABLE
             )
 
-        response = Response({"message": "Login Success"}, status=status.HTTP_200_OK)
+        user = serializer.user
+        response = Response({
+            "message": "Login Success",
+            "user": {
+                "username": user.username,
+                "email": user.email,
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser
+            }
+        }, status=status.HTTP_200_OK)
+
         return set_auth_cookies(
             response, 
             serializer.validated_data['access'], 
@@ -225,6 +235,8 @@ class SessionStatusView(APIView):
             "refresh_remaining": max(0, int(refresh_exp - now)),
             "username": request.user.username,
             "email": request.user.email,
+            "is_staff": request.user.is_staff,
+            "is_superuser": request.user.is_superuser,
         })
 
 

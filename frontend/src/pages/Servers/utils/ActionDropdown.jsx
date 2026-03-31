@@ -67,7 +67,7 @@ const ActionDropdown = ({ isOpen, onClose, anchorRef, children }) => {
             }}
             // Now that we only render when coords exist, the animation 
             // starts exactly at the intended location.
-            className={`w-40 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[100] overflow-hidden 
+            className={`w-40 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-100 overflow-hidden 
                 animate-in fade-in zoom-in-95 duration-200 
                 ${coords.showUpward ? "slide-in-from-bottom-2 origin-bottom" : "slide-in-from-top-2 origin-top"}`}
         >

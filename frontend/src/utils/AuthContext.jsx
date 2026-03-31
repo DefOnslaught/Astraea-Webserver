@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
     const handleClearingValues = () => {
         setUser(null);
         setExpiryTime(null);
+        setRefreshExpiryTime(null);
     };
 
     const checkAuth = async (force = false) => {

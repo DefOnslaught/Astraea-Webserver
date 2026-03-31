@@ -50,7 +50,8 @@ class TokenOPSerializer(TokenObtainPairSerializer):
 
         token['username'] = user.username
         token['email'] = user.email
-        # Can also add other checks, like 'is_staff'
+        token['is_staff'] = user.is_staff
+        token['is_superuser'] = user.is_superuser
         return token
 
 class UserSerializer(serializers.ModelSerializer):
