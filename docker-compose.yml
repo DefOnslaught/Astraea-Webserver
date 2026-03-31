@@ -2,31 +2,35 @@ services:
   db:
     image: mysql:8.0
     restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-uroot", "-psecretpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
-      MYSQL_DATABASE: astraea
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD} # Pulls from .env
+      MYSQL_DATABASE: astraea_db
+      MYSQL_ROOT_PASSWORD: secretpassword
     volumes:
       - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      interval: 5s
-      timeout: 20s
-      retries: 10
 
   redis:
     image: redis:7-alpine
     restart: always
 
   web:
-    build:
+    build: 
       context: .
       dockerfile: docker/Dockerfile
+    image: astraea-app:latest
+    command: web
+    restart: unless-stopped
     volumes:
       - static_volume:/app/backend/staticfiles
       - frontend_volume:/app/frontend/dist
-    restart: always
-    env_file:
-      - ./backend/.env
+    environment:
+      - DEBUG=False
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - DATABASE_URL=mysql://root:secretpassword@db:3306/astraea_db
     depends_on:
       db:
         condition: service_healthy
@@ -34,7 +38,8 @@ services:
         condition: service_started
 
   nginx:
-    image: nginx:alpine
+    image: nginx:stable-alpine
+    restart: always
     ports:
       - "80:80"
     volumes:
@@ -43,6 +48,26 @@ services:
       - frontend_volume:/app/frontend/dist:ro
     depends_on:
       - web
+  
+  worker:
+    image: astraea-app:latest
+    command: worker
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - db
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - DATABASE_URL=mysql://root:secretpassword@db:3306/astraea_db
+
+  beat:
+    image: astraea-app:latest 
+    command: beat
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
 
 volumes:
   mysql_data:

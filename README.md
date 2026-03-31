@@ -124,26 +124,50 @@ backend/venv/bin/python backend/manage.py createsuperuser
 
 ## 🐳 Containerized Deployment (Docker)
 
-For rapid deployment or testing, use the provided Docker Compose configuration.
+For rapid deployment using Docker Compose, Astraea provides a pre-configured multi-container stack including the Web Server, Celery Worker, Celery Beat, Redis, and MySQL.
 
-### Configuration
+### 1. Configure Environment
 
-Update `backend/.env` for internal container networking:
+Update your `backend/.env` to use Docker's internal networking. In Docker, services communicate using their service names defined in `docker-compose.yml`.
 
-* `DB_HOST=db`
-* `REDIS_URL=redis://redis:6379/0`
+```env
+# Database - Matches the 'db' service in compose
+DB_HOST=db
+DB_NAME=astraea_db
+DB_USER=root
+DB_PASSWORD=secretpassword
 
-### Build & Up
-
-```bash
-make docker-up
+# Redis - Matches the 'redis' service in compose
+# Using separate DB indexes (0 and 1) to isolate Cache from Task Broker
+REDIS_URL=redis://redis:6379/0
+CELERY_REDIS_URL=redis://redis:6379/1
 ```
 
-**Default Credentials:**
+### 2. Launch the Stack
 
-* **URL:** `http://localhost/`
-* **Admin User:** `admin@astraea.local`
-* **Password:** `AstraeaAdmin123!`
+Run the following command from the root directory:
+
+```bash
+docker-compose up -d --build
+```
+
+### 3. Access & Health
+
+Once the containers are healthy:
+
+* **Web UI:** [http://localhost](http://localhost)
+* **Default Admin:** `admin@astraea.local` / `AstraeaAdmin123!`
+
+**Note:** On the first boot, the `web` container automatically handles database migrations, superuser creation, and static file collection.
+
+### 4. Container Management
+
+| Action | Command |
+| :--- | :--- |
+| **View Logs** | `docker-compose logs -f` |
+| **Stop Stack** | `docker-compose down` |
+| **Restart Worker** | `docker-compose restart worker` |
+| **Shell Access** | `docker-compose exec web bash` |
 
 ---
 
