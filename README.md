@@ -151,6 +151,7 @@ make docker-up
 
 | Command | Description |
 | :--- | :--- |
+| `make help` | Displays all available commands and arguments |
 | `make status` | **Primary Health Check.** Shows service status and pending migrations. |
 | `make initialSetup` | Configures venv, Nginx, Gunicorn, and logs. |
 | `make deploy` | Runs tests, builds both tiers, and restarts services. |
