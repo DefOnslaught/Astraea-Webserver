@@ -52,6 +52,32 @@ class PatchingSystemTests(APITestCase):
         # 403 Forbidden or 401 Unauthorized depending on your settings
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_registering_server(self):
+        """Test to ensure a server can successfully register"""
+        payload = {
+            'hostname': "test_register",
+            'env': 'Production'    
+        }
+        url = reverse('register_server')
+
+        # Fire request
+        response = self.client.post(url, payload, format='json', **self.headers)
+
+        # 1. Check status code (201 is standard for creation)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        # 2. Extract UUID from response data
+        returned_uuid = response.data.get('uuid')
+        self.assertIsNotNone(returned_uuid)
+
+        # 3. Verify database state
+        # Check that exactly one server with this hostname exists
+        self.assertTrue(Server.objects.filter(hostname="test_register").exists())
+        
+        # Verify the UUID in the DB matches the one sent back to the agent
+        server = Server.objects.get(hostname="test_register")
+        self.assertEqual(str(server.server_id), returned_uuid)
+
     def test_patching_api_updates_db_and_cache(self):
         """Verify the SavePatchingData view correctly updates everything."""
         # 1. Setup existing server

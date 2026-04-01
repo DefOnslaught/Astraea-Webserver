@@ -309,6 +309,34 @@ class PackageServerListView(APIView):
         return paginator.get_paginated_response(data)
 
 
+class RegisterServer(APIView):
+    permission_classes = [HasInternalAPIKey]
+
+    def post(self, request):
+        data = request.data
+        ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
+        hostname = data.get('hostname')
+        env_value = data.get('env')
+        if not data or not hostname or not env_value:
+            logger.info(f"Invalid registration received from IP: {ip_address}")
+            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            server, created = Server.objects.get_or_create(
+                hostname=hostname,
+                env=env_value
+            )
+            logger.info(f"Successfully registered server {hostname}")
+            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            return Response({'uuid': str(server.server_id)}, status=status_code)
+        except Exception as e:
+            logger.error(f"Failed to register {hostname}: {str(e)}")
+            return Response({'message': f'Internal server error registering server {hostname}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+              
+
+
 class SavePatchingData(APIView):
     permission_classes = [HasInternalAPIKey]
 
@@ -318,7 +346,7 @@ class SavePatchingData(APIView):
         hostname = request.data.get('hostname', 'Unknown Host')
 
         if not request.data:
-            logger.warning(f"Empty payload received from IP: {ip_address}")
+            logger.info(f"Empty payload received from IP: {ip_address}")
             return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -339,7 +367,7 @@ class SavePatchingData(APIView):
                 return Response({'message': 'Successfully processed patch telemetry'}, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.critical(f"Transaction failed for {hostname} ({server_uuid}): {str(e)}")
+            logger.error(f"Transaction failed for {hostname} ({server_uuid}): {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
