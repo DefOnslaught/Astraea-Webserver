@@ -331,10 +331,7 @@ class RegisterServer(APIView):
             return Response({'uuid': str(server.server_id)}, status=status_code)
         except Exception as e:
             logger.error(f"Failed to register {hostname}: {str(e)}")
-            return Response({'message': f'Internal server error registering server {hostname}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-              
+            return Response({'message': f'Internal server error registering server {hostname}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)         
 
 
 class SavePatchingData(APIView):
