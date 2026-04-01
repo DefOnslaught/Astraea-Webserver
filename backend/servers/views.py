@@ -16,6 +16,7 @@ from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
 from .permissions import HasInternalAPIKey
+from configuration.utils import get_sys_config
 
 logger = logging.getLogger('django')
 
@@ -332,6 +333,29 @@ class RegisterServer(APIView):
         except Exception as e:
             logger.error(f"Failed to register {hostname}: {str(e)}")
             return Response({'message': f'Internal server error registering server {hostname}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)         
+
+
+class ServerPatchingEnableCheck(APIView):
+    permission_classes = [HasInternalAPIKey]
+
+    def post(self, request):
+        server_id = request.data.get('server_id')
+        if not server_id:
+            return Response({'error': "Missing server_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        sys_config = get_sys_config()
+        if not sys_config.get('patching_enabled'):
+            return Response({'can_patch': False, 'reason': 'global'}, status=status.HTTP_200_OK)
+        
+        cache_key = f"server_data:{server_id}"
+        cached_data = cache.get(cache_key)
+        if cached_data is None:
+            server = get_object_or_404(Server, server_id=server_id)
+            cache_individual_vms([server])
+            cached_data = cache.get(cache_key)
+        
+        is_enabled = cached_data.get('enable_patching')
+        return Response({'can_patch': is_enabled}, status=status.HTTP_200_OK)
 
 
 class SavePatchingData(APIView):
