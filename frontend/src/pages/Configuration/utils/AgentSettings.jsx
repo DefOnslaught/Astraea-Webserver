@@ -8,6 +8,7 @@ import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
 import CronModal from "./modals/CronModal";
 import ConfigListModal from "./modals/ConfigListModal";
+import cronstrue from "cronstrue";
 
 const AgentTab = ({ triggerSuccess, setError }) => {
     // --- State Management ---
@@ -139,9 +140,40 @@ const AgentTab = ({ triggerSuccess, setError }) => {
         }
     };
 
+
+    const formatPatchingSchedule = (schedule, helperScript) => {
+        try {
+            let humanCron = cronstrue.toString(schedule, { use24HourTimeFormat: false });
+
+            humanCron = humanCron.replace("At ", "").replace(", only on", "");
+
+            const logicLabels = {
+                "standard": "",
+                "week1and3": " Weeks 1 & 3",
+                "week2and4": " Weeks 2 & 4"
+            };
+
+            const weekSuffix = logicLabels[helperScript] || "";
+
+            return `${humanCron}${weekSuffix}`.trim();
+        } catch (err) {
+            return "Invalid Schedule";
+        }
+    };
+
     const handleCreateAgentInstaller = async () => {
         try {
-            const res = await api.post(API_ENDPOINTS.AGENT_CREATE_CONFIG, agentConfig);
+            const patchingScheduleStr = formatPatchingSchedule(
+                agentConfig.schedule,
+                agentConfig.helperScript
+            );
+
+            const payload = {
+                ...agentConfig,
+                patching_schedule: patchingScheduleStr
+            };
+
+            const res = await api.post(API_ENDPOINTS.AGENT_CREATE_CONFIG, payload);
             setInstallUrl(`${window.location.origin}/api/config/install_script/${res.data.uuid}/`);
             triggerSuccess("Deployment one-liner generated.");
         } catch (err) {
@@ -246,8 +278,8 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                     <div className="md:col-span-3 flex items-end">
                         <button
                             onClick={handleScriptUpload}
-                            disabled={uploading}
-                            className="w-full h-9.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
+                            disabled={uploading || !scriptVersion || !selectedFile}
+                            className="w-full h-9.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all"
                         >
                             {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Upload Script"}
                         </button>
@@ -349,6 +381,9 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                         <Calendar className="w-4 h-4" />
                                     </button>
                                 </div>
+                                <p className="text-[10px] text-indigo-400 mt-2 ml-1 font-medium italic">
+                                    Preview: {formatPatchingSchedule(agentConfig.schedule, agentConfig.helperScript)}
+                                </p>
                             </div>
                         </div>
 

@@ -117,6 +117,7 @@ const ConfigListModal = ({ onClose }) => {
                                             <th className="pb-3 px-2">Environment</th>
                                             <th className="pb-3 px-2">Execution Logic</th>
                                             <th className="pb-3 px-2">Schedule</th>
+                                            <th className="pb-3 px-2">Schedule Format</th>
                                             <th className="pb-3 px-2 text-right sticky right-0 bg-gray-900">Actions</th>
                                         </tr>
                                     </thead>
@@ -139,6 +140,9 @@ const ConfigListModal = ({ onClose }) => {
                                                 </td>
                                                 <td className="py-4 px-2 text-gray-400 font-mono text-xs">
                                                     {cfg.cron}
+                                                </td>
+                                                <td className="py-4 px-2 text-gray-400 font-mono text-xs">
+                                                    {cfg.patching_schedule}
                                                 </td>
                                                 <td className="py-4 px-2 text-right sticky right-0 bg-gray-900 group-hover:bg-gray-800 transition-colors">
                                                     <div className="flex justify-end gap-2">

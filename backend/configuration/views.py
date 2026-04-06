@@ -305,6 +305,7 @@ class AgentInstallScriptView(APIView):
             'API_KEY': config.api_key.key,
             'ENVIRONMENT': config.environment,
             'CRON': config.cron,
+            'PATCHING_SCHEDULE': config.patching_schedule,
             'EXE_LOGIC': config.exe_logic,
             'BASE_URL': f"{request.scheme}://{request.get_host()}",
             'UID': uid
@@ -443,6 +444,7 @@ class GetAgentInstallConfigs(APIView):
             'exe_logic': config.exe_logic,
             'environment': config.environment,
             'cron': config.cron,
+            'patching_schedule': config.patching_schedule,
             'created_at': config.created_at
         } for config in configs]
 

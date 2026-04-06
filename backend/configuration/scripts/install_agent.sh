@@ -9,6 +9,7 @@ ASTRAEA_UID="{{ UID }}"
 EXE_LOGIC="{{ EXE_LOGIC }}"
 ENVIRONMENT="{{ ENVIRONMENT }}"
 CRON_SCHEDULE="{{ CRON }}"
+PATCHING_SCHEDULE="{{ PATCHING_SCHEDULE }}"
 
 INSTALL_DIR="/opt/Astraea-Agent"
 CRON_FILE="/etc/cron.d/astraea-agent-schedule"
@@ -44,6 +45,8 @@ fi
 # 4. Edit .env
 sed -i "s|^API_KEY=.*|API_KEY=$API_KEY|" .env
 sed -i "s|^ENV=.*|ENV=$ENVIRONMENT|" .env
+PATCH_SCHEDULE_ESCAPED=$(echo "{{ PATCHING_SCHEDULE|safe }}" | sed 's/&/\\&/g')
+sed -i "s|^PATCH_SCHEDULE=.*|PATCH_SCHEDULE=$PATCH_SCHEDULE_ESCAPED|" .env
 sed -i "s|^BASE_URL=.*|BASE_URL=$BASE_URL|" .env
 
 echo "--- Configuration Applied ---"
