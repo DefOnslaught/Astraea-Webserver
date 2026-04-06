@@ -80,7 +80,7 @@ def process_notification(self, notification_id):
 def reconcile_notifications():
     """Checks for notifications that are stuck or failed."""
     
-    unresolved = PendingNotification.objects.filter(notifications_sent=False, retry_count__lt=5)
+    unresolved = PendingNotification.objects.filter(notifications_sent=False, retry_count__lt=5).order_by('-created_at')
     for note in unresolved:
         process_notification.delay(notification_id=note.id)
 
