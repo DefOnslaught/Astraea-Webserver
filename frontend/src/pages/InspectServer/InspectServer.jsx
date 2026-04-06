@@ -316,8 +316,9 @@ const SessionDetailsModal = ({ session, onClose }) => {
     }, [session.id]);
 
     return (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-x-hidden overflow-y-hidden">
             <div className="bg-slate-900 border border-slate-800 w-full max-w-2xl max-h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                
                 {/* Modal Header */}
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <div>
@@ -361,28 +362,34 @@ const SessionDetailsModal = ({ session, onClose }) => {
                                     Modified Packages ({details.updates.length})
                                 </h3>
                                 <div className="grid gap-2">
-                                    {details.updates.map((upd, i) => {
-                                        const status = getVersionStatus(upd.old_version, upd.new_version);
-                                        return (
-                                            <div key={i} className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-lg group hover:border-slate-600 transition-colors">
-                                                <div className="flex flex-col">
-                                                    <span className="text-slate-200 font-medium">{upd.name}</span>
-                                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${status.color}`}>
-                                                        {status.label}
-                                                    </span>
+                                        {details.updates.map((upd, i) => {
+                                            const status = getVersionStatus(upd.old_version, upd.new_version);
+                                            return (
+                                                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-lg group hover:border-slate-600 transition-colors gap-3">
+
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-slate-200 font-medium break-all sm:truncate">
+                                                            {upd.name}
+                                                        </span>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest ${status.color}`}>
+                                                            {status.label}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 font-mono text-xs bg-slate-950/50 sm:bg-transparent p-2 sm:p-0 rounded-md">
+                                                        <span className="text-slate-500 line-through decoration-slate-700 truncate max-w-30 sm:max-w-none">
+                                                            {upd.old_version || '0.0.0'}
+                                                        </span>
+
+                                                        <ChevronLeft className="w-3 h-3 text-slate-600 rotate-180 shrink-0" />
+
+                                                        <span className={`${status.color} font-bold bg-slate-950 px-2 py-1 rounded border border-slate-800 break-all text-center`}>
+                                                            {upd.new_version}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-3 font-mono text-xs">
-                                                    <span className="text-slate-500 line-through decoration-slate-700">
-                                                        {upd.old_version || '0.0.0'}
-                                                    </span>
-                                                    <ChevronLeft className="w-3 h-3 text-slate-600 rotate-180" />
-                                                    <span className={`${status.color} font-bold bg-slate-950 px-2 py-1 rounded`}>
-                                                        {upd.new_version}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                     {details.updates.length === 0 && (
                                         <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-xl text-slate-500 italic">
                                             No packages were changed in this session.
