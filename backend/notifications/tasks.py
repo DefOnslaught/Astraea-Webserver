@@ -3,6 +3,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 from django.db.models import Q
+from django.db import transaction
 from django.contrib.auth import get_user_model
 
 from backend.settings import PATCH_THRESHOLD_DAYS, DEBUG
@@ -18,7 +19,15 @@ User = get_user_model()
 @shared_task(bind=True, max_retries=3)
 def process_notification(self, notification_id):
     try:
-        notification = PendingNotification.objects.get(id=notification_id)
+        with transaction.atomic():
+            notification = PendingNotification.objects.select_for_update().get(id=notification_id)
+            
+            if notification.notifications_sent:
+                return
+
+            notification.last_attempt = timezone.now()
+            notification.save()
+
     except PendingNotification.DoesNotExist:
         return
 
