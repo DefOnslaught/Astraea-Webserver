@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 from .views import (
     DashboardStatsView, 
     QuickVMSearchView, 
@@ -22,9 +23,9 @@ urlpatterns = [
     path('software/search/', PackageSearchView.as_view(), name='package_search'),
     path('software/server_list/', PackageServerListView.as_view(), name='package_server_list'),
     path('software/purge_old_packages/', PurgeDatabaseOldPackagesView.as_view(), name='purge_old_packages'),
-    path('register_server/', RegisterServer.as_view(), name='register_server'),
-    path('patching/can_i_patch/', ServerPatchingEnableCheck.as_view(), name='can_i_patch'),
-    path('patching/save/', SavePatchingData.as_view(), name='save_patching_data'),
+    path('register_server/', csrf_exempt(RegisterServer.as_view()), name='register_server'),
+    path('patching/can_i_patch/', csrf_exempt(ServerPatchingEnableCheck.as_view()), name='can_i_patch'),
+    path('patching/save/', csrf_exempt(SavePatchingData.as_view()), name='save_patching_data'),
     path('inspect/', InspectServerInfo.as_view(), name='inspect_server'),
     path('inspect/history/', ServerPatchHistory.as_view(), name='inspect_history'),
     path('inspect/packages/', ServerPackageInventory.as_view(), name='inspect_packages'),

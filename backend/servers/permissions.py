@@ -5,7 +5,7 @@ from configuration.utils import cache_active_api_keys
 
 class HasInternalAPIKey(permissions.BasePermission):
     def has_permission(self, request, view):
-        provided_key = request.headers.get('X-Api-Key')
+        provided_key = request.headers.get('X-API-Key')
         if not provided_key:
             return False
 

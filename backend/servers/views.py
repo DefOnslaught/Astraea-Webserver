@@ -312,6 +312,7 @@ class PackageServerListView(APIView):
 
 class RegisterServer(APIView):
     permission_classes = [HasInternalAPIKey]
+    authentication_classes = []
 
     def post(self, request):
         data = request.data
@@ -337,6 +338,7 @@ class RegisterServer(APIView):
 
 class ServerPatchingEnableCheck(APIView):
     permission_classes = [HasInternalAPIKey]
+    authentication_classes = []
 
     def post(self, request):
         server_id = request.data.get('server_id')
@@ -360,6 +362,7 @@ class ServerPatchingEnableCheck(APIView):
 
 class SavePatchingData(APIView):
     permission_classes = [HasInternalAPIKey]
+    authentication_classes = []
 
     def post(self, request):
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')

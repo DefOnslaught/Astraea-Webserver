@@ -63,7 +63,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
     interfaces = NetworkInterfaceSerializer(many=True)
     packages = serializers.ListField(child=serializers.DictField(), write_only=True)
     status = serializers.ChoiceField(choices=PatchSession.STATUS_CHOICES, default='success', write_only=True)
-    error_log = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    error_log = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
     server_id = serializers.UUIDField(required=True)
     hostname = serializers.CharField(max_length=255)
 
