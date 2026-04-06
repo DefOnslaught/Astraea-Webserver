@@ -76,15 +76,17 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        """Redirect update to create to ensure IP stealing logic runs."""
-        # We ignore 'instance' because our create() handles the update_or_create logic
-        return self.create(validated_data)
-
+        return self._perform_save(validated_data, instance=instance)
+    
     def create(self, validated_data):
+        return self._perform_save(validated_data)
+
+    def _perform_save(self, validated_data):
         interfaces_data = validated_data.pop('interfaces', [])
         packages_data = validated_data.pop('packages', [])
         server_uuid = validated_data.pop('server_id')
         session_status = validated_data.pop('status', 'success')
+        total_updated = validated_data.pop('total_packages_updated', 0)
         session_errors = validated_data.pop('error_log', None)
         
         validated_data['last_patch_date'] = timezone.now()
@@ -111,7 +113,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 server=server,
                 status=session_status,
                 error_log=session_errors,
-                total_updated=len(packages_data)
+                total_updated=total_updated
             )
 
             # 4. Log individual package updates within this session
