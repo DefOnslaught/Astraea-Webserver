@@ -142,7 +142,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
     const handleCreateAgentInstaller = async () => {
         try {
             const res = await api.post(API_ENDPOINTS.AGENT_CREATE_CONFIG, agentConfig);
-            setInstallUrl(`${window.location.origin}/api/config/install_script/${res.data.uuid}`);
+            setInstallUrl(`${window.location.origin}/api/config/install_script/${res.data.uuid}/`);
             triggerSuccess("Deployment one-liner generated.");
         } catch (err) {
             setError("Failed to generate install path.");

@@ -45,7 +45,7 @@ const ConfigListModal = ({ onClose }) => {
     };
 
     const copyToClipboard = async (uid) => {
-        const url = `${window.location.origin}/api/config/install_script/${uid}`;
+        const url = `${window.location.origin}/api/config/install_script/${uid}/`;
         const text = `curl -sSL ${url} | sudo bash`;
         try {
             if (navigator.clipboard && window.isSecureContext) {
