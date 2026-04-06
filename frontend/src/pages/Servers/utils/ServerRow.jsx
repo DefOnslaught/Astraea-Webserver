@@ -207,7 +207,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         title={server.patch_schedule}
                     >
                         <HighlightText
-                            text={truncateString(server.patch_schedule, 30)}
+                            text={truncateString(server.patch_schedule || "Not Set", 30)}
                             query={query}
                             field="schedule"
                         />
