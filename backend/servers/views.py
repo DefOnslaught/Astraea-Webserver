@@ -466,7 +466,6 @@ class ServerPatchHistory(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# TODO Fix to where it shows all installed packages (Requires more testing, likely with real data)
 class ServerPackageInventory(APIView):
     permission_classes = [IsAuthenticated]
 
