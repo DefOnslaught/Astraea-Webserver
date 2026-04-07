@@ -14,7 +14,7 @@ from django.views.decorators.cache import cache_page
 from backend.settings import DEBUG
 from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
-from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer
+from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer, ServerInfoSerializer
 from .permissions import HasInternalAPIKey
 from configuration.utils import get_sys_config
 
@@ -358,6 +358,40 @@ class ServerPatchingEnableCheck(APIView):
         
         is_enabled = cached_data.get('enable_patching')
         return Response({'can_patch': is_enabled}, status=status.HTTP_200_OK)
+
+
+class SaveServerInfo(APIView):
+    permission_classes = [HasInternalAPIKey]
+    authentication_classes = []
+
+    def post(self, request):
+        ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
+        server_uuid = request.data.get('server_id', 'Unknown UUID')
+        hostname = request.data.get('hostname', 'Unknown Host')
+
+        if not request.data:
+            logger.info(f"Empty payload received from IP: {ip_address}")
+            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            with transaction.atomic():
+                serializer = ServerInfoSerializer(data=request.data)
+                
+                if not serializer.is_valid():
+                    logger.error(f"Validation Error for {hostname} ({server_uuid}): {serializer.errors}")
+                    return Response({
+                        'message': 'Validation failed', 
+                        'errors': serializer.errors
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                serializer.save()
+                
+                logger.info(f"Server data synced for: {hostname} | ID: {server_uuid} | Source: {ip_address}")
+                return Response({'message': 'Successfully processed server telemetry'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Transaction failed for {hostname} ({server_uuid}): {str(e)}")
+            return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class SavePatchingData(APIView):

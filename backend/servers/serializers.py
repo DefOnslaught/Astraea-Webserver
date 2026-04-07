@@ -58,6 +58,49 @@ class ServerUpdateSerializer(serializers.ModelSerializer):
         fields = ['server_id', 'enable_patching', 'patch_schedule', 'env']
 
 
+class ServerInfoSerializer(serializers.ModelSerializer):
+    """Used to update the basic server info, during check ins"""
+    interfaces = NetworkInterfaceSerializer(many=True)
+    server_id = serializers.UUIDField(required=True)
+    hostname = serializers.CharField(max_length=255)
+
+    class Meta:
+        model = Server
+        fields = [
+            'server_id', 'hostname', 'interfaces', 'os_version', 
+            'last_reboot', 'uptime', 'patch_schedule', 'env'
+        ]
+    
+    def update(self, instance, validated_data):
+        return self._perform_save(validated_data, instance=instance)
+    
+    def create(self, validated_data):
+        return self._perform_save(validated_data)
+
+    def _perform_save(self, validated_data):
+        interfaces_data = validated_data.pop('interfaces', [])
+        server_uuid = validated_data.pop('server_id')
+
+        with transaction.atomic():
+            server, _ = Server.objects.update_or_create(
+                    server_id=server_uuid,
+                    defaults={**validated_data}
+                )
+            
+            # IP Stealing & Interface Sync
+            incoming_ips = [iface['ip_address'] for iface in interfaces_data]
+            NetworkInterface.objects.filter(ip_address__in=incoming_ips).exclude(server=server).delete()
+            server.interfaces.exclude(ip_address__in=incoming_ips).delete()
+            for iface in interfaces_data:
+                NetworkInterface.objects.update_or_create(
+                    server=server, ip_address=iface['ip_address'],
+                    defaults={'mac_address': iface.get('mac_address'), 'interface_name': iface.get('interface_name')}
+                )
+        
+            cache_individual_vms([server])
+            return server
+
+
 class ServerPatchSerializer(serializers.ModelSerializer):
     """Used for the incoming patching script API using UUID lookups."""
     interfaces = NetworkInterfaceSerializer(many=True)
@@ -95,7 +138,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             # 1. Update Server Base Info
             server, _ = Server.objects.update_or_create(
                 server_id=server_uuid,
-                defaults={**validated_data, 'last_patch_date': timezone.now()}
+                defaults={**validated_data, 'total_packages_updated': total_updated, 'last_patch_date': timezone.now()}
             )
 
             # 2. IP Stealing & Interface Sync 
