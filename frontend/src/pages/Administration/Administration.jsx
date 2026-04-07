@@ -1,15 +1,20 @@
 import { useState} from "react";
 import { Users, ShieldCheck, ExternalLink } from "lucide-react";
+import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import UserManagement from "./utils/UserManagement";
 import SuccessToast from "../../components/SuccessToast";
+import AccessForbidden from "../ErrorPages/AccessForbidden";
 
 const Administration = () => {
     useDocumentTitle('Administration | Astraea');
 
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState("users");
     const [successMsg, setSuccessMsg] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
+
+    const hasAdminAccess = user?.is_staff || user?.is_superuser;
 
     const tabs = [
         { id: 'users', label: 'User Accounts', icon: <Users className="w-4 h-4" /> },
@@ -20,6 +25,8 @@ const Administration = () => {
         setSuccessMsg(message);
         setShowSuccess(true);
     };
+
+    if (!hasAdminAccess) return <AccessForbidden isEmbedded={false} />
 
     return (
         <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
