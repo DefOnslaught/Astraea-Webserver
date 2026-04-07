@@ -13,7 +13,8 @@ const UserManagement = ({ onNotify }) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [showForbidden, setShowForbidden] = useState(false);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (isInitialLoad = false) => {
+        if (isInitialLoad) setLoading(true);
         try {
             const res = await api.get(API_ENDPOINTS.FETCH_USERS);
             if (res.status === 200) {
@@ -27,12 +28,17 @@ const UserManagement = ({ onNotify }) => {
             }
         }
         finally { 
-            setLoading(false); 
+            if (isInitialLoad) setLoading(false);
         }
     };
 
     useEffect(() => { 
-        fetchUsers(); 
+        fetchUsers(true);
+
+        const interval = setInterval(() => {
+            fetchUsers(false);
+        }, 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredUsers = users.filter(u =>

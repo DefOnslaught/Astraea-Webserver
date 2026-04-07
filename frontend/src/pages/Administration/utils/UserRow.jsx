@@ -1,8 +1,7 @@
-import { useState, useRef} from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    User, MoreVertical, Eye, Key, ShieldAlert,
-    Clock
+    User, MoreVertical, Eye, ShieldAlert, Clock
 } from "lucide-react";
 import ActionDropdown from "../../Servers/utils/ActionDropdown";
 import formatLastLogin from "./formatLastLogin";
@@ -14,6 +13,15 @@ const UserRow = ({ user, onRefresh }) => {
 
     const isOnline = user.last_login &&
         (new Date() - new Date(user.last_login)) < (15 * 60 * 1000);
+
+    
+    const [, setTick] = useState(0);
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTick(t => t + 1);
+        }, 60 * 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     return (
         <tr className="group hover:bg-white/2 transition-colors">
