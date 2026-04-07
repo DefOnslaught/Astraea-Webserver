@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q, Max, F
+from django.db.models.functions import Length
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -292,7 +293,10 @@ class PackageServerListView(APIView):
             'session__server__server_id', 
             'session__server__os_version',
             'session__status'
-        ).order_by('session__server__hostname')
+        ).order_by(
+            Length('session__server__hostname').asc(),
+            'session__server__hostname'
+        )
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(active_instances, request)
