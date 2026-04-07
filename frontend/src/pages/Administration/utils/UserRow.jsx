@@ -2,15 +2,18 @@ import { useState, useRef} from "react";
 import { useNavigate } from "react-router-dom";
 import {
     User, MoreVertical, Eye, Key, ShieldAlert,
-    Clock, Calendar
+    Clock
 } from "lucide-react";
 import ActionDropdown from "../../Servers/utils/ActionDropdown";
-import getRelativeTime from "../../../utils/getRelativeTime";
+import formatLastLogin from "./formatLastLogin";
 
 const UserRow = ({ user, onRefresh }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const actionButtonRef = useRef(null);
     const navigate = useNavigate();
+
+    const isOnline = user.last_login &&
+        (new Date() - new Date(user.last_login)) < (15 * 60 * 1000);
 
     return (
         <tr className="group hover:bg-white/2 transition-colors">
@@ -65,10 +68,17 @@ const UserRow = ({ user, onRefresh }) => {
             {/* LAST LOGIN */}
             <td className="px-6 py-4">
                 <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2 text-gray-400 text-xs">
-                        <Calendar className="w-3 h-3 text-gray-600" />
-                        {user.last_login ? getRelativeTime(user.last_login) : "Never"}
+                    <div className="flex items-center gap-2 text-xs">
+                        <Clock className={`w-3 h-3 ${isOnline ? 'text-emerald-400' : 'text-gray-600'}`} />
+                        <span className={isOnline ? 'text-emerald-400 font-medium' : 'text-gray-400'}>
+                            {user.last_login ? formatLastLogin(user.last_login) : "Never"}
+                        </span>
                     </div>
+                    {!isOnline && user.last_login && (
+                        <span className="text-[10px] text-gray-600 ml-5">
+                            {new Date(user.last_login).toLocaleDateString()}
+                        </span>
+                    )}
                 </div>
             </td>
 
