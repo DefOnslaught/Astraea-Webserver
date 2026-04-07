@@ -7,7 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Q, Max
+from django.db.models import Q, Max, F
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
@@ -505,12 +505,17 @@ class PatchSessionDetail(APIView):
 
         session = get_object_or_404(PatchSession, id=session_id)
         
-        # Fetch individual package updates for this session
-        updates = session.package_details.select_related('package').all()
+        updates = (
+            session.package_details
+            .select_related('package')
+            .exclude(old_version=F('new_version')) 
+            .all()
+        )
 
         data = {
             'id': session.id,
             'timestamp': session.timestamp,
+            'total_updated': session.total_updated,
             'status': session.status,
             'error_log': session.error_log,
             'updates': [{

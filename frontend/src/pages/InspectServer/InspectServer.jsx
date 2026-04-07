@@ -359,7 +359,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
                             {/* Package Diffs */}
                             <div className="space-y-3">
                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
-                                    Modified Packages ({details.updates.length})
+                                    Modified Packages ({details.total_updated})
                                 </h3>
                                 <div className="grid gap-2">
                                         {details.updates.map((upd, i) => {
