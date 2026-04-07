@@ -256,7 +256,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                         <label className="text-[10px] font-bold text-gray-500 uppercase mb-2 block ml-1">Version</label>
                         <input
                             type="text"
-                            placeholder="Specify Version"
+                            placeholder={`Current Version: ${currentVersion}`}
                             value={scriptVersion}
                             onChange={(e) => setScriptVersion(e.target.value)}
                             className="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
@@ -306,7 +306,8 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                     placeholder="e.g. Ubuntu Web Servers - Prod"
                                     value={agentConfig.label}
                                     onChange={(e) => setAgentConfig({ ...agentConfig, label: e.target.value })}
-                                    className="w-full bg-gray-900 border border-white/10 rounded-xl px-10 py-3 text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
+                                    className={`w-full bg-gray-900 border rounded-xl px-10 py-3 text-white text-sm outline-none transition-all ${!agentConfig.label.trim() ? 'border-amber-500/20' : 'border-white/10 focus:border-indigo-500/50'
+                                        }`}
                                 />
                                 <Settings2 className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-500" />
                             </div>
@@ -389,13 +390,18 @@ const AgentTab = ({ triggerSuccess, setError }) => {
 
                         <button
                             onClick={handleCreateAgentInstaller}
-                            disabled={!agentConfig.apiKeyName || isCurrentKeyDisabled}
-                            className={`w-full py-4 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 group transition-all ${(!agentConfig.apiKeyName || isCurrentKeyDisabled)
+                            disabled={!agentConfig.apiKeyName || isCurrentKeyDisabled || !agentConfig.label.trim()}
+                            className={`w-full py-4 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 group transition-all ${
+                                (!agentConfig.apiKeyName || isCurrentKeyDisabled || !agentConfig.label.trim())
                                     ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                                     : "bg-indigo-600 hover:bg-indigo-500 text-white"
                                 }`}
                         >
-                            {isCurrentKeyDisabled ? "Invalid API Key" : "Generate Deployment Command"}
+                            {isCurrentKeyDisabled
+                                ? "Invalid API Key"
+                                : !agentConfig.label.trim()
+                                    ? "Enter a Configuration Label"
+                                    : "Generate Deployment Command"}
                             <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>
