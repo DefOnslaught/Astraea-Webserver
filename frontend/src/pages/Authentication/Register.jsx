@@ -53,6 +53,8 @@ const Register = () => {
                 setShowSuccess(true);
                 await checkAuth(true);
                 setTimeout(() => navigate("/"), 2000);
+            } else if (response.status === 405) {
+                setErrorMessage(response?.data?.message || "User account registration has been disabled.");
             } else {
                 setErrorMessage(response?.data?.message || "Could not create account.");
             }

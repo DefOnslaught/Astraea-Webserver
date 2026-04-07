@@ -29,6 +29,7 @@ def set_sys_config_cache(config_instance):
     data = {
         "patching_enabled": config_instance.patching_enabled,
         "skip_email_validation": config_instance.skip_email_validation,
+        "disable_registration": config_instance.disable_registration,
     }
     cache.set(SYS_CONFIG_CACHE_KEY, data, timeout=None)
     if DEBUG:

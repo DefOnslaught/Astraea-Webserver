@@ -14,6 +14,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer, ChangePasswordSerializer
+from configuration.utils import get_sys_config
 
 logger = logging.getLogger('django')
 
@@ -43,6 +44,11 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     
     def post(self, request, *args, **kwargs):
+
+        sys_config = get_sys_config()
+        if sys_config.get('disable_registration'):
+            return Response({"message": "User registration has been disabled."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
         serializer = self.get_serializer(data=request.data)
         
         try:

@@ -21,6 +21,7 @@ class APIKey(models.Model):
 class SysConfig(models.Model):
     patching_enabled = models.BooleanField(default=True)
     skip_email_validation = models.BooleanField(default=True)
+    disable_registration = models.BooleanField(default=False)
 
 
 class NotificationService(models.Model):

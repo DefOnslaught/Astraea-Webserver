@@ -12,6 +12,7 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
     const [systemSettings, setSystemSettings] = useState({
         patchingEnabled: true,
         skipEmailValidation: false,
+        disableRegistration: false,
     });
 
     useEffect(() => {
@@ -21,6 +22,7 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
                 setSystemSettings({
                     patchingEnabled: res.data.patching_enabled,
                     skipEmailValidation: res.data.skip_email_validation,
+                    disableRegistration: res.data.disable_registration,
                 });
             } catch (err) {
                 setError("Failed to load system settings.");
@@ -38,6 +40,7 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
                 data: {
                     patching_enabled: systemSettings.patchingEnabled,
                     skip_email_validation: systemSettings.skipEmailValidation,
+                    disable_registration: systemSettings.disableRegistration,
                 }
             };
             await api.patch(API_ENDPOINTS.SYSTEM_CONFIG, payload);
@@ -104,6 +107,20 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
                             className={`w-12 h-6 rounded-full transition-colors relative ${systemSettings.skipEmailValidation ? 'bg-indigo-500' : 'bg-gray-700'}`}
                         >
                             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${systemSettings.skipEmailValidation ? 'left-7' : 'left-1'}`} />
+                        </button>
+                    </div>
+
+                    {/* Registration Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl border border-white/5">
+                        <div>
+                            <p className="text-sm font-medium text-white">Disable User Registration</p>
+                            <p className="text-xs text-gray-400">Disable the ability for creating new user accounts. Must be made in /administration/</p>
+                        </div>
+                        <button
+                            onClick={() => setSystemSettings({ ...systemSettings, disableRegistration: !systemSettings.disableRegistration })}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${systemSettings.disableRegistration ? 'bg-indigo-500' : 'bg-gray-700'}`}
+                        >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${systemSettings.disableRegistration ? 'left-7' : 'left-1'}`} />
                         </button>
                     </div>
                 </div>

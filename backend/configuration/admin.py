@@ -9,8 +9,8 @@ class APIKeyAdmin(admin.ModelAdmin):
 
 @admin.register(SysConfig)
 class SysConfigAdmin(admin.ModelAdmin):
-    fields = ('patching_enabled', 'skip_email_validation')
-    list_display = ('patching_enabled', 'skip_email_validation')
+    fields = ('patching_enabled', 'skip_email_validation', 'disable_registration')
+    list_display = ('patching_enabled', 'skip_email_validation', 'disable_registration')
 
 @admin.register(NotificationSettings)
 class NotificationSettingsAdmin(admin.ModelAdmin):

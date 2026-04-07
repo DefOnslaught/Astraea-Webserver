@@ -116,6 +116,7 @@ class SystemConfig(APIView):
                 config = SysConfig()
             config.patching_enabled = data['patching_enabled']
             config.skip_email_validation = data['skip_email_validation']
+            config.disable_registration = data['disable_registration']
             config.save()
             if DEBUG:
                 logger.info(f"Successfully updated System Settings")
