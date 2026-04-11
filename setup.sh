@@ -26,7 +26,7 @@ case $OS in
         sudo apt update
         sudo apt install -y python3-dev python3-venv python3-pip \
         default-libmysqlclient-dev build-essential pkg-config \
-        redis-server nodejs npm nginx git curl libssl-dev \
+        redis-server nodejs npm nginx curl libssl-dev \
         libjpeg-dev zlib1g-dev libffi-dev
         ;;
     
@@ -35,14 +35,14 @@ case $OS in
             sudo dnf install -y epel-release
         fi
         sudo dnf groupinstall -y "Development Tools"
-        sudo dnf install -y python3-devel python3-pip mariadb-devel \
-        gcc gcc-c++ make pkgconf-pkg-config redis nodejs nginx git curl \
+        sudo dnf install -y python3-devel python3-pip \
+        gcc gcc-c++ make pkgconf-pkg-config redis nodejs nginx curl \
         openssl-devel libjpeg-turbo-devel zlib-devel libffi-devel redhat-rpm-config
         ;;
 
     arch)
         sudo pacman -Syu --noconfirm --needed base-devel python python-pip \
-        mariadb-libs redis nodejs npm nginx git curl openssl \
+        redis nodejs npm nginx curl openssl \
         libjpeg-turbo zlib libffi pkgconf
         ;;
 
@@ -59,29 +59,37 @@ sudo systemctl start redis
 # 5. Automated Replacements (Replacing 'darren' with $TARGET_USER)
 echo "🔧 Configuring service files and permissions for $TARGET_USER..."
 
-# Replace username in Gunicorn service file
-if [ -f "backend/1_Host_Required_Files/gunicorn.service" ]; then
-    sed -i "s/darren/$TARGET_USER/g" backend/1_Host_Required_Files/gunicorn.service
-    echo "✅ Updated gunicorn.service"
+SRC_DIR="backend/1_Host_Required_Files"
+DEST_DIR="/etc/systemd/system"
+
+# List of service-related files to process
+SERVICES=("gunicorn.service" "astraea-worker.service" "astraea-beat.service")
+
+for SVC in "${SERVICES[@]}"; do
+    if [ -f "$SRC_DIR/$SVC" ]; then
+        # 1. Update the username in the source file
+        sed -i "s/darren/$TARGET_USER/g" "$SRC_DIR/$SVC"
+        
+        # 2. Copy to systemd directory
+        sudo cp "$SRC_DIR/$SVC" "$DEST_DIR/"
+
+        echo "✅ Configured $SVC"
+    else
+        echo "⚠️  Warning: $SVC not found in $SRC_DIR"
+    fi
+done
+
+# Handle gunicorn.socket
+if [ -f "$SRC_DIR/gunicorn.socket" ]; then
+    sudo cp "$SRC_DIR/gunicorn.socket" "$DEST_DIR/"
+    echo "✅ Configured gunicorn.socket"
 else
-    echo "⚠️  Warning: gunicorn.service not found in expected path."
+    echo "⚠️  Warning: gunicorn.socket not found in $SRC_DIR"
 fi
 
-# Replace username in Astraea Worker service file
-if [ -f "backend/1_Host_Required_Files/astraea-worker.service" ]; then
-    sed -i "s/darren/$TARGET_USER/g" backend/1_Host_Required_Files/astraea-worker.service
-    echo "✅ Updated astraea-worker.service"
-else
-    echo "⚠️  Warning: astraea-worker.service not found in expected path."
-fi
-
-# Replace username in Astraea Beat service file
-if [ -f "backend/1_Host_Required_Files/astraea-beat.service" ]; then
-    sed -i "s/darren/$TARGET_USER/g" backend/1_Host_Required_Files/astraea-beat.service
-    echo "✅ Updated astraea-beat.service"
-else
-    echo "⚠️  Warning: astraea-beat.service not found in expected path."
-fi
+# Reload daemon to pick up the new/modified files
+echo "🔄 Reloading systemd daemon..."
+sudo systemctl daemon-reload
 
 # 6 Nginx Configuration & Proxy Setup
 echo "🌐 Configuring Nginx..."

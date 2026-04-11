@@ -31,15 +31,30 @@ Before installation, ensure your host meets the following requirements:
 | **Node.js** | v18+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
 | **Database** | MySQL 8.0+ / ProstgreSQL 15+ | Relational Data Store (utf8mb4) |
-| **Web Server** | Nginx | Reverse Proxy & Static File Hosting |
+| **Web Server** | Nginx | Serving the website |
 
 ---
 
 ## 🚀 Installation (Bare Metal)
 
+### Important File Locations
+
+These files are ones that you either need to change, or at least inspect to ensure the  site is configured how you want it.
+
+```bash
+# Settings.py
+backend/backend/settings.py
+
+# Backend .env
+backend/.env
+
+# Frontend .env
+frontend/.env
+```
+
 ### 1. Environment Preparation
 
-The included `setup.sh` automates dependency installation, Nginx site configuration, and system permissions.
+The included `setup.sh` automates dependency installation, Nginx site configuration, service files, and system permissions.
 
 ```bash
 cd /opt

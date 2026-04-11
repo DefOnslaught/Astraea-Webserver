@@ -180,12 +180,14 @@ setupCelery:
 	@echo "$(CYAN)Starting Celery Files$(RESET)"
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable astraea-worker.service && sudo systemctl enable astraea-beat.service
+	@sudo systemctl start astraea-worker.service && sudo systemctl start astraea-beat.service
 	@echo "$(GREEN)Celery Setup Complete$(RESET)"
 
 setupGunicorn:
 	@echo "$(CYAN)Starting Gunicorn Files$(RESET)"
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable gunicorn.service && sudo systemctl enable gunicorn.socket
+	@sudo systemctl start gunicorn.socket && sudo systemctl start gunicorn.service
 	@echo "$(GREEN)Gunicorn Setup Complete$(RESET)"
 	
 setupNginx:
@@ -194,13 +196,14 @@ setupNginx:
 	@sudo ln -sf /etc/nginx/sites-available/astraea /etc/nginx/sites-enabled/
 
 	@echo "$(CYAN)Creating Nginx Log Folder/Files$(RESET)"
-	@sudo mkdir /var/log/nginx/astraea/
+	@sudo mkdir -p /var/log/nginx/astraea/
 	@sudo touch /var/log/nginx/astraea/access.log /var/log/nginx/astraea/error.log
 	@sudo chown www-data:adm -R /var/log/nginx/astraea/
 	@sudo chmod 755 /var/log/nginx/astraea/
 	@sudo chmod 644 -R /var/log/nginx/astraea/
 
 	@sudo nginx -t
+	@sudo systemctl restart nginx
 	@echo "$(GREEN)Nginx Setup Complete$(RESET)"
 
 clearCache:
