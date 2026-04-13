@@ -38,12 +38,10 @@ const Login = () => {
         try {
             const response = await api.post(API_ENDPOINTS.LOGIN, { email, password })
             if (response.status === 200) {
-                
                 await checkAuth(true);
-                
                 setShowSuccess(true);
                 // Redirect to 'from' (the original page they tried to visit)
-                setTimeout(() => navigate(from, { replace: true }), 2000);
+                setTimeout(() => navigate(from, { replace: true }), 500);
             } else {
                 setErrorMessage(response?.data?.message || "Invalid Username or Password.");
             }
