@@ -119,15 +119,23 @@ function Layout({ children }) {
                     <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
                     <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
                     <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
-                    <SidebarLink to="/configuration" icon="fa-gears" label="Configuration" isOpen={isSidebarOpen} isActive={pathname === "/configuration"} />
                     {hasAdminAccess && (
-                        <SidebarLink
-                            to="/administration"
-                            icon="fa-users-gear"
-                            label="Administration"
-                            isOpen={isSidebarOpen}
-                            isActive={pathname === "/administration"}
-                        />
+                        <>
+                            <SidebarLink
+                                to="/configuration"
+                                icon="fa-gears"
+                                label="Configuration"
+                                isOpen={isSidebarOpen}
+                                isActive={pathname === "/configuration"}
+                            />
+                            <SidebarLink
+                                to="/administration"
+                                icon="fa-users-gear"
+                                label="Administration"
+                                isOpen={isSidebarOpen}
+                                isActive={pathname === "/administration"}
+                            />
+                        </>
                     )}
                 </div>
 

@@ -2,17 +2,20 @@ import { useState } from "react";
 import {
     Settings, Bell, Key, Cpu
 } from "lucide-react";
+import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import SuccessToast from "../../components/SuccessToast";
 import GeneralSettings from "./utils/GeneralSettings";
 import ApiKeySettings from "./utils/ApiKeySettings";
 import AgentSettings from "./utils/AgentSettings";
 import NotificationSettings from "./utils/NotificationSettings";
+import AccessForbidden from "../ErrorPages/AccessForbidden";
 
 const Configuration = () => {
     useDocumentTitle('Configuration | Astraea');
 
     // State Management
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState("general");
     const [successMsg, setSuccessMsg] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
@@ -37,6 +40,9 @@ const Configuration = () => {
         { id: 'api', label: 'API Keys', icon: <Key className="w-4 h-4" /> },
         { id: 'agent', label: 'Astraea Agent', icon: <Cpu className="w-4 h-4" /> },
     ];
+
+    const hasAdminAccess = user?.is_staff || user?.is_superuser;
+    if (!hasAdminAccess) return <AccessForbidden isEmbedded={false} />
 
     return (
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">

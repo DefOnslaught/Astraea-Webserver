@@ -9,9 +9,11 @@ import api from "../../utils/api";
 import { API_ENDPOINTS } from "../../utils/constants";
 import SuccessToast from "../../components/SuccessToast";
 import getRelativeTime from "../../utils/getRelativeTime";
+import formatLastLogin from "../Administration/utils/formatLastLogin";
 import PasswordResetModal from "./utils/PasswordResetModal";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import AccessForbidden from "../ErrorPages/AccessForbidden";
+import ErrorAlert from "./utils/ErrorAlert";
 
 const UserInspection = () => {
     const { username } = useParams();
@@ -19,6 +21,7 @@ const UserInspection = () => {
 
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [updating, setUpdating] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [msg, setMsg] = useState("");
@@ -39,7 +42,7 @@ const UserInspection = () => {
                 if (err.response?.status === 403) {
                     setShowForbidden(true);
                 } else {
-                    console.error("Error loading user:", err);
+                    setError("Error loading user data")
                 }
             } finally {
                 setLoading(false);
@@ -50,19 +53,35 @@ const UserInspection = () => {
 
     const handleUpdate = async (payload) => {
         setUpdating(true);
+        setError("");
         try {
             const res = await api.patch(`${API_ENDPOINTS.INSPECT_USER}${username}/`, payload);
-            setUser(res.data);
-            setMsg("User updated successfully");
-            setShowSuccess(true);
-            setShowStatusConfirm(false);
-            return res.data; // Return data for the modal to know it finished
+            if (res.status === 200) {
+                setUser(res.data);
+                setMsg("User updated successfully");
+                setShowSuccess(true);
+                setShowStatusConfirm(false);
+                return res.data;
+            }
         } catch (err) {
-            alert("Failed to update user preferences.");
+            if (err.response?.status === 406) {
+                const backendMsg = err.response?.data?.message || err.response?.data?.detail || "Action not allowed";
+                setError(`Permission Error: ${backendMsg}`);
+            } else {
+                setError("Failed to update user preferences.");
+            }
             // THROW the error so the Modal's try/catch can see it
             throw err;
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const wrapUpdate = async (payload) => {
+        try {
+            await handleUpdate(payload);
+        } catch (err) {
+            // No need to display this error, we handle it within handleUpdate
         }
     };
 
@@ -82,6 +101,8 @@ const UserInspection = () => {
                 <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 Back to Users
             </button>
+
+            {error && <ErrorAlert message={error} onClose={() => setError("")} />}
 
             {/* Header Profile Card */}
             <div className="bg-gray-900/50 border border-white/5 rounded-3xl p-8 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">
@@ -119,10 +140,10 @@ const UserInspection = () => {
                             <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                                 <div>
                                     <p className="text-white font-medium text-sm">Staff Status</p>
-                                    <p className="text-xs text-gray-500">Allows management administration and Django Admin login.</p>
+                                    <p className="text-xs text-gray-500">Allows access to, Configuration, Administration, and Django Admin login.</p>
                                 </div>
                                 <button
-                                    onClick={() => handleUpdate({ is_staff: !user.is_staff })}
+                                    onClick={() => wrapUpdate({ is_staff: !user.is_staff })}
                                     disabled={updating}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${user.is_staff ? 'bg-indigo-600' : 'bg-gray-700'} ${updating ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
@@ -160,7 +181,7 @@ const UserInspection = () => {
                         <div className="space-y-4 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Last Login</span>
-                                <span className="text-gray-300 font-mono">{user.last_login ? getRelativeTime(user.last_login) : 'Never'}</span>
+                                <span className="text-gray-300 font-mono">{user.last_login ? formatLastLogin(user.last_login) : 'Never'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Account Created</span>
@@ -209,7 +230,7 @@ const UserInspection = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => handleUpdate({ is_active: !user.is_active })}
+                                            onClick={() => wrapUpdate({ is_active: !user.is_active })}
                                         disabled={updating}
                                         className={`flex-1 py-2 rounded-lg text-white text-[10px] font-bold uppercase shadow-lg transition-all ${user.is_active
                                                 ? 'bg-red-600 hover:bg-red-500 shadow-red-900/40'
@@ -233,7 +254,7 @@ const UserInspection = () => {
                 onClose={() => setIsResetModalOpen(false)}
                 username={user.username}
                 onConfirm={async (newPassword) => {
-                    await handleUpdate({ password: newPassword });
+                    await wrapUpdate({ password: newPassword });
                     setIsResetModalOpen(false);
                 }}
             />

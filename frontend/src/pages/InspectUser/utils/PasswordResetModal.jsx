@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Shield, Eye, EyeOff, Loader2, Check } from "lucide-react";
+import { X, Shield, Eye, EyeOff, Loader2, Check, AlertTriangle } from "lucide-react";
 
 const PasswordResetModal = ({ isOpen, onClose, onConfirm, username }) => {
     const [passwords, setPasswords] = useState({ new: "", confirm: "" });

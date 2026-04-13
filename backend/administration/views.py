@@ -10,6 +10,7 @@ from django.db import transaction
 
 from .serializers import UserSerializer
 from users.serializers import RegisterSerializer
+from users.permissions import checkIsStaff, checkIfHigherPermissions
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -18,7 +19,7 @@ class FetchUsers(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not checkIsStaff(request.user):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
@@ -34,7 +35,7 @@ class InspectUser(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, username):
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not checkIsStaff(request.user):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
@@ -47,11 +48,17 @@ class InspectUser(APIView):
     
 
     def patch(self, request, username):
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not checkIsStaff(request.user):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if request.user.username == username:
+            return Response({'message': 'Cannot edit your own account'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
         user = get_object_or_404(User, username=username)
         new_password = request.data.get('password')
+
+        if checkIfHigherPermissions(request, user):
+            return Response({'message': 'Unable to modify accounts with higher permissions'}, status=status.HTTP_406_NOT_ACCEPTABLE)
         
         if new_password:
             try:
@@ -83,7 +90,7 @@ class CreateNewUser(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not checkIsStaff(request.user):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
         serializer = RegisterSerializer(data=request.data)
