@@ -31,7 +31,7 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
             }
         };
         fetchSettings();
-    }, [setError]);
+    }, []);
 
     const handleSaveSystemSettings = async () => {
         setIsSaving(true);
