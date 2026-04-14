@@ -60,6 +60,9 @@ class InspectUser(APIView):
         if checkIfHigherPermissions(request, user):
             return Response({'message': 'Unable to modify accounts with higher permissions'}, status=status.HTTP_406_NOT_ACCEPTABLE)
         
+        if request.data.get('is_superuser') and not request.user.is_superuser:
+            return Response({'message': 'Only superusers can promote others to superuser status.'}, status=status.HTTP_403_FORBIDDEN)
+        
         if new_password:
             try:
                 password_validation.validate_password(new_password, user=user)

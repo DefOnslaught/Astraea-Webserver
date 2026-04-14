@@ -10,3 +10,15 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'last_login', 'is_superuser', 'is_staff', 'date_joined', 'is_active']
         read_only_fields = ['id', 'last_login', 'date_joined']
+    
+    def validate(self, data):
+        request = self.context.get('request')
+        if not request:
+            return data
+
+        if 'is_superuser' in data and not request.user.is_superuser:
+            raise serializers.ValidationError({
+                "is_superuser": "Only superusers can modify this field."
+            })
+        
+        return data

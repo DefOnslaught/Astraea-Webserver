@@ -140,7 +140,7 @@ const UserInspection = () => {
                             <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
                                 <div>
                                     <p className="text-white font-medium text-sm">Staff Status</p>
-                                    <p className="text-xs text-gray-500">Allows access to, Configuration, Administration, and Django Admin login.</p>
+                                    <p className="text-xs text-gray-500">Allows access to Configuration and Administration.</p>
                                 </div>
                                 <button
                                     onClick={() => wrapUpdate({ is_staff: !user.is_staff })}

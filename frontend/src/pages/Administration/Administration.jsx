@@ -41,14 +41,16 @@ const Administration = () => {
                 </div>
 
                 {/* External Django Admin Link */}
-                <a
-                    href="/admin/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm font-medium"
-                >
-                    Django Admin <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                {user?.is_superuser && (
+                    <a
+                        href="/admin/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all text-sm font-medium"
+                    >
+                        Django Admin <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                )}
             </div>
 
             {/* Horizontal Tab Bar */}

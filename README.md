@@ -137,7 +137,7 @@ backend/venv/bin/python backend/manage.py createsuperuser
 ```
 
 > [!IMPORTANT]
-> **RBAC Visibility:** Only users marked as `is_staff` or `is_superuser` will see the **Administration** tab in the sidebar. With no access to Django's Admin page.
+> **RBAC Visibility:** Only users marked as `is_staff` or `is_superuser` will see the **Administration** tab in the sidebar. Users with `is_superuser` will be able to access to Django's Admin page.
 
 ---
 
