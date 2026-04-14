@@ -165,7 +165,7 @@ restart-internal:
 	@sudo systemctl restart astraea-beat
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: setupCelery setupGunicorn setupNginx virtualenv
+initialSetup-internal: setupCelery setupGunicorn setupNginx frontendSetup virtualenv
 	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py makemigrations
@@ -175,6 +175,10 @@ initialSetup-internal: setupCelery setupGunicorn setupNginx virtualenv
 virtualenv:
 	@python3 -m venv backend/venv
 	@backend/venv/bin/pip install -r backend/requirements.txt
+
+frontendSetup:
+	@mkdir -p frontend/dist/assets
+	@cd frontend && npm install && npm run build || exit 1
 
 setupCelery:
 	@echo "$(CYAN)Starting Celery Files$(RESET)"
