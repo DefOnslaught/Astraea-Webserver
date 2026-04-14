@@ -30,7 +30,7 @@ Before installation, ensure your host meets the following requirements:
 | **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
 | **Node.js** | v18+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
-| **Database** | MySQL 8.0+ / ProstgreSQL 15+ | Relational Data Store (utf8mb4) |
+| **Database** | MySQL 8.0+ / PostgreSQL 15+ | Relational Data Store (utf8mb4) |
 | **Web Server** | Nginx | Serving the website |
 
 ---
