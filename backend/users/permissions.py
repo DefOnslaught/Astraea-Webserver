@@ -12,11 +12,11 @@ def checkIsStaff(user):
     return user.is_staff
 
 
-def checkIfHigherPermissions(request, user):
+def checkIfHigherPermissions(request, target_user):
     """
     Ensures members cannot modify users with 'is_superuser', must be equal
     """
-    if user.is_superuser and not request.user.is_superuser:
-        return False
+    if target_user.is_superuser and not request.user.is_superuser:
+        return True
     
-    return True
+    return False
