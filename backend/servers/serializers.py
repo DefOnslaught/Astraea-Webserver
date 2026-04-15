@@ -183,7 +183,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 status=session_status,
                 extra_data={
                     'server_name': server.hostname,
-                    'updates_count': len(updates_to_create),
+                    'updates_count': len(total_updated),
                 }
             )
             transaction.on_commit(lambda: process_notification.delay(new_note.id))
