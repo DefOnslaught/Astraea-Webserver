@@ -138,7 +138,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             # 1. Update Server Base Info
             server, _ = Server.objects.update_or_create(
                 server_id=server_uuid,
-                defaults={**validated_data, 'total_packages_updated': total_updated, 'last_patch_date': timezone.now()}
+                defaults={**validated_data, 'total_packages_updated': total_updated}
             )
 
             # 2. IP Stealing & Interface Sync 
@@ -183,7 +183,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 status=session_status,
                 extra_data={
                     'server_name': server.hostname,
-                    'updates_count': len(total_updated),
+                    'updates_count': total_updated,
                 }
             )
             transaction.on_commit(lambda: process_notification.delay(new_note.id))

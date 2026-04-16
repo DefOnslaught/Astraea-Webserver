@@ -127,6 +127,7 @@ class SysConfigTests(APITestCase):
         # Assuming get_sys_config() returns a dict with these keys
         self.assertIn('patching_enabled', response.data)
         self.assertIn('skip_email_validation', response.data)
+        self.assertIn('disable_registration', response.data)
 
     def test_patch_system_config_update_existing(self):
         """Verify we can update an existing config record."""
@@ -136,7 +137,8 @@ class SysConfigTests(APITestCase):
         payload = {
             "data": {
                 "patching_enabled": False,
-                "skip_email_validation": True
+                "skip_email_validation": True,
+                "disable_registration": False
             }
         }
         
@@ -148,6 +150,7 @@ class SysConfigTests(APITestCase):
         config = SysConfig.objects.first()
         self.assertFalse(config.patching_enabled)
         self.assertTrue(config.skip_email_validation)
+        self.assertFalse(config.disable_registration)
 
     def test_patch_system_config_create_if_not_exists(self):
         """Verify the view creates a config record if none exists during a patch."""
@@ -158,7 +161,8 @@ class SysConfigTests(APITestCase):
         payload = {
             "data": {
                 "patching_enabled": True,
-                "skip_email_validation": True
+                "skip_email_validation": True,
+                "disable_registration": False
             }
         }
         
