@@ -20,8 +20,6 @@ Frontend:
         - Version history (no backend, just text on front-end)
         - About section
 
-    - Configuration section needs to automatically close success toast
-
 General Needs:
 
     Server config settings: enable notifications

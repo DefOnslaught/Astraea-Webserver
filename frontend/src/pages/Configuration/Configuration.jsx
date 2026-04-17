@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
     Settings, Bell, Key, Cpu
 } from "lucide-react";
@@ -20,11 +20,20 @@ const Configuration = () => {
     const [successMsg, setSuccessMsg] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState("");
+    const successTimeoutRef = useRef(null);
 
     const triggerSuccess = (msg) => {
+        if (successTimeoutRef.current) {
+            clearTimeout(successTimeoutRef.current);
+        }
+
         setSuccessMsg(msg);
         setShowSuccess(true);
         setError("");
+
+        successTimeoutRef.current = setTimeout(() => {
+            setShowSuccess(false);
+        }, 1500);
     };
 
     const showError = (msg) => {
