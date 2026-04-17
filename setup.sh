@@ -22,7 +22,7 @@ echo "Detecting system: $OS..."
 
 # 3. Install Dependencies
 case $OS in
-    ubuntu|debian|raspbian|kali)
+    ubuntu|debian)
         sudo apt update
         sudo apt install -y python3-dev python3-venv python3-pip \
         default-libmysqlclient-dev build-essential pkg-config \
@@ -30,7 +30,7 @@ case $OS in
         libjpeg-dev zlib1g-dev libffi-dev
         ;;
     
-    fedora|centos|rhel|almalinux|rocky)
+    fedora|centos|rhel)
         if [[ "$OS" != "fedora" ]]; then
             sudo dnf install -y epel-release
         fi
@@ -38,12 +38,6 @@ case $OS in
         sudo dnf install -y python3-devel python3-pip \
         gcc gcc-c++ make pkgconf-pkg-config redis nodejs nginx curl \
         openssl-devel libjpeg-turbo-devel zlib-devel libffi-devel redhat-rpm-config
-        ;;
-
-    arch)
-        sudo pacman -Syu --noconfirm --needed base-devel python python-pip \
-        redis nodejs npm nginx curl openssl \
-        libjpeg-turbo zlib libffi pkgconf
         ;;
 
     *)

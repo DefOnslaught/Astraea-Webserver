@@ -165,7 +165,7 @@ restart-internal:
 	@sudo systemctl restart astraea-beat
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: setupCelery setupGunicorn setupNginx frontendSetup virtualenv
+initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv setupCelery
 	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py makemigrations
