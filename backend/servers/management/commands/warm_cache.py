@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
 from configuration.utils import cache_active_api_keys, get_sys_config
+from users.utils import cacheVerificationStatus
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
 
@@ -29,6 +30,10 @@ class Command(BaseCommand):
         cache_active_api_keys()
 
         # 5. Cache the System Configuration (i.e, Global Patching Enable )
-        get_sys_config()
+        sys_config = get_sys_config()
+        
+        # 6. Cache all users verification status if 'skip_email_validation' is true
+        if not sys_config.get('skip_email_validation'):
+            cacheVerificationStatus()
         
         self.stdout.write(self.style.SUCCESS(f"Successfully warmed cache for {len(vms)} servers."))

@@ -39,7 +39,7 @@ class InspectUser(APIView):
             return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
-            user = get_object_or_404(User, username=username)
+            user = get_object_or_404(User.objects.select_related('verification'), username=username)
             serializer = UserSerializer(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -54,7 +54,7 @@ class InspectUser(APIView):
         if request.user.username == username:
             return Response({'message': 'Cannot edit your own account'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
-        user = get_object_or_404(User, username=username)
+        user = get_object_or_404(User.objects.select_related('verification'), username=username)
         new_password = request.data.get('password')
 
         if checkIfHigherPermissions(request, user):

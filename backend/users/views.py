@@ -1,9 +1,13 @@
-import logging
-from datetime import datetime, timezone
+import logging, uuid
+from datetime import timezone as timezone_default
+from datetime import datetime, timedelta
+from django.utils import timezone
 from django.views.decorators.debug import sensitive_post_parameters
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.db import transaction
 from rest_framework import generics, status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,9 +18,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from .serializers import RegisterSerializer, TokenOPSerializer, UserSerializer, ChangePasswordSerializer
+from .models import Verification
+from .utils import updateCacheVerificationStatus, isUserVerified
+from .tasks import send_verification_email
 from configuration.utils import get_sys_config
 
 logger = logging.getLogger('django')
+User = get_user_model()
 
 def set_auth_cookies(response, access_token, refresh_token):
     """Helper to set tokens in HttpOnly cookies"""
@@ -38,41 +46,164 @@ def set_auth_cookies(response, access_token, refresh_token):
     )
     return response
 
+
+def return_login_response(user, message):
+    """Helper to return the needed values when logging in"""
+    return Response({
+        'message': message,
+        "user": {
+            "username": user.username,
+            "email": user.email,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser
+        }
+    }, status=status.HTTP_200_OK)
+
+
 class RegisterView(generics.CreateAPIView):
-    queryset = None
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
     
     def post(self, request, *args, **kwargs):
-
         sys_config = get_sys_config()
+        skip_email = sys_config.get('skip_email_validation')
         if sys_config.get('disable_registration'):
-            return Response({"message": "User registration has been disabled."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response({"message": "Registration is disabled."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)  
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError:
+            if not skip_email:
+                email = request.data.get('email')
+                user = User.objects.filter(email=email).first()
+                if user:
+                    # Check cache or DB for verification status
+                    if not isUserVerified(user):
+                        return Response({
+                            "requires_verification": True,
+                            "message": "This account is awaiting verification. Please check your inbox or request a new link."
+                        }, status=status.HTTP_200_OK)
+
+            return Response({"message": "An account with this email/username already exists or the data is invalid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                user = serializer.save()
+                verification = Verification.objects.create(user=user, is_verified=skip_email)
+
+            if not skip_email:
+                email = user.email
+                send_verification_email.delay(email=email, username=user.username, token=verification.token, expiry=settings.VERIFY_LINK_EXPIRY_MINUTES)
+                logger.info(f"User '{email}' created; verification required.")
+                return Response({
+                    "requires_verification": True,
+                    "email": email,
+                    "expiry": settings.VERIFY_LINK_EXPIRY_MINUTES,
+                    "message": "Verification email sent."
+                }, status=status.HTTP_201_CREATED)
+
+            refresh = RefreshToken.for_user(user)
+            logger.info(f"User '{user.email}' created and auto-logged in.")
+            
+            response = Response({
+                "requires_verification": False,
+                "message": "User created successfully",
+                "user": { "username": user.username, "email": user.email }
+            }, status=status.HTTP_201_CREATED)
+            
+            return set_auth_cookies(response, str(refresh.access_token), str(refresh))
+
+        except Exception as e:
+            logger.error(f"Registration error: {str(e)}")
+            return Response({"message": "Error creating account."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class VerificationVerifyView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        token_str = request.data.get("token")
+        if not token_str:
+            return Response({"message": "Missing required token."}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            if serializer.is_valid(raise_exception=True):
-                user = serializer.save()
-                refresh = RefreshToken.for_user(user)
-                
-                logger.info(f"New user '{request.data.get('email')}' has been created successfully")
-                response = Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
-                return set_auth_cookies(response, str(refresh.access_token), str(refresh))
+            verification = Verification.objects.select_related('user').get(token=token_str)
+        except Verification.DoesNotExist:
+            return Response({"message": "Invalid verification link"}, status=status.HTTP_404_NOT_FOUND)
+
+        if verification.is_verified:
+            return Response({"message": "Account already verified. Please log in."}, status=status.HTTP_406_NOT_ACCEPTABLE)
         
-        except serializers.ValidationError:
-            # This catches things like 'email already exists' or 'password too short'
-            logger.error(f"Registration validation failed for {request.data.get('email')}: {serializer.errors}")
-            return Response(
-                {"message": "An account with this email/username already exists or the data is invalid."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        is_expired = False
+        if settings.VERIFY_LINK_EXPIRY_MINUTES > 0 and verification.last_sent_at:
+            expiry_limit = timezone.now() - timedelta(minutes=settings.VERIFY_LINK_EXPIRY_MINUTES)
+            if verification.last_sent_at < expiry_limit:
+                is_expired = True
+
+        if is_expired:
+            return Response({"message": "Verification link has expired."}, status=status.HTTP_418_IM_A_TEAPOT)
+        
+        user = verification.user
+
+        if not user.is_active:
+            return Response({'message': "Account is disabled."}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        try:
+            with transaction.atomic():
+                verification.is_verified = True
+                verification.token = uuid.uuid4() # Rotate it so it's one-time use
+                verification.save()
+                
+                updateCacheVerificationStatus(user.id, True)
+
+            refresh = RefreshToken.for_user(user)
+            response = return_login_response(user, "Successfully verified")
+
+            return set_auth_cookies(response, str(refresh.access_token), str(refresh))
+
         except Exception as e:
-            logger.error(f"Unexpected registration error: {str(e)}")
-            return Response(
-                {"message": "An unexpected error occurred. Please try again later."}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            logger.error(f"Internal error during verification save: {str(e)}")
+            return Response({"message": "Server error during verification."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class VerificationResendView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'message': "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            verification = Verification.objects.select_related('user').get(user__email=email)
+        except Verification.DoesNotExist:
+            return Response({'message': "If an account exists, a new link has been sent."}, status=status.HTTP_200_OK)
+
+        if verification.is_verified:
+            return Response({'message': "Account is already verified."}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        if verification.resend_request >= 5:
+            return Response({'message': "Too many attempts. Contact support."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        if verification.last_sent_at and verification.last_sent_at > timezone.now() - timedelta(minutes=5):
+            return Response({'message': "Please wait 5 minutes before requesting another link."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        try:
+            with transaction.atomic():
+                verification.token = uuid.uuid4() # New token for the new email
+                verification.resend_request += 1
+                verification.last_sent_at = timezone.now()
+                verification.save()
+            
+            send_verification_email.delay(email=verification.user.email, username=verification.user.username, token=str(verification.token), expiry=settings.VERIFY_LINK_EXPIRY_MINUTES)
+            
+            return Response({'message': "A new verification link has been sent."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Resend error: {str(e)}")
+            return Response({'message': "Internal server error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 @method_decorator(sensitive_post_parameters('password'), name='dispatch')
@@ -84,23 +215,19 @@ class TokenOPView(TokenObtainPairView):
 
         try:
             serializer.is_valid(raise_exception=True)
-            logger.info(f"User '{request.data.get('email')}' has logged in successfully")
-        except (InvalidToken, TokenError, Exception):
-            return Response(
-                {"message": "Invalid email or password"}, 
-                status=status.HTTP_406_NOT_ACCEPTABLE
-            )
+        except (InvalidToken, TokenError, Exception) as e:
+            logger.error(f"Login failed for {request.data.get('email')}: {str(e)}")
+            return Response({"message": "Invalid email or password"}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
         user = serializer.user
-        response = Response({
-            "message": "Login Success",
-            "user": {
-                "username": user.username,
-                "email": user.email,
-                "is_staff": user.is_staff,
-                "is_superuser": user.is_superuser
-            }
-        }, status=status.HTTP_200_OK)
+        sys_config = get_sys_config()
+        
+        if not sys_config.get('skip_email_validation'):
+            if not isUserVerified(user):
+                return Response({"message": "Account is not verified. Please check your email."}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        logger.info(f"User '{user.email}' logged in successfully")
+        response = return_login_response(user, "Login Success")
 
         return set_auth_cookies(
             response, 
@@ -233,8 +360,8 @@ class SessionStatusView(APIView):
             refresh_exp = refresh_token.payload['exp']
         except TokenError:
             return Response({"message": "Session expired or invalid"}, status=status.HTTP_401_UNAUTHORIZED)
-
-        now = datetime.now(timezone.utc).timestamp()
+        
+        now = datetime.now(timezone_default.utc).timestamp()
 
         return Response({
             "remaining_seconds": max(0, int(access_token.payload['exp'] - now)),

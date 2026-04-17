@@ -118,7 +118,7 @@ CACHE_MIDDLEWARE_KEY_PREFIX = "astraea"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': os.getenv("DB_ENGINE"),
         'NAME': os.getenv("DB_NAME"),
         "HOST": os.getenv("DB_HOST"),
         "PORT": os.getenv("DB_PORT"),
@@ -173,6 +173,13 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_PATH": "/",             # Available to all paths
     "AUTH_COOKIE_SAMESITE": "Lax",       # CSRF protection
 }
+
+
+"""
+    Verification Related
+"""
+BASE_URL = os.getenv('BASE_URL')
+VERIFY_LINK_EXPIRY_MINUTES = int(os.getenv('VERIFY_LINK_EXPIRY_MINUTES', 60))
 
 
 """ 

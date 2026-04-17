@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }) => {
     // Watch for Refresh Token expiration
     useEffect(() => {
         // PREVENT MODAL ON LOGOUT/LOGIN/REGISTER PATHS
-        const isSystemPage = ["/logout", "/login", "/register"].includes(pathname);
+        const isSystemPage = ["/logout", "/login", "/register"].includes(pathname) || pathname.startsWith('/verify/');
 
         if (!refreshExpiryTime || !user || hasDismissedWarning || isSystemPage) {
             // If we are on a system page, ensure the modal is closed
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const handleForceLogout = () => {
-            if (pathname === "/logout" || pathname === "/login" || pathname === "/register") {
+            if (pathname === "/logout" || pathname === "/login" || pathname === "/register" || pathname.startsWith('/verify/')) {
                 handleClearingValues();
                 return;
             }

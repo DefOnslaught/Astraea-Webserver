@@ -14,6 +14,7 @@ import Configuration from "./pages/Configuration/Configuration";
 import Administration from "./pages/Administration/Administration";
 import UserInspection from "./pages/InspectUser/UserInspection";
 import Profile from "./pages/Profile/Profile";
+import VerifyLink from "./pages/Verification/VerifyLink";
 import NotFound from "./pages/ErrorPages/NotFound";
 
 import { AuthProvider } from "./utils/AuthContext";
@@ -46,6 +47,7 @@ function App() {
             <Route element={<PublicRoute />} >
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify/:token" element={<VerifyLink />} />
             </Route>
 
             {/* 404 Not Found */}
@@ -57,4 +59,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

@@ -6,7 +6,9 @@ from .views import (
     LogoutView, 
     LogoutAllDevicesView, 
     CSRFTokenView, 
-    RegisterView, 
+    RegisterView,
+    VerificationVerifyView,
+    VerificationResendView,
     TokenOPView, 
     CustomTokenRefreshView,
     UserProfileView,
@@ -17,6 +19,8 @@ from .views import (
 urlpatterns = [
     # Auth
     path('register/', RegisterView.as_view(), name='auth_register'),
+    path('verify/', VerificationVerifyView.as_view(), name='verify_user'),
+    path('verify/resend/', VerificationResendView.as_view(), name='verify_user_resend'),
     path('login/', TokenOPView.as_view(), name='token_obtain_pair'),
     path('login/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),

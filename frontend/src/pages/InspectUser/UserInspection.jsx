@@ -116,6 +116,12 @@ const UserInspection = () => {
                             <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {user.email}</span>
                             <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Joined {new Date(user.date_joined).toLocaleDateString()}</span>
                             <span className="flex items-center gap-1.5"><Fingerprint className="w-3.5 h-3.5" /> ID: {user.id}</span>
+                            <span className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-widest uppercase transition-colors duration-500 ${user.is_verified
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                : "bg-orange-500/10 border-orange-500/20 text-orange-500"
+                                }`}>
+                                {user.is_verified ? "Verified" : "Unverified"}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -156,20 +162,44 @@ const UserInspection = () => {
                     {/* Security Section */}
                     <section className="bg-gray-900/50 border border-white/5 rounded-2xl p-6">
                         <div className="flex items-center gap-3 mb-6">
-                            <Key className="w-5 h-5 text-indigo-400" />
-                            <h2 className="text-lg font-semibold text-white">Security</h2>
+                            <Shield Check className="w-5 h-5 text-indigo-400" />
+                            <h2 className="text-lg font-semibold text-white">Security & Verification</h2>
                         </div>
-                        <div className="p-4 border border-indigo-500/20 bg-indigo-500/5 rounded-xl flex justify-between items-center">
-                            <div>
-                                <p className="text-white font-medium text-sm">Reset Password</p>
-                                <p className="text-xs text-gray-400">Reset {username}'s password.</p>
+
+                        <div className="space-y-4">
+                            {/* Password Reset Row */}
+                            <div className="p-4 border border-indigo-500/20 bg-indigo-500/5 rounded-xl flex justify-between items-center">
+                                <div>
+                                    <p className="text-white font-medium text-sm">Reset Password</p>
+                                    <p className="text-xs text-gray-400">Reset {username}'s password.</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsResetModalOpen(true)}
+                                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors"
+                                >
+                                    Reset
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsResetModalOpen(true)}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors"
-                            >
-                                Reset
-                            </button>
+
+                            {/* Manual Verification row - ONLY shows if not verified */}
+                            {!user.is_verified && (
+                                <div className="p-4 border border-emerald-500/20 bg-emerald-500/5 rounded-xl flex justify-between items-center animate-in slide-in-from-top-2 duration-300">
+                                    <div>
+                                        <p className="text-emerald-400 font-medium text-sm flex items-center gap-2">
+                                            Manual Verification
+                                        </p>
+                                        <p className="text-xs text-gray-400">Force verify this account to bypass email requirements.</p>
+                                    </div>
+                                    <button
+                                        onClick={() => wrapUpdate({ is_verified: true })}
+                                        disabled={updating}
+                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2"
+                                    >
+                                        {updating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                        Verify
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </section>
                 </div>

@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from "../../utils/constants";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from '../../utils/useDocumentTitle';
 import SuccessToast from '../../components/SuccessToast';
+import VerificationSent from "../Verification/VerificationSent";
 
 const Register = () => {
     useDocumentTitle('Register | Astraea');
@@ -21,6 +22,9 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [showSuccess, setShowSuccess] = useState(false);
+    const [isSent, setIsSent] = useState(false);
+    const [sentData, setSentData] = useState({ email: '', expiry: 0 });
+    const [isResent, setIsResent] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -40,26 +44,56 @@ const Register = () => {
 
         setLoading(true);
         setErrorMessage('');
+        setIsResent(false);
 
         try {
-            const response = await api.post(API_ENDPOINTS.REGISTER, { 
-                email, 
-                username, 
-                password, 
-                password_confirm: password2 
+            const response = await api.post(API_ENDPOINTS.REGISTER, {
+                email,
+                username,
+                password,
+                password_confirm: password2
             });
 
-            if (response.status === 201) {
+            const { requires_verification, expiry, message } = response.data;
+
+            if (response.status === 201 && !requires_verification) {
                 setShowSuccess(true);
                 await checkAuth(true);
                 setTimeout(() => navigate("/"), 2000);
-            } else if (response.status === 405) {
-                setErrorMessage(response?.data?.message || "User account registration has been disabled.");
-            } else {
-                setErrorMessage(response?.data?.message || "Could not create account.");
+            }
+            else if (response.status === 201 && requires_verification) {
+                setSentData({ email: response.data.email || email, expiry });
+                setIsSent(true);
+            }
+            else if (response.status === 200) {
+                setErrorMessage(response.data.message);
             }
         } catch (error) {
-            const msg = error.response?.data?.message || "Registration failed. Please try again.";
+            if (error.response?.status === 405) {
+                setErrorMessage("User account registration has been disabled.");
+            } else {
+                setErrorMessage(error.response?.data?.message || "Registration failed.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResend = async (event) => {
+        event.preventDefault();
+        setLoading(true);
+        setErrorMessage('');
+        setIsResent(false);
+
+        try {
+            const data = { 'email': email };
+            const response = await api.post(API_ENDPOINTS.RESEND_VERIFICATION, data);
+
+            if (response.status === 200) {
+                setIsResent(true);
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "Unable to resend email.";
             setErrorMessage(msg);
         } finally {
             setLoading(false);
@@ -96,6 +130,10 @@ const Register = () => {
         { label: "Passwords match", met: passwordsMatch },
     ];
 
+    if (isSent) {
+        return <VerificationSent email={sentData.email} expiry={sentData.expiry} />;
+    }
+
     return (
         <div className="flex min-h-screen flex-col justify-center items-center px-6 lg:px-8">
             {showSuccess && <SuccessToast message="Account Created! Redirecting..." />}
@@ -119,10 +157,30 @@ const Register = () => {
                     </div>
                 )}
 
-                <div className="h-12 mb-2 flex items-center justify-center">
+                <div className="h-14 mb-2 flex items-center justify-center">
                     {errorMessage && (
-                        <div className="w-full p-2 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-xs text-center animate-pulse">
-                            {errorMessage}
+                        <div className="w-full p-2 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-xs text-center">
+                            <p className="mb-1">{errorMessage}</p>
+
+                            {/* Conditional "Resend" button for the TODO */}
+                            {errorMessage.includes("awaiting verification") && !isResent && (
+                                <button
+                                    onClick={handleResend}
+                                    disabled={loading}
+                                    className="mt-1 text-indigo-400 font-bold hover:text-indigo-300 underline underline-offset-2 transition-colors flex items-center justify-center gap-1 mx-auto"
+                                >
+                                    {loading ? <div className="h-2 w-2 animate-spin rounded-full border border-t-transparent" /> : null}
+                                    Resend Verification Link
+                                </button>
+                            )}
+
+                            {/* Success feedback after resending */}
+                            {isResent && (
+                                <p className="mt-1 text-emerald-400 font-bold animate-bounce">
+                                    <i className="fa-solid fa-paper-plane mr-1"></i>
+                                    New link sent!
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

@@ -1,31 +1,30 @@
 Backend:
     - Figure out a way to handle Zabbix
-    - Add a method for verification when a user registers. (Can be enabled via settings.py, env)
+        - Likely use celery to run timers for this
     - Add a method to generate csv files
 
-    - Going to need to implement Celery for the heavy cache loads.
-        To use Celery for:
-            - warm_cache command
-            - refresh_dashboard_stats
-            - cache_individual_vms
-            - refresh_package_search_index
-            - get_sys_config()
+    - Add Rate Limits
+
+    - Do 'Forgot Password', need to create logic that handles this
+
+    - Figure out how to package 'Astraea-Agent' with the webserver, if we include it in the same repo
+
+    - Ensure when a server is patching, if the hostname changes or something we update the record. The UUID is the true source.
 
 Frontend:
 
-    - Important: Dashboard needs a ratelimit for how many times it retires to get dashboard_stats url
-                - Have it where it will try 5 times waiting 3 seconds each time, then if that fails,
-                    it goes into a timer/loop where it will retry in 30 seconds, twice. then show error  
-
-    - Ensure if verification is enabled, we properly follow that.
-
+    - Have a way to remove the 'register' page option if disabled (Not stupidly needed, v1.1?)
 
     - About Page (opened via clicking the version in sidebar)
         - check for updates (front-end only, react goes out and checks version from git?)
         - Version history (no backend, just text on front-end)
         - About section
 
+    - Configuration section needs to automatically close success toast
+
 General Needs:
+
+    Server config settings: enable notifications
 
 
     Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits
@@ -38,16 +37,3 @@ General Needs:
     For the inspect server section
         - Add a search bar to 'Patch History'
         - figure a way to display many patches in the 'Patch History', likely need pagination and use 'ServerPackageInventory' to display more (button saying 'Load more' -> enabled endless scroll)
-
-    
-    Script Stuff:
-        - Check to see if enable patching is true
-        
-
-
-    Used to get values from cache
-        # 1. Get config
-        sys_config = get_sys_config()
-
-        # 2. Use .get() with a default to prevent KeyErrors if the dictionary structure changes
-        is_enabled = sys_config.get('patching_enabled', True)

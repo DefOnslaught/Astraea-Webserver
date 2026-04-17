@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
@@ -27,3 +28,13 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+class Verification(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="verification")
+    is_verified = models.BooleanField(default=False, db_index=True)
+    resend_request = models.PositiveIntegerField(default=0)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Verification"
