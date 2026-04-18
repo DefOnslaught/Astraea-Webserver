@@ -149,6 +149,9 @@ run-buildFrontend-internal:
 
 deploy-internal: test-deploy buildFrontend
 	@echo "$(GREEN)Finalizing Deployment...$(RESET)"
+	@echo "$(BLUE)Deleting old static files$(RESET)"
+	@cd backend/staticfiles/assets && find . -name 'index-*.js' -delete && find . -name 'index-*.css' -delete || \
+	(echo "$(RED)Error: Deleting old static files failed$(RESET)" && exit 1)
 	@$(VENV_PYTHON) backend/manage.py collectstatic --noinput
 	@$(VENV_PYTHON) backend/manage.py clear_cache
 	@sudo systemctl restart gunicorn
