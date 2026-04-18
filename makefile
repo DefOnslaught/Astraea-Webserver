@@ -166,10 +166,10 @@ restart-internal:
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
 initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv setupCelery
-	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(BLUE)Running Migrations...$(RESET)"
 	@$(VENV_PYTHON) backend/manage.py makemigrations
 	@$(VENV_PYTHON) backend/manage.py migrate
+	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@echo "$(GREEN)Setup Complete.$(RESET)"
 
 virtualenv:
@@ -195,10 +195,6 @@ setupGunicorn:
 	@echo "$(GREEN)Gunicorn Setup Complete$(RESET)"
 	
 setupNginx:
-	@echo "$(CYAN)Creating Nginx Configuration File$(RESET)"
-	@sudo cp backend/1_Host_Required_Files/nginx_configuration /etc/nginx/sites-available/astraea
-	@sudo ln -sf /etc/nginx/sites-available/astraea /etc/nginx/sites-enabled/
-
 	@echo "$(CYAN)Creating Nginx Log Folder/Files$(RESET)"
 	@sudo mkdir -p /var/log/nginx/astraea/
 	@sudo touch /var/log/nginx/astraea/access.log /var/log/nginx/astraea/error.log
