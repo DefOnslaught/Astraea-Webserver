@@ -14,6 +14,11 @@ PATCHING_SCHEDULE="{{ PATCHING_SCHEDULE }}"
 INSTALL_DIR="/opt/Astraea-Agent"
 CRON_FILE="/etc/cron.d/astraea-agent-schedule"
 
+if [[ $EUID -ne 0 ]]; then 
+   echo "Please run as root (sudo)" 
+   exit 1
+fi
+
 echo "--- Fetching Astraea Agent Package ---"
 mkdir -p $INSTALL_DIR
 # Use internal API key to download the core tarball
@@ -60,7 +65,35 @@ else
     EXEC_CMD="/usr/bin/python3 $INSTALL_DIR/core/initialize.py"
 fi
 
-# 6. Cron Setup (/etc/cron.d/ style)
+# 6 Install Python3.10-venv
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+else
+    echo "❌ Cannot detect OS. Please install dependencies manually."
+    exit 1
+fi
+
+case $OS in
+    ubuntu|debian)
+        sudo apt update
+        sudo apt install -y python3.10-venv
+        ;;
+    
+    fedora|centos|rhel)
+        if [[ "$OS" != "fedora" ]]; then
+            sudo dnf install -y epel-release
+        fi
+        sudo dnf install -y python3 python3-devel
+        ;;
+
+    *)
+        echo "❌ Unsupported OS: $OS."
+        exit 1
+    ;;
+esac
+
+# 7. Cron Setup (/etc/cron.d/ style)
 echo "--- Configuring System Cron: $CRON_FILE ---"
 
 cat <<EOF > $CRON_FILE
