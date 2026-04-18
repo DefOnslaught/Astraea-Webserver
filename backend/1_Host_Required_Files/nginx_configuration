@@ -51,13 +51,9 @@ server {
 
 
     location / {
-        include proxy_params; # Standard Gunicorn params
+        include proxy_params;
         proxy_pass http://unix:/run/gunicorn.sock;
-		
-        # These are vital for Django's CSRF and Secure Cookie logic
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_pass_request_headers on;
         client_max_body_size 0;
