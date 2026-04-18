@@ -168,6 +168,11 @@ const Servers = () => {
         setIsGuideOpen(false);
     };
 
+    const handleGuideClick = (filterKey) => {
+        setSearchQuery(prev => prev ? `${prev.trim()} ${filterKey}` : filterKey);
+        searchInputRef.current?.focus();
+    };
+
     return (
         <div className="animate-in fade-in duration-700 space-y-6">
 
@@ -219,7 +224,7 @@ const Servers = () => {
                         </button>
                     </form>
 
-                    <SearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+                    <SearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} onSelectKey={handleGuideClick} />
                 </div>
             </div>
 

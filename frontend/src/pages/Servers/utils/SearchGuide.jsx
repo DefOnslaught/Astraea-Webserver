@@ -1,4 +1,4 @@
-const SearchGuide = ({ isOpen, onClose }) => {
+const SearchGuide = ({ isOpen, onClose, onSelectKey }) => {
     if (!isOpen) return null;
 
     const filters = [
@@ -27,7 +27,14 @@ const SearchGuide = ({ isOpen, onClose }) => {
                 {filters.map((f) => (
                     <div key={f.key} className="group">
                         <div className="flex items-center gap-2">
-                            <code className="text-indigo-400 font-mono text-xs bg-indigo-500/10 px-1.5 py-0.5 rounded">{f.key}</code>
+                            <button
+                                type="button"
+                                onClick={() => onSelectKey(f.key)}
+                                className="text-indigo-400 font-mono text-xs bg-indigo-500/10 px-1.5 py-0.5 rounded hover:bg-indigo-500/20 hover:text-indigo-300 transition-all active:scale-95"
+                                title={`Insert ${f.key}`}
+                            >
+                                {f.key}
+                            </button>
                             <span className="text-[11px] text-gray-400">{f.desc}</span>
                         </div>
                         <p className="text-[10px] text-gray-600 mt-1 italic group-hover:text-gray-500 transition-colors">
