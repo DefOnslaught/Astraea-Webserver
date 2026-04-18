@@ -13,7 +13,7 @@
 
 Astraea utilizes a central Hub-and-Spoke model:
 
-* **Astraea Dashboard:** A Django/React web interface for administrators.
+* **Astraea Dashboard:** A Django/React web interface for system administrators.
 * **Task Engine:** Redis & Celery-powered asynchronous workers for handling fleet-wide patch triggers.
 * **Remote Agents:** Lightweight Python agent installed on target nodes that report back to the Centralized Manager via a secure REST API.
 * **Caching:** Powered by **Redis**, our caching layer is built with absolute speed in mind. By offloading frequently accessed session data and volatile system metrics to an in-memory store, Astraea ensures **extremely fast results** and a highly responsive UI, even when managing a massive fleet of distributed agents.
@@ -28,10 +28,10 @@ Before installation, ensure your host meets the following requirements:
 | :--- | :--- | :--- |
 | **OS** | Ubuntu/Debian/RHEL/Arch | Supported by automated `setup.sh` |
 | **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
-| **Node.js** | v18+ | Vite Frontend Tooling |
+| **Node.js** | v20+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
 | **Database** | MySQL 8.0+ / PostgreSQL 15+ | Relational Data Store (utf8mb4) |
-| **Web Server** | Nginx | Serving the website |
+| **Web Server** | Nginx | Serving the Website |
 
 ---
 
@@ -76,7 +76,7 @@ Choose the block corresponding to your database engine. Replace `your_secure_pas
 -- Create database with proper encoding for Django
 CREATE DATABASE astraea CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Create user (Use 'localhost' if DB is on the same machine as Astraea)
+-- Create user (Use 'localhost' if DB is on the same machine as Astraea, otherwise '%')
 CREATE USER 'astraea_user'@'localhost' IDENTIFIED BY 'your_secure_password';
 GRANT ALL PRIVILEGES ON astraea.* TO 'astraea_user'@'localhost';
 FLUSH PRIVILEGES;
