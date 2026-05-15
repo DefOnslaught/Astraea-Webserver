@@ -26,7 +26,7 @@ Before installation, ensure your host meets the following requirements:
 
 | Component | Requirement | Purpose |
 | :--- | :--- | :--- |
-| **OS** | Ubuntu/Debian/RHEL/Arch | Supported by automated `setup.sh` |
+| **OS** | Ubuntu/Debian/RHEL | Supported by automated `setup.sh` |
 | **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
 | **Node.js** | v20+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
