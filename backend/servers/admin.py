@@ -5,7 +5,7 @@ from .models import Server, NetworkInterface, Package, PackageUpdate, PatchSessi
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
     fields = ('hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
-    list_display = ('server_id', 'hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching')
+    list_display = ('server_id', 'hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching', 'date_registered')
 
 @admin.register(NetworkInterface)
 class NetworkInterfaceAdmin(admin.ModelAdmin):

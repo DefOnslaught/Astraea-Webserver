@@ -68,7 +68,8 @@ class ServerInfoSerializer(serializers.ModelSerializer):
         model = Server
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
-            'last_reboot', 'uptime', 'patch_schedule', 'env'
+            'last_reboot', 'uptime', 'patch_schedule', 'env',
+            'date_registered'
         ]
     
     def update(self, instance, validated_data):
