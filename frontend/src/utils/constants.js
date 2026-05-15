@@ -1,4 +1,4 @@
-export const PUBLIC_PATHS = ["/login", "/register"];
+export const PUBLIC_PATHS = ["/login", "/register", "/verify"];
 export const AUTH_PAGES = ["/login", "/register", "/logout"];
 
 export const API_ENDPOINTS = {
