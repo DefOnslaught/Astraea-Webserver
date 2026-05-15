@@ -346,6 +346,10 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                     <option value="standard">Standard (Every Execution)</option>
                                     <option value="week1and3">Patching Week 1 & 3</option>
                                     <option value="week2and4">Patching Week 2 & 4</option>
+                                    <option value="week1">Patching Week 1</option>
+                                    <option value="week2">Patching Week 2</option>
+                                    <option value="week3">Patching Week 3</option>
+                                    <option value="week4">Patching Week 4</option>
                                 </select>
                                 <Command className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-500" />
                                 <ChevronDown className="absolute right-3.5 top-3.5 w-4 h-4 text-gray-500 pointer-events-none group-focus-within:rotate-180 transition-transform" />

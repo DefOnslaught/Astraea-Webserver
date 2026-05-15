@@ -285,6 +285,14 @@ class AgentInstallScriptView(APIView):
                 filename = 'patching-week1and3.sh'
             elif config.exe_logic == 'week2and4':
                 filename = 'patching-week2and4.sh'
+            elif config.exe_logic == 'week1':
+                filename = 'patching-week1.sh'
+            elif config.exe_logic == 'week2':
+                filename = 'patching-week2.sh'
+            elif config.exe_logic == 'week3':
+                filename = 'patching-week3.sh'
+            elif config.exe_logic == 'week4':
+                filename = 'patching-week4.sh'
             else:
                 return Response({'message': 'No logic script required for standard execution'}, status=status.HTTP_404_NOT_FOUND)
         else:

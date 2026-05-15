@@ -70,6 +70,10 @@ class AgentInstallConfig(models.Model):
         ('standard', 'Standard (Every Execution)'),
         ('week1and3', 'Patching Week 1 & 3'),
         ('week2and4', 'Patching Week 2 & 4'),
+        ('week1', 'Patching Week 1'),
+        ('week2', 'Patching Week 2'),
+        ('week3', 'Patching Week 3'),
+        ('week4', 'Patching Week 4'),
     ]
     
     label = models.CharField(max_length=100, help_text="A friendly name for this configuration")

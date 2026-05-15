@@ -61,6 +61,14 @@ if [ "$EXE_LOGIC" == "week1and3" ]; then
     EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week1and3.sh"
 elif [ "$EXE_LOGIC" == "week2and4" ]; then
     EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week2and4.sh"
+elif [ "$EXE_LOGIC" == "week1" ]; then
+    EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week1.sh"
+elif [ "$EXE_LOGIC" == "week2" ]; then
+    EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week2.sh"
+elif [ "$EXE_LOGIC" == "week3" ]; then
+    EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week3.sh"
+elif [ "$EXE_LOGIC" == "week4" ]; then
+    EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week4.sh"
 else
     EXEC_CMD="/usr/bin/python3 $INSTALL_DIR/core/initialize.py"
 fi
