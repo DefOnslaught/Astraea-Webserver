@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faCircleExclamation,
+    faShieldHalved,
+    faServer,
+    faTriangleExclamation,
+    faCirclePause,
+    faCircleNotch,
+    faCheckDouble,
+    faCircleInfo
+} from "@fortawesome/free-solid-svg-icons";
 import api from "../../utils/api";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
@@ -72,7 +83,7 @@ const Dashboard = () => {
             {error ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-red-500/5 border border-red-500/20 rounded-3xl">
                     <div className="p-4 rounded-full bg-red-500/10 mb-4">
-                        <i className="fa-solid fa-circle-exclamation text-3xl text-red-500"></i>
+                        <FontAwesomeIcon icon={faCircleExclamation} className="text-3xl text-red-500" />
                     </div>
                     <h2 className="text-xl font-bold text-white mb-2">Connection Failure</h2>
                     <p className="text-gray-400 max-w-md text-center px-6">{error}</p>
@@ -107,7 +118,7 @@ const Dashboard = () => {
                                 <span className="text-sm font-mono text-indigo-400">{formattedTime}</span>
                             </div>
                             <div className="h-8 w-px bg-white/5"></div>
-                            <i className="fa-solid fa-shield-halved text-gray-600 text-xs"></i>
+                            <FontAwesomeIcon icon={faShieldHalved} className="text-gray-600 text-xs" />
                         </div>
                     </div>
 
@@ -118,7 +129,7 @@ const Dashboard = () => {
                         <StatCard
                             label="Total Infrastructure"
                             value={stats?.total_servers}
-                            icon="fa-server"
+                            icon={faServer}
                             loading={isLoading}
                             color="text-indigo-400"
                             onClick={() => navigate('/servers')}
@@ -128,7 +139,7 @@ const Dashboard = () => {
                         <StatCard
                             label="Outdated Servers"
                             value={stats?.outdated_servers}
-                            icon="fa-triangle-exclamation"
+                            icon={faTriangleExclamation}
                             loading={isLoading}
                             color={stats?.outdated_servers > 0 ? "text-amber-500" : "text-emerald-500"}
                             subtext={stats?.outdated_servers > 0 ? `Not patched in ${PATCH_THRESHOLD_DAYS}+ days` : "All systems current"}
@@ -139,7 +150,7 @@ const Dashboard = () => {
                         <StatCard
                             label="Patching Disabled"
                             value={stats?.total_servers_not_enabled}
-                            icon="fa-circle-pause"
+                            icon={faCirclePause}
                             loading={isLoading}
                             color={stats?.total_servers_not_enabled > 0 ? "text-slate-400" : "text-emerald-500/50"}
                             subtext="Exempt from automation"
@@ -159,7 +170,10 @@ const Dashboard = () => {
 
                                 {/* Icon logic matching StatCard hover effects */}
                                 <div className={`p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform duration-300 ${isWarming ? 'animate-spin' : ''}`}>
-                                    <i className={`fa-solid ${isWarming ? 'fa-circle-notch' : 'fa-check-double'} text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
+                                    <FontAwesomeIcon 
+                                        icon={isWarming ? faCircleNotch : faCheckDouble} 
+                                        className="text-gray-500 group-hover:text-indigo-400 transition-colors" 
+                                    />
                                 </div>
                             </div>
 
@@ -234,7 +248,7 @@ const Dashboard = () => {
                     {/* WARMING ALERT */}
                     {isWarming && (
                         <div className="mt-8 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center gap-4 animate-pulse">
-                            <i className="fa-solid fa-info-circle text-indigo-400"></i>
+                            <FontAwesomeIcon icon={faCircleInfo} className="text-indigo-400" />
                             <p className="text-sm text-indigo-200">
                                 The background worker is currently warming the cache. Statistics will update automatically.
                             </p>

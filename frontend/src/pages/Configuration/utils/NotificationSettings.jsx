@@ -4,6 +4,8 @@ import {
     Settings, AlertTriangle, Loader2, X, Info, RefreshCw,
     ShieldCheck, CheckCircle2, AlertCircle
 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDiscord } from "@fortawesome/free-brands-svg-icons";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
 
@@ -221,7 +223,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                                         <div className="flex items-center gap-4">
                                             <div className={`p-3 rounded-xl transition-colors ${service.type === 'discord' ? 'bg-indigo-500/10 group-hover/row:bg-indigo-500/20' : 'bg-emerald-500/10 group-hover/row:bg-emerald-500/20'}`}>
                                                 {service.type === 'discord' ? (
-                                                    <i className="fa-brands fa-discord w-5 h-5 text-indigo-400" />
+                                                    <FontAwesomeIcon icon={faDiscord} className="w-5 h-5 text-indigo-400" />
                                                 ) : (
                                                     <Mail className="w-5 h-5 text-emerald-400" />
                                                 )}
@@ -397,7 +399,7 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
                                 onClick={() => setFormData({ ...formData, type: 'discord' })}
                                 className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-xs font-bold transition-all ${formData.type === 'discord' ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-gray-800 border-white/5 text-gray-500'}`}
                             >
-                                <i className="fa-brands fa-discord w-4 h-4 text-[1rem] inline-flex items-center justify-center translate-y-[0.5px]" /> Discord
+                                <FontAwesomeIcon icon={faDiscord} className="w-4 h-4 text-[1rem] inline-flex items-center justify-center translate-y-[0.5px]" /> Discord
                             </button>
                             <button
                                 type="button"

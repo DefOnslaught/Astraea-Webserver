@@ -1,5 +1,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faServer,
+    faClockRotateLeft,
+    faCircleExclamation,
+    faCalendarCheck,
+    faLayerGroup,
+    faShieldHeart,
+    faFlaskVial,
+    faCodeBranch,
+    faEllipsisVertical,
+    faEye,
+    faSliders
+} from "@fortawesome/free-solid-svg-icons";
+
 import HighlightText from "../../../utils/HighlightText";
 import getDaysAgo from "../../../utils/getDaysAgo";
 import truncateString from "../../../utils/truncateString";
@@ -32,7 +47,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
     const handleSuccess = () => {
         onRefresh();
         onSuccess(`Updated ${server.hostname} successfully!`);
-    }
+    };
 
     return (
         <tr ref={innerRef} className="group hover:bg-white/2 transition-colors">
@@ -44,7 +59,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                     className="flex items-center gap-3 group/host text-left outline-none"
                 >
                     <div className="p-3 rounded-xl bg-white/5 group-hover/host:bg-indigo-500/10 group-hover/host:scale-110 transition-all duration-300">
-                        <i className="fa-solid fa-server text-gray-500 group-hover/host:text-indigo-400 transition-colors"></i>
+                        <FontAwesomeIcon icon={faServer} className="text-gray-500 group-hover/host:text-indigo-400 transition-colors" />
                     </div>
                     <div className="flex flex-col relative justify-center">
                         <span className="font-semibold text-gray-400 group-hover/host:text-white transition-colors leading-tight">
@@ -95,7 +110,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 pl-4">
-                                <i className="fa-solid fa-clock-rotate-left text-[9px] text-gray-600"></i>
+                                <FontAwesomeIcon icon={faClockRotateLeft} className="text-[9px] text-gray-600" />
                                 <span className="text-[10px] text-gray-500 font-mono">
                                     Last known uptime {server.uptime || "0 days"}
                                 </span>
@@ -105,7 +120,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                 })()}
             </td>
 
-            {/* Last Patched */}
+            {/* LAST PATCHED */}
             <td className="px-6 py-4 text-sm text-gray-400 font-mono">
                 {(() => {
                     const patchDaysInMs = PATCH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
@@ -135,7 +150,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 pl-4">
-                                <i className="fa-solid fa-clock-rotate-left text-[9px] text-gray-600"></i>
+                                <FontAwesomeIcon icon={faClockRotateLeft} className="text-[9px] text-gray-600" />
                                 <span className="text-[10px] text-gray-500 font-mono">
                                     {getRelativeTime(server.last_patch)}
                                 </span>
@@ -145,7 +160,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                 })()}
             </td>
 
-            {/* Last Status */}
+            {/* LAST STATUS */}
             <td className="px-6 py-4">
                 {(() => {
                     const status = (server.last_patch_status || 'unknown').toLowerCase();
@@ -183,14 +198,14 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                                 {/* Status Dot */}
                                 <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`}></div>
 
-                                {/* Status Label - Kept on the same line */}
+                                {/* Status Label */}
                                 <span className={`text-[11px] font-bold uppercase tracking-wider ${theme.text}`}>
                                     {status}
                                 </span>
 
                                 {/* Conditional "Action Required" icon for Failed/Partial */}
                                 {(status === 'failed' || status === 'partial') && (
-                                    <i className={`fa-solid fa-circle-exclamation text-[10px] ${theme.text} ml-1`}></i>
+                                    <FontAwesomeIcon icon={faCircleExclamation} className={`text-[10px] ${theme.text} ml-1`} />
                                 )}
                             </div>
                         </div>
@@ -201,7 +216,10 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
             {/* PATCHING SCHEDULE */}
             <td className="px-6 py-4">
                 <div className="flex items-center gap-2 group/schedule">
-                    <i className="fa-solid fa-calendar-check text-[10px] text-indigo-500/50 group-hover/schedule:text-indigo-400 transition-colors"></i>
+                    <FontAwesomeIcon
+                        icon={faCalendarCheck}
+                        className="text-[10px] text-indigo-500/50 group-hover/schedule:text-indigo-400 transition-colors"
+                    />
                     <span
                         className="text-xs text-gray-400 italic cursor-help"
                         title={server.patch_schedule}
@@ -223,24 +241,24 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                     const isPreProd = envValue.toLowerCase().includes('pre');
                     const isDev = envValue.toLowerCase().includes('dev');
 
-                    // Define a dynamic style based on the environment type
-                    let badgeStyle = "bg-gray-500/10 text-gray-400 border-gray-500/20"; // Default
-                    let icon = "fa-layer-group";
+                    // Define style values
+                    let badgeStyle = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                    let selectedIcon = faLayerGroup; // Default imported module reference instead of a string
 
                     if (isProd) {
                         badgeStyle = "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]";
-                        icon = "fa-shield-heart";
+                        selectedIcon = faShieldHeart;
                     } else if (isPreProd) {
                         badgeStyle = "bg-purple-500/10 text-purple-400 border-purple-500/20";
-                        icon = "fa-flask-vial";
+                        selectedIcon = faFlaskVial;
                     } else if (isDev) {
                         badgeStyle = "bg-blue-500/10 text-blue-400 border-blue-500/20";
-                        icon = "fa-code-branch";
+                        selectedIcon = faCodeBranch;
                     }
 
                     return (
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${badgeStyle} transition-all duration-300 group-hover:scale-105`}>
-                            <i className={`fa-solid ${icon} text-[9px]`}></i>
+                            <FontAwesomeIcon icon={selectedIcon} className="text-[9px]" />
                             <HighlightText text={envValue} query={query} field="env" />
                         </div>
                     );
@@ -257,7 +275,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                             : 'text-gray-500 hover:bg-white/10 hover:text-white'
                             }`}
                     >
-                        <i className="fa-solid fa-ellipsis-vertical"></i>
+                        <FontAwesomeIcon icon={faEllipsisVertical} />
                     </button>
 
                     {/* ACTIONS DROPDOWN */}
@@ -267,13 +285,13 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                         anchorRef={actionButtonRef}
                     >
                         <button
-                            onClick={() => { 
-                                setIsMenuOpen(false); 
+                            onClick={() => {
+                                setIsMenuOpen(false);
                                 navigate(`/inspect/${server.server_id}/`);
                             }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
                         >
-                            <i className="fa-solid fa-eye text-xs"></i>
+                            <FontAwesomeIcon icon={faEye} className="text-xs" />
                             Inspect
                         </button>
                         <div className="h-px bg-white/5"></div>
@@ -284,7 +302,7 @@ const ServerRow = ({ server, query, innerRef, onRefresh, onSuccess }) => {
                             }}
                             className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-indigo-400 transition-colors"
                         >
-                            <i className="fa-solid fa-sliders text-xs"></i>
+                            <FontAwesomeIcon icon={faSliders} className="text-xs" />
                             Configure
                         </button>
                     </ActionDropdown>

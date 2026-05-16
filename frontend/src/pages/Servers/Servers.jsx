@@ -1,5 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faMagnifyingGlass,
+    faCircleXmark,
+    faCircleInfo,
+    faCircleNotch,
+    faBoxOpen,
+    faArrowUp
+} from "@fortawesome/free-solid-svg-icons";
 import { API_ENDPOINTS } from "../../utils/constants";
 import api from "../../utils/api";
 import useDocumentTitle from "../../utils/useDocumentTitle";
@@ -194,7 +203,10 @@ const Servers = () => {
 
                 <div className="relative" ref={searchContainerRef}> {/* Container for search + guide */}
                     <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96 group">
-                        <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors"></i>
+                        <FontAwesomeIcon
+                            icon={faMagnifyingGlass}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors"
+                        />
                         <input
                             ref={searchInputRef}
                             type="text"
@@ -211,7 +223,7 @@ const Servers = () => {
                                 className="absolute right-10 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-400 transition-all p-1 animate-in fade-in zoom-in duration-200"
                                 title="Clear Search"
                             >
-                                <i className="fa-solid fa-circle-xmark"></i>
+                                <FontAwesomeIcon icon={faCircleXmark} />
                             </button>
                         )}
 
@@ -220,7 +232,7 @@ const Servers = () => {
                             onClick={() => setIsGuideOpen(!isGuideOpen)}
                             className={`absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-400 transition-colors ${isGuideOpen ? 'text-indigo-400' : ''}`}
                         >
-                            <i className="fa-solid fa-circle-info"></i>
+                            <FontAwesomeIcon icon={faCircleInfo} />
                         </button>
                     </form>
 
@@ -271,7 +283,7 @@ const Servers = () => {
                                         <tr>
                                             <td colSpan="8" className="py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-widest animate-pulse">
-                                                    <i className="fa-solid fa-circle-notch animate-spin"></i>
+                                                    <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" />
                                                     Loading More Nodes...
                                                 </div>
                                             </td>
@@ -283,7 +295,7 @@ const Servers = () => {
                             {!isLoading && servers.length === 0 && (
                                 <tr>
                                     <td colSpan="8" className="py-20 text-center">
-                                        <i className="fa-solid fa-box-open text-4xl text-gray-700 mb-4 block"></i>
+                                        <FontAwesomeIcon icon={faBoxOpen} className="text-4xl text-gray-700 mb-4 block mx-auto" />
                                         <p className="text-gray-500">No servers match your search criteria.</p>
                                     </td>
                                 </tr>
@@ -300,7 +312,7 @@ const Servers = () => {
                     }`}
                 aria-label="Scroll to top"
             >
-                <i className="fa-solid fa-arrow-up text-lg"></i>
+                <FontAwesomeIcon icon={faArrowUp} className="text-lg" />
             </button>
         </div>
     );

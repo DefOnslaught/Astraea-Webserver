@@ -1,6 +1,15 @@
 import { useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faShieldHalved,
+    faCheck,
+    faMinus,
+    faEyeSlash,
+    faEye,
+    faCircleNotch,
+    faBolt
+} from "@fortawesome/free-solid-svg-icons";
 import api from "../../utils/api";
 import { API_ENDPOINTS } from "../../utils/constants";
 import useDocumentTitle from '../../utils/useDocumentTitle';
@@ -237,7 +246,7 @@ const Profile = () => {
                         <div className="p-6 border-b border-white/5 bg-linear-to-r from-indigo-500/5 to-transparent">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-indigo-500/10">
-                                    <i className="fa-solid fa-shield-halved text-indigo-400"></i>
+                                    <FontAwesomeIcon icon={faShieldHalved} className="text-indigo-400" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-white">Security Credentials</h2>
@@ -255,7 +264,10 @@ const Profile = () => {
                                         {requirements.map((req, index) => (
                                             <div key={index} className="flex items-center gap-3">
                                                 <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-colors ${req.met ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
-                                                    <i className={`fa-solid ${req.met ? 'fa-check text-emerald-500' : 'fa-minus text-gray-600'} text-[10px]`}></i>
+                                                    <FontAwesomeIcon
+                                                        icon={req.met ? faCheck : faMinus}
+                                                        className={`${req.met ? 'text-emerald-500' : 'text-gray-600'} text-[10px]`}
+                                                    />
                                                 </div>
                                                 <span className={`text-sm transition-colors ${req.met ? 'text-gray-300' : 'text-gray-500'}`}>
                                                     {req.label}
@@ -298,7 +310,7 @@ const Profile = () => {
                                             onClick={() => setShowPasswords({ ...showPasswords, old: !showPasswords.old })}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-400 transition-colors"
                                         >
-                                            <i className={`fa-solid ${showPasswords.old ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                            <FontAwesomeIcon icon={showPasswords.old ? faEyeSlash : faEye} />
                                         </button>
                                     </div>
                                 </div>
@@ -321,7 +333,7 @@ const Profile = () => {
                                             onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-400 transition-colors"
                                         >
-                                            <i className={`fa-solid ${showPasswords.new ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                            <FontAwesomeIcon icon={showPasswords.new ? faEyeSlash : faEye} />
                                         </button>
                                     </div>
                                 </div>
@@ -343,7 +355,7 @@ const Profile = () => {
                                             onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-400 transition-colors"
                                         >
-                                            <i className={`fa-solid ${showPasswords.confirm ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                            <FontAwesomeIcon icon={showPasswords.confirm ? faEyeSlash : faEye} />
                                         </button>
                                     </div>
                                 </div>
@@ -359,7 +371,7 @@ const Profile = () => {
                                 >
                                     {isChangingPass ? (
                                         <span className="flex items-center justify-center gap-2">
-                                            <i className="fa-solid fa-circle-notch animate-spin"></i> Processing...
+                                            <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" /> Processing...
                                         </span>
                                     ) : "Update Password"}
                                 </button>
@@ -372,7 +384,7 @@ const Profile = () => {
                         <div className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
-                                    <i className="fa-solid fa-bolt-lightning text-xl"></i>
+                                    <FontAwesomeIcon icon={faBolt} className="text-xl" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-white">Active Sessions</h3>

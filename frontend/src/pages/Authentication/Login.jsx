@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye } from "@fortawesome/free-solid-svg-icons";
 import api from "../../utils/api";
 import { API_ENDPOINTS } from "../../utils/constants";
 import { useAuth } from "../../utils/AuthContext";
@@ -139,7 +140,7 @@ const Login = () => {
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 text-gray-400 hover:text-white focus:outline-none"
                             >
-                                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                             </button>
                         </div>
                     </div>

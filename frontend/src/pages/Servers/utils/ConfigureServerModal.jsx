@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faCircleInfo,
+    faXmark,
+    faCircleExclamation,
+    faCircleNotch,
+    faSkullCrossbones
+} from '@fortawesome/free-solid-svg-icons';
 import api from '../../../utils/api';
 import { API_ENDPOINTS } from "../../../utils/constants";
 import SectionLoader from '../../../components/SectionLoader';
@@ -91,7 +99,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
 
     const AgentWarning = () => (
         <div className="flex items-center gap-1.5 mt-1.5 px-1 text-[10px] text-amber-500/80 italic font-medium">
-            <i className="fa-solid fa-circle-info text-[9px]"></i>
+            <FontAwesomeIcon icon={faCircleInfo} className="text-[9px]" />
             <span>Note: This value is overwritten by Astraea Agent</span>
         </div>
     );
@@ -109,14 +117,14 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                         <p className="text-xs text-gray-500 font-mono mt-1">{serverInfo?.hostname}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-                        <i className="fa-solid fa-xmark text-lg"></i>
+                        <FontAwesomeIcon icon={faXmark} className="text-lg" />
                     </button>
                 </div>
 
                 <div className="overflow-y-auto max-h-[80vh]">
                     {error && (
                         <div className="mx-6 mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center gap-3">
-                            <i className="fa-solid fa-circle-exclamation"></i>
+                            <FontAwesomeIcon icon={faCircleExclamation} />
                             <span>{error}</span>
                         </div>
                     )}
@@ -186,7 +194,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                                 Cancel
                             </button>
                             <button type="submit" disabled={isSaving || isDeleting} className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all disabled:opacity-50">
-                                {isSaving ? <i className="fa-solid fa-circle-notch animate-spin"></i> : "Save Changes"}
+                                {isSaving ? <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" /> : "Save Changes"}
                             </button>
                         </div>
                     </form>
@@ -194,7 +202,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                     {/* DANGER ZONE - ISOLATED SECTION */}
                     <div className="mt-4 p-6 bg-red-500/5 border-t border-white/5">
                         <div className="flex items-center gap-2 mb-4">
-                            <i className="fa-solid fa-skull-crossbones text-red-500/50 text-xs"></i>
+                            <FontAwesomeIcon icon={faSkullCrossbones} className="text-red-500/50 text-xs" />
                             <h3 className="text-xs font-bold text-red-500/70 uppercase tracking-[0.2em]">Danger Zone</h3>
                         </div>
 
@@ -229,7 +237,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                                         disabled={isDeleting}
                                         className="flex-1 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase hover:bg-red-500 shadow-lg shadow-red-900/40"
                                     >
-                                        {isDeleting ? <i className="fa-solid fa-circle-notch animate-spin"></i> : "Confirm Delete"}
+                                            {isDeleting ? <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" /> : "Confirm Delete"}
                                     </button>
                                 </div>
                             </div>

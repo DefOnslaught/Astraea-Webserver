@@ -1,3 +1,6 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
+
 const SearchGuide = ({ isOpen, onClose, onSelectKey }) => {
     if (!isOpen) return null;
 
@@ -20,7 +23,7 @@ const SearchGuide = ({ isOpen, onClose, onSelectKey }) => {
             <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest">Search Syntax</h3>
                 <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-                    <i className="fa-solid fa-xmark"></i>
+                    <FontAwesomeIcon icon={faXmark} />
                 </button>
             </div>
             <div className="space-y-3">

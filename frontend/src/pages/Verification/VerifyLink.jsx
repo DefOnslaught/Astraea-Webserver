@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faEnvelopeOpenText,
+    faUserCheck,
+    faTriangleExclamation,
+    faPaperPlane,
+    faArrowLeft
+} from "@fortawesome/free-solid-svg-icons";
 import api from "../../utils/api";
 import { useAuth } from "../../utils/AuthContext";
 import { API_ENDPOINTS } from "../../utils/constants";
@@ -80,7 +87,10 @@ const VerifyLink = () => {
             <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
                 <div className="text-center mb-8">
                     <div className="mx-auto h-12 w-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
-                        <i className={`fa-solid ${showResend && !showSuccess ? 'fa-envelope-open-text' : 'fa-user-check'} text-indigo-400 text-xl`}></i>
+                        <FontAwesomeIcon
+                            icon={showResend && !showSuccess ? faEnvelopeOpenText : faUserCheck}
+                            className="text-indigo-400 text-xl"
+                        />
                     </div>
                     <h2 className="text-2xl font-bold tracking-tight text-white">
                         {showResend && !showSuccess ? "Verification Issue" : "Confirm Verification"}
@@ -94,14 +104,14 @@ const VerifyLink = () => {
 
                 {errorMessage && (
                     <div className="mb-6 p-3 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-[11px] text-center animate-pulse">
-                        <i className="fa-solid fa-triangle-exclamation mr-2"></i>
+                        <FontAwesomeIcon icon={faTriangleExclamation} />
                         {errorMessage}
                     </div>
                 )}
 
                 {isResent ? (
                     <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/50 text-emerald-500 text-sm text-center">
-                        <i className="fa-solid fa-paper-plane mr-2"></i>
+                        <FontAwesomeIcon icon={faPaperPlane} />
                         A new link has been sent to your email.
                     </div>
                 ) : showResend && !showSuccess ? (
@@ -165,7 +175,7 @@ const VerifyLink = () => {
                         to="/login"
                         className="text-xs font-medium text-gray-500 hover:text-indigo-400 transition-colors"
                     >
-                        <i className="fa-solid fa-arrow-left mr-2"></i>
+                        <FontAwesomeIcon icon={faArrowLeft} />
                         Back to Login
                     </Link>
                 </div>

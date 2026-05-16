@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faServer, faCircleCheck, faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import getDaysAgo from "../../../utils/getDaysAgo";
 import getRelativeTime from "../../../utils/getRelativeTime";
 
@@ -16,8 +18,10 @@ const ServerRow = ({ server, type }) => {
                         ? 'border-red-500/20 bg-red-500/5 group-hover:border-red-500/40'
                         : 'border-emerald-500/20 bg-emerald-500/5 group-hover:border-emerald-500/40'
                     }`}>
-                    <i className={`fa-solid ${type === 'risk' ? 'fa-server text-red-400' : 'fa-circle-check text-emerald-400'
-                        } text-xs group-hover:text-indigo-400 transition-colors`}></i>
+                    <FontAwesomeIcon
+                        icon={type === 'risk' ? faServer : faCircleCheck}
+                        className={`${type === 'risk' ? 'text-red-400' : 'text-emerald-400'} text-xs group-hover:text-indigo-400 transition-colors`}
+                    />
                 </div>
 
                 <div className="flex flex-col relative justify-center">
@@ -28,7 +32,7 @@ const ServerRow = ({ server, type }) => {
 
                     {/* View Details Subtext */}
                     <span className="absolute top-5 left-0 text-[10px] text-indigo-400 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-1 transition-all duration-300 uppercase tracking-widest font-black whitespace-nowrap">
-                        View Details <i className="fa-solid fa-arrow-right ml-1 text-[8px]"></i>
+                        View Details <FontAwesomeIcon icon={faArrowRight} className="ml-1 text-[8px]" />
                     </span>
                 </div>
             </div>

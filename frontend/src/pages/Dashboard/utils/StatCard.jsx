@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
 const StatCard = ({ label, value, icon, loading, color, subtext, onClick, glowColor = "bg-indigo-500/5" }) => {
     return (
         <div onClick={onClick} className={`bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-indigo-500/30 transition-all duration-300 ${onClick ? 'cursor-pointer active:scale-95' : ''}`}>
@@ -13,7 +15,10 @@ const StatCard = ({ label, value, icon, loading, color, subtext, onClick, glowCo
                     )}
                 </div>
                 <div className="p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform duration-300">
-                    <i className={`fa-solid ${icon} text-gray-500 group-hover:text-indigo-400 transition-colors`}></i>
+                    <FontAwesomeIcon
+                        icon={icon}
+                        className="text-gray-500 group-hover:text-indigo-400 transition-colors"
+                    />
                 </div>
             </div>
 

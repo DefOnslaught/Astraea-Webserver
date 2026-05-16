@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane, faCheckCircle } from "@fortawesome/free-solid-svg-icons";
+import { faClock } from "@fortawesome/free-regular-svg-icons";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import api from "../../utils/api";
 import { API_ENDPOINTS } from "../../utils/constants";
@@ -61,7 +64,10 @@ const VerificationSent = ({ email, expiry }) => {
 
                 {/* Icon Section */}
                 <div className="mx-auto h-16 w-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-6">
-                    <i className="fa-solid fa-paper-plane text-indigo-400 text-2xl animate-bounce-slow"></i>
+                    <FontAwesomeIcon
+                        icon={faPaperPlane}
+                        className="text-indigo-400 text-2xl animate-bounce-slow"
+                    />
                 </div>
 
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Check your email</h2>
@@ -72,7 +78,10 @@ const VerificationSent = ({ email, expiry }) => {
 
                 {/* Expiry Badge */}
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-8">
-                    <i className="fa-regular fa-clock text-xs text-gray-500"></i>
+                    <FontAwesomeIcon
+                        icon={faClock}
+                        className="text-xs text-gray-500"
+                    />
                     <span className="text-[11px] uppercase tracking-wider text-gray-500 font-bold">
                         Link Expires in: {formatExpiry(expiry)}
                     </span>
@@ -86,7 +95,10 @@ const VerificationSent = ({ email, expiry }) => {
 
                 {isResent ? (
                     <div className="p-3 rounded bg-emerald-500/10 border border-emerald-500/50 text-emerald-500 text-xs font-semibold mb-6">
-                        <i className="fa-solid fa-check-circle mr-2"></i>
+                        <FontAwesomeIcon
+                            icon={faCheckCircle}
+                            className="mr-2"
+                        />
                         A new link has been dispatched!
                     </div>
                 ) : (

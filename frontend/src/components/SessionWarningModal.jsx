@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faTriangleExclamation,
+    faCircleNotch,
+    faClockRotateLeft
+} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../utils/AuthContext";
 
 const SessionWarningModal = () => {
@@ -38,7 +43,7 @@ const SessionWarningModal = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-9999 flex items-center justify-center p-4">
             <div className="bg-gray-900 border border-amber-500/50 p-8 rounded-2xl max-w-md w-full shadow-2xl animate-in zoom-in duration-300">
                 <div className="flex items-center gap-4 text-amber-500 mb-4">
-                    <i className="fa-solid fa-triangle-exclamation text-3xl"></i>
+                    <FontAwesomeIcon icon={faTriangleExclamation} className="text-3xl" />
                     <h2 className="text-xl font-bold">Session Expiring</h2>
                 </div>
                 <p className="text-gray-300 mb-6">
@@ -55,9 +60,9 @@ const SessionWarningModal = () => {
                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                     >
                         {isExtending ? (
-                            <i className="fa-solid fa-circle-notch animate-spin"></i>
+                            <FontAwesomeIcon icon={faCircleNotch} className="animate-spin" />
                         ) : (
-                            <i className="fa-solid fa-clock-rotate-left"></i>
+                                <FontAwesomeIcon icon={faClockRotateLeft} />
                         )}
                         Extend Session
                     </button>

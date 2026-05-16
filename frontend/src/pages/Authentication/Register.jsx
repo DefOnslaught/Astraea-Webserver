@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faPaperPlane,
+    faEye,
+    faEyeSlash,
+    faCheck
+} from "@fortawesome/free-solid-svg-icons";
 import api from "../../utils/api";
 import { API_ENDPOINTS } from "../../utils/constants";
 import { useAuth } from "../../utils/AuthContext";
@@ -177,7 +183,7 @@ const Register = () => {
                             {/* Success feedback after resending */}
                             {isResent && (
                                 <p className="mt-1 text-emerald-400 font-bold animate-bounce">
-                                    <i className="fa-solid fa-paper-plane mr-1"></i>
+                                    <FontAwesomeIcon icon={faPaperPlane} />
                                     New link sent!
                                 </p>
                             )}
@@ -231,7 +237,7 @@ const Register = () => {
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-3 text-gray-400 hover:text-white focus:outline-none"
                             >
-                                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                             </button>
                         </div>
 
@@ -258,7 +264,7 @@ const Register = () => {
                                     <div key={index} className="flex items-center gap-2 transition-all duration-300">
                                         <div className={`shrink-0 h-4 w-4 rounded-full flex items-center justify-center transition-colors ${req.met ? 'bg-emerald-500/20' : 'bg-gray-800'}`}>
                                             {req.met ? (
-                                                <i className="fa-solid fa-check text-[10px] text-emerald-500"></i>
+                                                <FontAwesomeIcon icon={faCheck} className="text-[10px] text-emerald-500" />
                                             ) : (
                                                 <div className="h-1 w-1 bg-gray-600 rounded-full"></div>
                                             )}
@@ -301,7 +307,7 @@ const Register = () => {
                                 onClick={() => setShowPassword2(!showPassword2)}
                                 className="absolute right-3 text-gray-400 hover:text-white focus:outline-none"
                             >
-                                <i className={`fa-solid ${showPassword2 ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                                <FontAwesomeIcon icon={showPassword2 ? faEyeSlash : faEye} />
                             </button>
                         </div>
                     </div>

@@ -1,5 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faAlignLeft,
+    faBars,
+    faUser,
+    faChevronDown,
+    faRightFromBracket,
+    faHouse,
+    faServer,
+    faCubes,
+    faGears,
+    faUsersGear
+} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../utils/AuthContext";
 import { usePathCheck } from "../hooks/usePathCheck";
 import LogoutModal from "./LogoutModal";
@@ -57,7 +70,7 @@ function Layout({ children }) {
                         onClick={toggleSidebar}
                         className="p-2 hover:bg-white/5 rounded-lg text-gray-400"
                     >
-                        <i className={`fa-solid ${isSidebarOpen ? 'fa-align-left' : 'fa-bars'}`}></i>
+                        <FontAwesomeIcon icon={isSidebarOpen ? faAlignLeft : faBars} />
                     </button>
                     <span className="text-xl font-bold tracking-tighter text-indigo-500 uppercase italic">Astraea</span>
                 </div>
@@ -69,13 +82,16 @@ function Layout({ children }) {
                         className="flex items-center gap-1.5 p-1 px-2 rounded-lg hover:bg-white/5 transition-colors group"
                     >
                         <div className="flex flex-row items-center gap-2">
-                            <i className="fa-solid fa-user text-gray-500 text-sm"></i>
+                            <FontAwesomeIcon icon={faUser} className="text-gray-500 text-sm" />
                             <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
                                 {username}
                             </span>
                         </div>
                         {/* Dynamic Arrow Icon */}
-                        <i className={`fa-solid fa-chevron-down text-[10px] text-gray-500 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180 text-indigo-400' : ''}`}></i>
+                        <FontAwesomeIcon
+                            icon={faChevronDown}
+                            className={`text-[10px] text-gray-500 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180 text-indigo-400' : ''}`}
+                        />
                     </button>
 
                     {/* DROPDOWN MENU */}
@@ -90,7 +106,7 @@ function Layout({ children }) {
                                     onClick={() => setIsUserMenuOpen(false)}
                                     className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                                 >
-                                    <i className="fa-solid fa-user text-indigo-400 w-4"></i>
+                                    <FontAwesomeIcon icon={faUser} className="text-indigo-400 w-4" />
                                     My Profile
                                 </Link>
                                 <div className="border-t border-white/5"></div>
@@ -98,7 +114,7 @@ function Layout({ children }) {
                                     onClick={handleLogoutClick}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                                 >
-                                    <i className="fa-solid fa-right-from-bracket w-4"></i>
+                                    <FontAwesomeIcon icon={faRightFromBracket} className="text-red-400 w-4" />
                                     Logout
                                 </button>
                             </div>
@@ -116,21 +132,21 @@ function Layout({ children }) {
                 <div className="absolute inset-0 bg-linear-to-b from-indigo-500/2 to-transparent pointer-events-none" />
 
                 <div className="relative p-3 space-y-1 flex-1 overflow-y-auto no-scrollbar">
-                    <SidebarLink to="/" icon="fa-house" label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
-                    <SidebarLink to="/servers" icon="fa-server" label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
-                    <SidebarLink to="/packages" icon="fa-cubes" label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
+                    <SidebarLink to="/" icon={faHouse} label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
+                    <SidebarLink to="/servers" icon={faServer} label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
+                    <SidebarLink to="/packages" icon={faCubes} label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
                     {hasAdminAccess && (
                         <>
                             <SidebarLink
                                 to="/configuration"
-                                icon="fa-gears"
+                                icon={faGears}
                                 label="Configuration"
                                 isOpen={isSidebarOpen}
                                 isActive={pathname === "/configuration"}
                             />
                             <SidebarLink
                                 to="/administration"
-                                icon="fa-users-gear"
+                                icon={faUsersGear}
                                 label="Administration"
                                 isOpen={isSidebarOpen}
                                 isActive={pathname === "/administration"}
@@ -181,9 +197,11 @@ const SidebarLink = ({ to, icon, label, isOpen, isActive }) => (
             <div className="absolute left-0 w-1 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
         )}
 
-        <i className={`fa-solid ${icon} w-6 text-center transition-transform duration-200 group-hover:scale-110 
-            ${isActive ? 'text-indigo-400' : 'text-gray-500 group-hover:text-indigo-300'}`}>
-        </i>
+        <FontAwesomeIcon
+            icon={icon}
+            className={`w-6 text-center transition-transform duration-200 group-hover:scale-110 
+                ${isActive ? 'text-indigo-400' : 'text-gray-500 group-hover:text-indigo-300'}`}
+        />
 
         {isOpen && (
             <span className={`ml-3 text-sm font-medium tracking-wide transition-colors

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faMagnifyingGlass,
+    faCircleXmark,
+    faArrowUp
+} from "@fortawesome/free-solid-svg-icons";
 import { API_ENDPOINTS } from "../../utils/constants";
 import api from "../../utils/api";
 import useDocumentTitle from "../../utils/useDocumentTitle";
@@ -93,7 +99,10 @@ const Packages = () => {
                 </div>
 
                 <form onSubmit={handleSearchSubmit} className="relative w-full md:w-96 group">
-                    <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400"></i>
+                    <FontAwesomeIcon
+                        icon={faMagnifyingGlass}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400"
+                    />
                     <input
                         ref={searchInputRef}
                         type="text"
@@ -104,7 +113,7 @@ const Packages = () => {
                     />
                     {(searchQuery || activeQuery) && (
                         <button onClick={clearSearch} type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-400">
-                            <i className="fa-solid fa-circle-xmark"></i>
+                            <FontAwesomeIcon icon={faCircleXmark} />
                         </button>
                     )}
                 </form>
@@ -142,7 +151,7 @@ const Packages = () => {
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                 className={`fixed bottom-8 right-8 p-4 rounded-xl bg-indigo-500 text-white transition-all ${showScrollTop ? 'opacity-100' : 'opacity-0'}`}
             >
-                <i className="fa-solid fa-arrow-up"></i>
+                <FontAwesomeIcon icon={faArrowUp} />
             </button>
         </div>
     );

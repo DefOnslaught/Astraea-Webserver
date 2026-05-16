@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
 
 const LogoutModal = ({ isOpen, onConfirm, onCancel, title, description, confirmLabel }) => {
     
@@ -17,7 +19,7 @@ const LogoutModal = ({ isOpen, onConfirm, onCancel, title, description, confirmL
             <div className="bg-gray-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
                 <div className="flex items-center gap-4 text-red-500 mb-4">
                     <div className="bg-red-500/10 p-3 rounded-full">
-                        <i className="fa-solid fa-right-from-bracket text-xl"></i>
+                        <FontAwesomeIcon icon={faRightFromBracket} className="text-xl" />
                     </div>
                     <h3 className="text-xl font-bold text-white">{title || "Sign Out?"}</h3>
                 </div>
