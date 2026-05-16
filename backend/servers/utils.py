@@ -138,7 +138,6 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
         stats["outdated_servers"] += 1
 
     # 2. Update Recent Activity and At Risk lists
-    # Remove existing entry if it exists to refresh it
     stats["recent_activity"] = [v for v in stats.get("recent_activity", []) if v['server_id'] != str(instance.server_id)]
     stats["at_risk"] = [v for v in stats.get("at_risk", []) if v['server_id'] != str(instance.server_id)]
 
@@ -156,30 +155,29 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
             stats["at_risk"].sort(key=lambda x: parse_date(x['last_patch_date']))
             stats["at_risk"] = stats["at_risk"][:5]
 
-        # If after removing/updating, our lists are shorter than 5,
-        # we need to fetch the 'new' top candidates from the DB.
-        threshold = timezone.now() - timedelta(days=int(os.getenv("PATCH_THRESHOLD_DAYS", 30)))
+    threshold = timezone.now() - timedelta(days=int(os.getenv("PATCH_THRESHOLD_DAYS", 30)))
 
-        if len(stats["at_risk"]) < 5 and stats["outdated_servers"] > len(stats["at_risk"]):
-            # Fetch only what we need to fill the gap
-            replacements = Server.objects.filter(
-                Q(last_patch_date__lt=threshold) | Q(last_patch_date__isnull=True)
-            ).order_by('last_patch_date')[:5]
-            stats["at_risk"] = [_project_dashboard_fields(v) for v in replacements]
+    if len(stats["at_risk"]) < 5 and stats["outdated_servers"] > len(stats["at_risk"]):
+        replacements = Server.objects.filter(
+            Q(last_patch_date__lt=threshold) | Q(last_patch_date__isnull=True)
+        ).order_by('last_patch_date')[:5]
+        stats["at_risk"] = [_project_dashboard_fields(v) for v in replacements]
 
-        if len(stats["recent_activity"]) < 5:
-            replacements = Server.objects.filter(
-                last_patch_date__isnull=False
-            ).order_by('-last_patch_date')[:5]
-            stats["recent_activity"] = [_project_dashboard_fields(v) for v in replacements]
+    if len(stats["recent_activity"]) < 5:
+        replacements = Server.objects.filter(
+            last_patch_date__isnull=False
+        ).order_by('-last_patch_date')[:5]
+        stats["recent_activity"] = [_project_dashboard_fields(v) for v in replacements]
 
     stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)
+    
     if DEBUG:
         if cache.get("dashboard_stats"):
             logger.info(f"Cache has been successfully set for 'update_dashboard_counts'")
         else:
             logger.error(f"Cache has failed for 'update_dashboard_counts'")
+            
     return stats
 
 
