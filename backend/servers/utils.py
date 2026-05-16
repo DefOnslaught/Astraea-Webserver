@@ -255,7 +255,8 @@ def cache_individual_vms(vms):
             "last_patch_status": last_status,
             "enable_patching": get_val('enable_patching', True),
             "total_packages_updated": get_val('total_packages_updated', ''),
-            "date_registered": format_date(get_val('date_registered'))
+            "date_registered": format_date(get_val('date_registered')),
+            "enable_notifications": get_val('enable_notifications', True)
         }
 
         # 2. Update individual granular keys

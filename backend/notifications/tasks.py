@@ -30,6 +30,15 @@ def process_notification(self, notification_id):
 
     except PendingNotification.DoesNotExist:
         return
+    
+
+    if notification.server and not getattr(notification.server, 'enable_notifications', True):
+        if DEBUG:
+            logger.info(f"Notification {notification_id} suppressed: Notifications disabled for server {notification.server.hostname}.")
+        # Mark as sent
+        notification.notifications_sent = True
+        notification.save()
+        return
 
     n_settings = NotificationSettings.objects.first()
     if not n_settings:

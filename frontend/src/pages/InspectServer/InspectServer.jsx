@@ -143,6 +143,11 @@ const InspectServer = () => {
                             <span className={`text-xs px-2 py-1 rounded ${serverInfo.enable_patching ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                 {serverInfo.enable_patching ? 'Patching Active' : 'Patching Disabled'}
                             </span>
+                            {!serverInfo.enable_notifications && (
+                                <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
+                                    Notifications Disabled
+                                </span>
+                            )}
                         </h1>
                         <p className="text-slate-400 font-mono text-sm">{serverInfo.server_id}</p>
                     </div>

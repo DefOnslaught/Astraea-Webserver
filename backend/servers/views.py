@@ -622,7 +622,7 @@ class UpdateServerInfo(APIView):
             cached_data = cache.get(cache_key)
         
         # Only send the needed data to reduce amount sent
-        fields = ['server_id', 'patch_schedule', 'enable_patching', 'env', 'hostname']
+        fields = ['server_id', 'patch_schedule', 'enable_patching', 'env', 'hostname', 'enable_notifications']
         needed_results = {k: cached_data.get(k) for k in fields if k in cached_data}
         
         return Response(needed_results, status=status.HTTP_200_OK)

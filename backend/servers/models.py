@@ -13,6 +13,7 @@ class Server(models.Model):
     env = models.CharField(max_length=100, null=True, blank=True)
     total_packages_updated = models.IntegerField(default=0, db_index=True)
     date_registered = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    enable_notifications = models.BooleanField(default=True, db_index=True)
 
     def __str__(self):
         return self.hostname

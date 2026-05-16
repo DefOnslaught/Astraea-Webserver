@@ -7,10 +7,6 @@ Backend:
 
     - Do 'Forgot Password', need to create logic that handles this
 
-    - Figure out how to package 'Astraea-Agent' with the webserver, if we include it in the same repo
-
-    - Ensure when a server is patching, if the hostname changes or something we update the record. The UUID is the true source.
-
 Frontend:
 
     - Have a way to remove the 'register' page option if disabled (Not stupidly needed, v1.1?)
@@ -22,7 +18,12 @@ Frontend:
 
 General Needs:
 
-    Server config settings: enable notifications
+    Administration - System Access (Rename to something else) 
+        - Have a button to refresh cache manually (if for some reason the data showing is wrong)
+
+
+    Notification
+        - Add: Notify on Server delete, Add, modify
 
 
     Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits
@@ -34,4 +35,3 @@ General Needs:
 
     For the inspect server section
         - Add a search bar to 'Patch History'
-        - figure a way to display many patches in the 'Patch History', likely need pagination and use 'ServerPackageInventory' to display more (button saying 'Load more' -> enabled endless scroll)

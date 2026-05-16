@@ -1,9 +1,11 @@
 from django.db import models
 
 from configuration.models import NotificationService
+from servers.models import Server
 
 class PendingNotification(models.Model):
 
+    server = models.ForeignKey(Server, on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')
     msg = models.TextField()
     # Used to determine if the patching was  successful, partial, failed, or outdated
     status = models.CharField(max_length=10)

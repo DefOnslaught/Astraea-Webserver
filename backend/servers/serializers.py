@@ -55,7 +55,7 @@ class ServerUpdateSerializer(serializers.ModelSerializer):
     server_id = serializers.CharField(read_only=True)
     class Meta:
         model = Server
-        fields = ['server_id', 'enable_patching', 'patch_schedule', 'env']
+        fields = ['server_id', 'enable_patching', 'patch_schedule', 'env', 'enable_notifications']
 
 
 class ServerInfoSerializer(serializers.ModelSerializer):
@@ -69,7 +69,7 @@ class ServerInfoSerializer(serializers.ModelSerializer):
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
             'last_reboot', 'uptime', 'patch_schedule', 'env',
-            'date_registered'
+            'date_registered', 'enable_notifications'
         ]
     
     def update(self, instance, validated_data):
@@ -180,6 +180,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             # 5. Creates the notification for celery to send
             msg_body = f"Patching session {session_status} for {server.hostname}."
             new_note = PendingNotification.objects.create(
+                server=server,
                 msg=msg_body,
                 status=session_status,
                 extra_data={

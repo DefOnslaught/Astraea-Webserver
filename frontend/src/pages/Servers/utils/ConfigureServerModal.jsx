@@ -7,6 +7,7 @@ import SectionLoader from '../../../components/SectionLoader';
 const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
     const [formData, setFormData] = useState({
         enable_patching: true,
+        enable_notifications: true,
         patch_schedule: '',
         env: ''
     });
@@ -17,7 +18,6 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    // 1. Fetch current settings
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -25,6 +25,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                 setServerInfo(res.data);
                 setFormData({
                     enable_patching: res.data.enable_patching,
+                    enable_notifications: res.data.enable_notifications,
                     patch_schedule: res.data.patch_schedule || '',
                     env: res.data.env || ''
                 });
@@ -113,20 +114,40 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
 
                     <form onSubmit={handleSubmit} className="p-6 space-y-6">
                         {/* Standard Inputs */}
-                        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
-                            <div className="flex flex-col">
-                                <span className="text-sm font-semibold text-gray-200">Enable Patching</span>
-                                <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Automation Master Switch</span>
+                        <div className="space-y-4">
+                            {/* PATCHING TOGGLE CARD */}
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-200">Enable Patching</span>
+                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Automation Master Switch</span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.enable_patching}
+                                        onChange={(e) => setFormData({ ...formData, enable_patching: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.enable_patching}
-                                    onChange={(e) => setFormData({ ...formData, enable_patching: e.target.checked })}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                            </label>
+
+                            {/* NOTIFICATIONS TOGGLE CARD */}
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-200">Enable Notifications</span>
+                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Toggle Notifications</span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.enable_notifications}
+                                        onChange={(e) => setFormData({ ...formData, enable_notifications: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
