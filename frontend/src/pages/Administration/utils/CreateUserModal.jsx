@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     X, UserPlus, Mail, User, Loader2,
     AlertTriangle, Eye, EyeOff, Check, Circle
@@ -43,6 +43,15 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
         { label: "Special Char", met: /[^A-Za-z0-9]/.test(formData.password) },
         { label: "Passwords Match", met: passwordsMatch },
     ];
+
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
 
     if (!isOpen) return null;
 

@@ -18,6 +18,15 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     useEffect(() => {
         const fetchSettings = async () => {
             try {

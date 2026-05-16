@@ -45,6 +45,15 @@ const CronModal = ({ currentValue, onSave, onClose }) => {
         }
     };
 
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     useEffect(() => {
         // Sanitize: collapse spaces
         const cleanValue = tempValue.trim().replace(/\s+/g, ' ');

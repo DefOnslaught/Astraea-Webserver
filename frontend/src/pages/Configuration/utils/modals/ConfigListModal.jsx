@@ -28,6 +28,15 @@ const ConfigListModal = ({ onClose }) => {
         }
     };
 
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     useEffect(() => { fetchConfigs(); }, []);
 
     const handleDelete = async (uid) => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../utils/AuthContext";
@@ -10,6 +10,15 @@ const SessionWarningModal = () => {
 
     const minutes = Math.floor(refreshTimeLeft / 60);
     const seconds = refreshTimeLeft % 60;
+
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
 
     const handleLogoutNow = () => {
         dismissWarning();

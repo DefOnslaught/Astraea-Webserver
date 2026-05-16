@@ -22,6 +22,15 @@ const SessionDetailsModal = ({ session, onClose }) => {
         return { color: 'text-emerald-400', label: 'Upgrade' };
     };
 
+    // Lock background scrolling
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     useEffect(() => {
         const fetchDetails = async () => {
             try {
