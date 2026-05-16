@@ -23,6 +23,10 @@ const InspectServer = () => {
     const [history, setHistory] = useState([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [historyError, setHistoryError] = useState("");
+    const [historyOffset, setHistoryOffset] = useState(5); // Start at 5 because first 5 are loaded by overview
+    const [hasMoreHistory, setHasMoreHistory] = useState(true);
+    const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
+    const [isHistoryInfinite, setIsHistoryInfinite] = useState(false);
     const [packages, setPackages] = useState([]);
     const [isPackagesLoading, setIsPackagesLoading] = useState(true);
     const [packagesError, setPackagesError] = useState("");
@@ -39,7 +43,8 @@ const InspectServer = () => {
         try {
             const res = await api.get(`${API_ENDPOINTS.INSPECT_SERVER}?server_id=${server_id}`);
             setServerInfo(res.data);
-            if (res.data.recent_history) setHistory(res.data.recent_history);
+            setHistory(res.data.recent_history || []);
+            setHasMoreHistory(res.data.has_more_history ?? false);
             if (res.data.recent_packages) setPackages(res.data.recent_packages);
         } catch (err) {
             setError("Critical: Could not connect to Astraea backend.");
@@ -48,21 +53,47 @@ const InspectServer = () => {
         }
     };
 
-    const fetchFullHistory = async () => {
-        if (history.length > 0) return;
+    const fetchFullHistory = async (isFirstLoadMore = false) => {
+        if (!hasMoreHistory || isHistoryLoadingMore) return;
+
+        setIsHistoryLoadingMore(true);
+        const currentOffset = historyOffset;
+        const limit = 10;
 
         try {
-            const res = await api.get(`${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}`);
-            setHistory(res.data);
+            const res = await api.get(
+                `${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}&limit=${limit}&offset=${currentOffset}`
+            );
+
+            if (!res.data || res.data.length < limit) {
+                setHasMoreHistory(false);
+            }
+
+            if (res.data && res.data.length > 0) {
+                setHistory(prev => {
+                    const existingIds = new Set(prev.map(item => item.id));
+                    const uniqueNewItems = res.data.filter(item => !existingIds.has(item.id));
+                    return [...prev, ...uniqueNewItems];
+                });
+            } else {
+                setHasMoreHistory(false);
+            }
+
+            if (isFirstLoadMore) {
+                setIsHistoryInfinite(true);
+            }
+
+            setHistoryError("");
         } catch (error) {
-            setHistoryError("Critical: Could not connect to Astraea backend.");
+            setHistoryError("Critical: Could not synchronize history with Astraea engine.");
         } finally {
             setIsHistoryLoading(false);
+            setIsHistoryLoadingMore(false);
         }
     };
 
     const fetchPackages = async () => {
-        if (history.length > 0) return;
+        if (packages.length > 0) return;
 
         try {
             const res = await api.get(`${API_ENDPOINTS.SERVER_PACKAGES}?server_id=${server_id}`);
@@ -84,6 +115,13 @@ const InspectServer = () => {
         setSuccessMsg(`Updated ${serverInfo.hostname} successfully!`);
         setShowSuccess(true);
     }
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        if (tab === 'history') {
+            setIsHistoryLoading(false);
+        }
+    };
 
     useEffect(() => { fetchServer(); }, [server_id]);
 
@@ -129,7 +167,7 @@ const InspectServer = () => {
             <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
                 <div className="flex border-b border-slate-800 bg-slate-900/80">
                     <TabBtn active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} label="Overview" icon={<Server className="w-4 h-4" />} />
-                    <TabBtn active={activeTab === 'history'} onClick={() => { setActiveTab('history'); fetchFullHistory(); }} label="Patch History" icon={<Clock className="w-4 h-4" />} />
+                    <TabBtn active={activeTab === 'history'} onClick={() => handleTabChange('history')} label="Patch History" icon={<Clock className="w-4 h-4" />} />
                     <TabBtn active={activeTab === 'packages'} onClick={() => { setActiveTab('packages'); fetchPackages(); }} label="Packages" icon={<Package className="w-4 h-4" />} />
                 </div>
 
@@ -171,7 +209,18 @@ const InspectServer = () => {
                         </div>
                     )}
 
-                    {activeTab === 'history' && <HistoryTable history={history} onSelectSession={setSelectedSession} error={historyError} loading={isHistoryLoading} />}
+                    {activeTab === 'history' && (
+                        <HistoryTable
+                            history={history}
+                            onSelectSession={setSelectedSession}
+                            error={historyError}
+                            loading={isHistoryLoading}
+                            loadingMore={isHistoryLoadingMore}
+                            hasMore={hasMoreHistory}
+                            isInfinite={isHistoryInfinite}
+                            loadMore={fetchFullHistory}
+                        />
+                    )}
                     {activeTab === 'packages' && <PackageList packages={packages} error={packagesError} loading={isPackagesLoading} />}
                 </div>
             </div>

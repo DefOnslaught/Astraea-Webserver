@@ -1,12 +1,54 @@
+import { useEffect, useRef } from 'react';
 import SectionLoader from '../../../components/SectionLoader';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2, ArrowDownCircle } from 'lucide-react';
 
-const HistoryTable = ({ history, onSelectSession, error, loading }) => {
-    if (!Array.isArray(history)) return <div className="p-4 text-slate-500 italic">No history available.</div>;
+const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore }) => {
+    const observerTarget = useRef(null);
 
-    if (history.length === 0 && loading) return <div className="max-h-100 text-slate-500 italic"><SectionLoader label='Loading Patch History' /></div>;
+    useEffect(() => {
+        if (loading || loadingMore || !hasMore || !isInfinite) return;
 
-    if (history.length === 0 && error) return <div className="p-10 text-red-500 flex items-center gap-2"><AlertTriangle />{error}</div>;
+        const currentTarget = observerTarget.current;
+        if (!currentTarget) return;
+
+        const observer = new IntersectionObserver(
+            entries => {
+                const target = entries[0];
+                if (target.isIntersecting && !loadingMore) {
+                    loadMore(false);
+                }
+            },
+            {
+                root: null,
+                rootMargin: '100px',
+                threshold: 0.01
+            }
+        );
+
+        observer.observe(currentTarget);
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [loading, loadingMore, hasMore, isInfinite, loadMore]);
+
+    if (loading) {
+        return (
+            <div className="h-64 flex items-center justify-center">
+                <SectionLoader label='Loading Patch History...' />
+            </div>
+        );
+    }
+
+    if (error && history.length === 0) {
+        return <div className="p-10 text-red-500 flex items-center gap-2"><AlertTriangle />{error}</div>;
+    }
+
+    if (history.length === 0) {
+        return <div className="p-6 text-slate-500 italic text-center">No records have been found for this endpoint.</div>;
+    }
 
     return (
         <div className="overflow-x-auto">
@@ -20,7 +62,6 @@ const HistoryTable = ({ history, onSelectSession, error, loading }) => {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-
                     {history.map(session => (
                         <tr key={session.id} className="hover:bg-slate-800/30 transition-colors group">
                             <td className="py-4 text-slate-300 font-mono text-sm">
@@ -36,8 +77,8 @@ const HistoryTable = ({ history, onSelectSession, error, loading }) => {
                             </td>
                             <td className="py-4">
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${session.status === 'success'
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                     }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${session.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
                                     {session.status.toUpperCase()}
@@ -60,19 +101,47 @@ const HistoryTable = ({ history, onSelectSession, error, loading }) => {
                             </td>
                         </tr>
                     ))}
-
-
-                    {!loading && history.length === 0 && !error && (
-                        <tr>
-                            <td colSpan="6" className="py-20 text-center">
-                                <i className="fa-solid fa-box-open text-4xl text-gray-700 mb-4 block"></i>
-                                <p className="text-gray-500">No Patch History to show.</p>
-                            </td>
-                        </tr>
-                    )}
-
                 </tbody>
             </table>
+
+            {/* ONLY RENDER THE FOOTER WRAPPER IF THERE IS ACTUALLY STUFF TO DO OR DISPLAY */}
+            {(hasMore || isInfinite) && (
+                <div className="w-full flex flex-col items-center justify-center mt-6 pt-4 border-t border-slate-800/60">
+                    {!isInfinite && hasMore && (
+                        <button
+                            type="button"
+                            onClick={() => loadMore(true)}
+                            disabled={loadingMore}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700/60 transition-all active:scale-[0.98]"
+                        >
+                            {loadingMore ? (
+                                <>
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                                    Indexing Records...
+                                </>
+                            ) : (
+                                <>
+                                    <ArrowDownCircle className="w-3.5 h-3.5 text-indigo-400" />
+                                    Load More History
+                                </>
+                            )}
+                        </button>
+                    )}
+
+                    {isInfinite && (
+                        <div ref={observerTarget} className="h-14 w-full flex items-center justify-center text-slate-400 text-xs font-medium">
+                            {loadingMore ? (
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+                                    Fetching older historical entries...
+                                </div>
+                            ) : !hasMore ? (
+                                <span className="text-slate-600 italic">All historical updates loaded.</span>
+                            ) : null}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

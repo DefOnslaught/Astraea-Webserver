@@ -450,8 +450,13 @@ class InspectServerInfo(APIView):
             cache_individual_vms([server])
             data = cache.get(cache_key)
 
-        # Add recent history summary
-        recent_sessions = PatchSession.objects.filter(server__server_id=server_id)
+        recent_sessions = list(PatchSession.objects.filter(server__server_id=server_id).order_by('-timestamp')[:6])
+        
+        has_more = len(recent_sessions) > 5
+        if has_more:
+            recent_sessions = recent_sessions[:5]
+
+        data['has_more_history'] = has_more
         data['recent_history'] = [{
             'id': s.id,
             'timestamp': s.timestamp,
@@ -487,12 +492,17 @@ class ServerPatchHistory(APIView):
         if not server_id:
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Fetch all sessions for this server
+        try:
+            limit = int(request.query_params.get('limit', 10))
+            offset = int(request.query_params.get('offset', 0))
+        except ValueError:
+            limit = 10
+            offset = 0
+
         sessions = PatchSession.objects.filter(
             server__server_id=server_id
-        ).order_by('-timestamp')
+        ).order_by('-timestamp')[offset:offset + limit]
 
-        # Map to the format the Frontend HistoryTable expects
         data = [{
             'id': s.id,
             'timestamp': s.timestamp,
