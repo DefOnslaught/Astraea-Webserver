@@ -4,8 +4,13 @@ from .models import Server, NetworkInterface, Package, PackageUpdate, PatchSessi
 
 @admin.register(Server)
 class ServerAdmin(admin.ModelAdmin):
-    fields = ('hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching', 'enable_notifications')
-    list_display = ('server_id', 'hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 'patch_schedule', 'env', 'enable_patching', 'date_registered', 'enable_notifications')
+    fields = ('hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 
+              'duration', 'patch_schedule', 'env', 'enable_patching', 'enable_notifications', 'disable_autoremove', 
+              'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime')
+    list_display = ('server_id', 'hostname', 'os_version', 'uptime', 'last_reboot', 'last_patch_date', 'total_packages_updated', 
+                    'duration', 'patch_schedule', 'env', 'enable_patching', 'date_registered', 'enable_notifications', 
+                    'disable_autoremove', 'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates', 
+                    'max_allowed_uptime')
 
 @admin.register(NetworkInterface)
 class NetworkInterfaceAdmin(admin.ModelAdmin):
@@ -19,8 +24,8 @@ class PackageAdmin(admin.ModelAdmin):
 
 @admin.register(PatchSession)
 class PatchSessionAdmin(admin.ModelAdmin):
-    fields = ('server', 'status', 'error_log', 'total_updated')
-    list_display = ('server', 'timestamp', 'status', 'error_log', 'total_updated')
+    fields = ('server', 'status', 'error_log', 'total_updated', 'duration')
+    list_display = ('server', 'timestamp', 'status', 'error_log', 'total_updated', 'duration')
 
 @admin.register(PackageUpdate)
 class PackageUpdateAdmin(admin.ModelAdmin):

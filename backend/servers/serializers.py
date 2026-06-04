@@ -22,7 +22,7 @@ class PackageUpdateSerializer(serializers.ModelSerializer):
 class PatchSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatchSession
-        fields = ['id', 'timestamp', 'status', 'total_updated', 'error_log']
+        fields = ['id', 'timestamp', 'status', 'total_updated', 'duration', 'error_log']
 
 
 class NetworkInterfaceSerializer(serializers.ModelSerializer):
@@ -69,7 +69,9 @@ class ServerInfoSerializer(serializers.ModelSerializer):
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
             'last_reboot', 'uptime', 'patch_schedule', 'env',
-            'date_registered', 'enable_notifications'
+            'date_registered', 'enable_notifications', 'disable_autoremove',
+            'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates',
+            'max_allowed_uptime'
         ]
     
     def update(self, instance, validated_data):
@@ -115,8 +117,10 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         model = Server
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
-            'last_reboot', 'uptime', 'total_packages_updated', 'packages',
-            'patch_schedule', 'env', 'status', 'error_log'
+            'last_reboot', 'uptime', 'total_packages_updated', 'duration',
+            'packages', 'patch_schedule', 'env', 'status',
+            'error_log', 'disable_autoremove', 'enable_apt_release_info_change', 
+            'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime'
         ]
 
     def update(self, instance, validated_data):
@@ -131,6 +135,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         server_uuid = validated_data.pop('server_id')
         session_status = validated_data.pop('status', 'success')
         total_updated = validated_data.pop('total_packages_updated', 0)
+        run_duration = validated_data.pop('duration', 0)
         session_errors = validated_data.pop('error_log', None)
         
         validated_data['last_patch_date'] = timezone.now()
@@ -139,7 +144,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             # 1. Update Server Base Info
             server, _ = Server.objects.update_or_create(
                 server_id=server_uuid,
-                defaults={**validated_data, 'total_packages_updated': total_updated}
+                defaults={**validated_data, 'total_packages_updated': total_updated, 'duration': run_duration}
             )
 
             # 2. IP Stealing & Interface Sync 
@@ -157,7 +162,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 server=server,
                 status=session_status,
                 error_log=session_errors,
-                total_updated=total_updated
+                total_updated=total_updated,
+                duration=run_duration
             )
 
             # 4. Log individual package updates within this session
@@ -186,6 +192,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 extra_data={
                     'server_name': server.hostname,
                     'updates_count': total_updated,
+                    'duration': run_duration
                 }
             )
             transaction.on_commit(lambda: process_notification.delay(new_note.id))

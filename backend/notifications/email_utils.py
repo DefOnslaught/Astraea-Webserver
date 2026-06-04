@@ -4,6 +4,8 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 
+from servers.utils import format_duration
+
 logger = logging.getLogger('django')
 
 def send_notification_email(notification, recipient_list):
@@ -16,6 +18,9 @@ def send_notification_email(notification, recipient_list):
     else:
         template_name = 'email_patching_template.html'
         subject = f"Astraea Alert: Patching {notification.status.upper()}"
+
+    duration_seconds = notification.extra_data.get('duration', 0)
+    readable_duration = format_duration(duration_seconds)
     
     context = {
         'msg': notification.msg,
@@ -23,6 +28,7 @@ def send_notification_email(notification, recipient_list):
         'created_at': notification.created_at,
         'updates_count': notification.extra_data.get('updates_count', 0),
         'server_name': notification.extra_data.get('server_name', 'System Cluster'),
+        'duration': readable_duration,
         'status_color': '#2ecc71' if notification.status == 'success' else '#e74c3c' if notification.status == 'failed' else '#3498db',
         'PATCH_THRESHOLD_DAYS': settings.PATCH_THRESHOLD_DAYS
     }

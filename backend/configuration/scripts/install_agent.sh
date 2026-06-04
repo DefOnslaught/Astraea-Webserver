@@ -10,6 +10,11 @@ EXE_LOGIC="{{ EXE_LOGIC }}"
 ENVIRONMENT="{{ ENVIRONMENT }}"
 CRON_SCHEDULE="{{ CRON }}"
 PATCHING_SCHEDULE="{{ PATCHING_SCHEDULE }}"
+DISABLE_AUTOREMOVE="{{ DISABLE_AUTOREMOVE }}"
+ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE="{{ ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE }}"
+REBOOT_ON_SUCCESS="{{ REBOOT_ON_SUCCESS }}"
+REBOOT_AFTER_UPDATES="{{ REBOOT_AFTER_UPDATES }}"
+MAX_ALLOWED_UPTIME_DAYS="{{ MAX_ALLOWED_UPTIME_DAYS }}"
 
 INSTALL_DIR="/opt/Astraea-Agent"
 CRON_FILE="/etc/cron.d/astraea-agent-schedule"
@@ -53,6 +58,11 @@ sed -i "s|^ENV=.*|ENV=$ENVIRONMENT|" .env
 PATCH_SCHEDULE_ESCAPED=$(echo "{{ PATCHING_SCHEDULE|safe }}" | sed 's/&/\\&/g')
 sed -i "s|^PATCH_SCHEDULE=.*|PATCH_SCHEDULE=$PATCH_SCHEDULE_ESCAPED|" .env
 sed -i "s|^BASE_URL=.*|BASE_URL=$BASE_URL|" .env
+sed -i "s|^DISABLE_AUTOREMOVE=.*|DISABLE_AUTOREMOVE=$DISABLE_AUTOREMOVE|" .env
+sed -i "s|^ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE=.*|ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE=$ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE|" .env
+sed -i "s|^REBOOT_ON_SUCCESS=.*|REBOOT_ON_SUCCESS=$REBOOT_ON_SUCCESS|" .env
+sed -i "s|^REBOOT_AFTER_UPDATES=.*|REBOOT_AFTER_UPDATES=$REBOOT_AFTER_UPDATES|" .env
+sed -i "s|^MAX_ALLOWED_UPTIME_DAYS=.*|MAX_ALLOWED_UPTIME_DAYS=$MAX_ALLOWED_UPTIME_DAYS|" .env
 
 echo "--- Configuration Applied ---"
 
@@ -73,7 +83,7 @@ else
     EXEC_CMD="/usr/bin/python3 $INSTALL_DIR/core/initialize.py"
 fi
 
-# 6 Install Python3.10-venv
+# 6 Install Python Dependencies
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
@@ -82,16 +92,40 @@ else
     exit 1
 fi
 
+# Ensure python3 is actually installed first to verify the version
+if ! command -v python3 &> /dev/null; then
+    echo "--- Installing base Python3 ---"
+    case $OS in
+        ubuntu|debian)
+            sudo apt update && sudo apt install -y python3 ;;
+        fedora|centos|rhel)
+            sudo dnf install -y python3 ;;
+    esac
+fi
+
+# Get current system python version (e.g., "3.12")
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+# Enforce a minimum capability baseline of 3.10 using bc or awk numeric comparisons
+IS_MODERN=$(python3 -c "import sys; print(1 if sys.version_info >= (3, 10) else 0)")
+
+if [ "$IS_MODERN" -ne 1 ]; then
+    echo "❌ Astraea Agent requires Python 3.10 or higher. Found version: $PYTHON_VERSION"
+    exit 1
+fi
+
 case $OS in
     ubuntu|debian)
         sudo apt update
-        sudo apt install -y python3.10-venv
+        # Dynamically map the venv package to match the system host version
+        sudo apt install -y "python${PYTHON_VERSION}-venv"
         ;;
     
     fedora|centos|rhel)
         if [[ "$OS" != "fedora" ]]; then
             sudo dnf install -y epel-release
         fi
+        # RedHat variants typically group venv directly into python3-devel or the standard binary
         sudo dnf install -y python3 python3-devel
         ;;
 

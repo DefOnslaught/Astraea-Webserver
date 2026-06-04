@@ -198,15 +198,44 @@ const InspectServer = () => {
 
                             <section className="space-y-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold mb-4 text-slate-200">Patch Configuration</h3>
+                                    <h3 className="text-lg font-semibold mb-4 text-slate-200">Agent Configuration</h3>
                                     <div className="bg-slate-800/20 p-4 rounded-lg border border-slate-700">
                                         <div className="flex justify-between mb-4">
                                             <span className="text-slate-400">Schedule</span>
                                             <span className="text-slate-100 font-medium">{serverInfo.patch_schedule}</span>
                                         </div>
+
+                                        <div className="flex justify-between mb-4">
+                                            <span className="text-slate-400">Disable Autoremove</span>
+                                            <span className={`font-medium ${serverInfo.disable_autoremove ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                {serverInfo.disable_autoremove ? "Enabled" : "Disabled"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between mb-4">
+                                            <span className="text-slate-400">Enable APT Release Info Change</span>
+                                            <span className={`font-medium ${serverInfo.enable_apt_release_info_change ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                {serverInfo.enable_apt_release_info_change ? "Enabled" : "Disabled"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between mb-4">
+                                            <span className="text-slate-400">Reboot On Success</span>
+                                            <span className={`font-medium ${serverInfo.reboot_on_success ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                {serverInfo.reboot_on_success ? "Enabled" : "Disabled"}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex justify-between mb-4">
+                                            <span className="text-slate-400">Reboot After Updates</span>
+                                            <span className={`font-medium ${serverInfo.reboot_after_updates ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                                {serverInfo.reboot_after_updates ? "Enabled" : "Disabled"}
+                                            </span>
+                                        </div>
+
                                         <div className="flex justify-between">
-                                            <span className="text-slate-400">Packages Updated Last Patch</span>
-                                            <span className="text-indigo-400 font-bold">{serverInfo.total_packages_updated}</span>
+                                            <span className="text-slate-400">Max Allowed Uptime</span>
+                                            <span className="text-indigo-400 font-medium">{serverInfo.max_allowed_uptime} Days</span>
                                         </div>
                                     </div>
                                 </div>

@@ -13,6 +13,7 @@ class ServerFactory(factory.django.DjangoModelFactory):
     last_reboot = factory.LazyFunction(lambda: timezone.now() - timezone.timedelta(days=14))
     last_patch_date = factory.LazyFunction(lambda: timezone.now() - timezone.timedelta(days=45))
     total_packages_updated = 10
+    duration = 60
     env = "Prod"
 
     @factory.post_generation

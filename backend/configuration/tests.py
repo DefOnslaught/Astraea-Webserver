@@ -312,8 +312,7 @@ class AgentHandlerTests(APITestCase):
         self.client.force_authenticate(user=self.user)
     
     def test_create_agent_config_success(self):
-        """Verify successful agent config creation with field mapping."""
-        # 1. Create an active API Key that the SlugRelatedField can find
+        """Verify successful agent config creation with all new agent parameters explicitly defined."""
         api_key = APIKey.objects.create(
             name="Test-Key-01", 
             key="test_secret_123", 
@@ -322,13 +321,19 @@ class AgentHandlerTests(APITestCase):
 
         url = reverse('agent_create_config')
         
-        # Use the field names expected by the Serializer (React-style)
+        # Explicit data containing your new agent parameters
         data = {
             "label": "Test Config",
             "apiKeyName": "Test-Key-01",
             "helperScript": "week1and3",
             "environment": "staging",
-            "schedule": "0 0 * * 1"
+            "schedule": "0 0 * * 1",
+            "patching_schedule": "04:00 AM Wednesday Weeks 1 & 3",
+            "disable_autoremove": True,
+            "enable_apt_release_info_change": True,
+            "reboot_on_success": True,
+            "reboot_after_updates": False, # explicit change from default True
+            "max_allowed_uptime": 45
         }
 
         response = self.client.post(url, data, format='json')
@@ -337,21 +342,59 @@ class AgentHandlerTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('uuid', response.data)
         
-        # Verify Database entry exists with mapped fields
+        # Verify Database values match payload
         config = AgentInstallConfig.objects.get(uid=response.data['uuid'])
         self.assertEqual(config.label, "Test Config")
         self.assertEqual(config.api_key, api_key)
         self.assertEqual(config.exe_logic, "week1and3")
         self.assertEqual(config.cron, "0 0 * * 1")
+        self.assertEqual(config.patching_schedule, "04:00 AM Wednesday Weeks 1 & 3")
+        
+        # Verify agent flag assertions
+        self.assertTrue(config.disable_autoremove)
+        self.assertTrue(config.enable_apt_release_info_change)
+        self.assertTrue(config.reboot_on_success)
+        self.assertFalse(config.reboot_after_updates)
+        self.assertEqual(config.max_allowed_uptime, 45)
+
+    def test_create_agent_config_defaults(self):
+        """Verify fallback behavior when optional automation flags are omitted from the payload."""
+        api_key = APIKey.objects.create(
+            name="Test-Key-Defaults", 
+            key="test_secret_456", 
+            is_active=True
+        )
+
+        url = reverse('agent_create_config')
+        
+        # Minimal payload mimicking missing configuration options
+        data = {
+            "label": "Minimal Config",
+            "apiKeyName": "Test-Key-Defaults",
+            "helperScript": "standard",
+            "environment": "production",
+            "schedule": "0 0 * * *"
+        }
+
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Grab item to assert native Django model default behaviors
+        config = AgentInstallConfig.objects.get(uid=response.data['uuid'])
+        self.assertFalse(config.disable_autoremove)
+        self.assertFalse(config.enable_apt_release_info_change)
+        self.assertFalse(config.reboot_on_success)
+        self.assertTrue(config.reboot_after_updates)
+        self.assertEqual(config.max_allowed_uptime, 20)
+        self.assertIsNone(config.patching_schedule)
 
     def test_create_agent_config_invalid_key(self):
         """Verify error when providing a non-existent or inactive API Key."""
-        # Create an INACTIVE key
         APIKey.objects.create(name="Disabled-Key", key="secret", is_active=False)
         
         url = reverse('agent_create_config')
         data = {
-            "apiKeyName": "Disabled-Key", # Should fail because queryset filters active
+            "apiKeyName": "Disabled-Key",
             "helperScript": "standard",
             "environment": "production",
             "schedule": "* * * * *"
@@ -375,4 +418,4 @@ class AgentHandlerTests(APITestCase):
         }
 
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)   
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

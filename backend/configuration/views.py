@@ -317,7 +317,12 @@ class AgentInstallScriptView(APIView):
             'PATCHING_SCHEDULE': config.patching_schedule,
             'EXE_LOGIC': config.exe_logic,
             'BASE_URL': f"{request.scheme}://{request.get_host()}",
-            'UID': uid
+            'UID': uid,
+            'DISABLE_AUTOREMOVE': config.disable_autoremove,
+            'ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE': config.enable_apt_release_info_change,
+            'REBOOT_ON_SUCCESS': config.reboot_on_success,
+            'REBOOT_AFTER_UPDATES': config.reboot_after_updates,
+            'MAX_ALLOWED_UPTIME_DAYS': config.max_allowed_uptime
         })
         
         rendered_script = template.render(context)
@@ -452,6 +457,11 @@ class GetAgentInstallConfigs(APIView):
             'uid': config.uid,
             'exe_logic': config.exe_logic,
             'environment': config.environment,
+            'disable_autoremove': config.disable_autoremove,
+            'enable_apt_release_info_change': config.enable_apt_release_info_change,
+            'reboot_on_success': config.reboot_on_success,
+            'reboot_after_updates': config.reboot_after_updates,
+            'max_allowed_uptime': config.max_allowed_uptime,
             'cron': config.cron,
             'patching_schedule': config.patching_schedule,
             'created_at': config.created_at

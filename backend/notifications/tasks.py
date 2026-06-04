@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
+from django.conf import settings
 from django.db.models import Q
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -12,6 +13,7 @@ from configuration.models import NotificationService, NotificationSettings
 from .models import PendingNotification
 from .discord_utils import send_msg
 from .email_utils import send_notification_email
+from servers.utils import format_duration
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -20,7 +22,7 @@ User = get_user_model()
 def process_notification(self, notification_id):
     try:
         with transaction.atomic():
-            notification = PendingNotification.objects.select_for_update().get(id=notification_id)
+            notification = PendingNotification.objects.select_for_update().select_related('server').get(id=notification_id)
             
             if notification.notifications_sent:
                 return
@@ -65,6 +67,20 @@ def process_notification(self, notification_id):
 
     sent_service_ids = notification.successful_services.values_list('id', flat=True)
     
+    duration_seconds = notification.extra_data.get('duration', 0)
+    readable_duration = format_duration(duration_seconds)
+    
+    report_details = {
+        'msg': notification.msg,
+        'status': notification.status,
+        'created_at': notification.created_at,
+        'updates_count': notification.extra_data.get('updates_count', 0),
+        'server_name': notification.extra_data.get('server_name', 'System Cluster'),
+        'duration': readable_duration,
+        'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
+    }
+
+    # 4. Dispatch Loop
     for service in active_services:
         if service.id in sent_service_ids:
             continue
@@ -72,10 +88,19 @@ def process_notification(self, notification_id):
         s_type = service.type.lower()
         try:
             success = False
+            
+            # Webhook Delivery Channel
             if 'discord' in s_type:
-                success = send_msg(message=notification.msg, url=service.url, patch_status=notification.status)
+                success = send_msg(
+                    message=notification.msg, 
+                    url=service.url, 
+                    patch_status=notification.status,
+                    report_details=report_details
+                )
+                
+            # SMTP Delivery Channel
             elif 'email' in s_type or 'smtp' in s_type:
-                recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True)) # Gets all active user emails
+                recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True))
                 additional_recipients = service.recipients
                 if additional_recipients:
                     extra_list = [r.strip() for r in additional_recipients.split(',') if r.strip()]
@@ -84,6 +109,7 @@ def process_notification(self, notification_id):
 
             if success:
                 notification.successful_services.add(service)
+                
         except Exception as e:
             notification.retry_count += 1
             logger.error(f"Error sending to {service.name}: {str(e)}")

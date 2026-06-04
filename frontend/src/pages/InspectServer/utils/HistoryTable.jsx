@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import SectionLoader from '../../../components/SectionLoader';
-import { AlertTriangle, Loader2, ArrowDownCircle } from 'lucide-react';
+import { AlertTriangle, Loader2, ArrowDownCircle, Timer } from 'lucide-react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore }) => {
     const observerTarget = useRef(null);
@@ -56,6 +58,7 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                 <thead className="text-slate-500 text-sm uppercase">
                     <tr>
                         <th className="pb-4">Timestamp</th>
+                        <th className="pb-4">Duration</th>
                         <th className="pb-4">Status</th>
                         <th className="pb-4">Updated</th>
                         <th className="pb-4">Logs / Errors</th>
@@ -75,14 +78,62 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                                     })}
                                 </button>
                             </td>
-                            <td className="py-4">
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${session.status === 'success'
-                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                    }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${session.status === 'success' ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                    {session.status.toUpperCase()}
-                                </span>
+                            <td className="py-4 font-mono text-sm text-slate-400">
+                                <div className="flex items-center gap-1.5">
+                                    <Timer className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>{session.duration}</span>
+                                </div>
+                            </td>
+                            <td className="px-6 py-4">
+                                {(() => {
+                                    const status = (session.status || 'unknown').toLowerCase();
+
+                                    // Comprehensive Style Map
+                                    const styleMap = {
+                                        success: {
+                                            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+                                            text: "text-emerald-400",
+                                            bg: "bg-emerald-500/5 border-emerald-500/10"
+                                        },
+                                        failed: {
+                                            dot: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] animate-pulse",
+                                            text: "text-red-400",
+                                            bg: "bg-red-500/5 border-red-500/10"
+                                        },
+                                        partial: {
+                                            dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]",
+                                            text: "text-amber-400",
+                                            bg: "bg-amber-500/5 border-amber-500/10"
+                                        },
+                                        unknown: {
+                                            dot: "bg-gray-500",
+                                            text: "text-gray-500",
+                                            bg: "bg-gray-500/5 border-gray-500/10"
+                                        }
+                                    };
+
+                                    const theme = styleMap[status] || styleMap.unknown;
+
+                                    return (
+                                        <div className="flex items-center">
+                                            {/* Inline Badge Container */}
+                                            <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${theme.bg} transition-all duration-300`}>
+                                                {/* Status Dot */}
+                                                <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`}></div>
+
+                                                {/* Status Label */}
+                                                <span className={`text-[11px] font-bold uppercase tracking-wider ${theme.text}`}>
+                                                    {status}
+                                                </span>
+
+                                                {/* Conditional "Action Required" icon for Failed/Partial */}
+                                                {(status === 'failed' || status === 'partial') && (
+                                                    <FontAwesomeIcon icon={faCircleExclamation} className={`text-[10px] ${theme.text} ml-1`} />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </td>
                             <td className="py-4 text-slate-300">
                                 <span className="font-bold text-indigo-400">{session.total}</span> pkgs

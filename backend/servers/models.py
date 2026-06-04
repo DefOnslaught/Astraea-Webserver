@@ -11,7 +11,13 @@ class Server(models.Model):
     patch_schedule = models.CharField(max_length=100, null=True, blank=True)
     enable_patching = models.BooleanField(default=True, db_index=True)
     env = models.CharField(max_length=100, null=True, blank=True)
+    disable_autoremove = models.BooleanField(default=False)
+    enable_apt_release_info_change = models.BooleanField(default=False)
+    reboot_on_success = models.BooleanField(default=False)
+    reboot_after_updates = models.BooleanField(default=True)
+    max_allowed_uptime = models.IntegerField(default=20)
     total_packages_updated = models.IntegerField(default=0, db_index=True)
+    duration = models.IntegerField(default=0)
     date_registered = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     enable_notifications = models.BooleanField(default=True, db_index=True)
 
@@ -51,6 +57,7 @@ class PatchSession(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='success')
     error_log = models.TextField(null=True, blank=True)
     total_updated = models.IntegerField(default=0)
+    duration = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-timestamp']

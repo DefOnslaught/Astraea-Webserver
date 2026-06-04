@@ -57,7 +57,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
                             Session Details
                         </h2>
                         <p className="text-sm text-slate-500 font-mono mt-1">
-                            {new Date(session.timestamp).toLocaleString()}
+                            {new Date(session.timestamp).toLocaleString()} - Duration {session.duration}
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors">

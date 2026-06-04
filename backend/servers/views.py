@@ -14,7 +14,7 @@ from django.views.decorators.cache import cache_page
 
 from backend.settings import DEBUG
 from .models import Server, Package, PatchSession, PackageUpdate
-from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index
+from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index, format_duration
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer, ServerInfoSerializer
 from .permissions import HasInternalAPIKey
 from configuration.utils import get_sys_config
@@ -323,6 +323,11 @@ class RegisterServer(APIView):
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
         hostname = data.get('hostname')
         env_value = data.get('env')
+        disable_autoremove = data.get('disable_autoremove')
+        enable_apt_release_info_change = data.get('enable_apt_release_info_change')
+        reboot_on_success = data.get('reboot_on_success')
+        reboot_after_updates = data.get('reboot_after_updates')
+        max_allowed_uptime = data.get('max_allowed_uptime')
         if not data or not hostname or not env_value:
             logger.info(f"Invalid registration received from IP: {ip_address}")
             return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
@@ -330,7 +335,12 @@ class RegisterServer(APIView):
         try:
             server, created = Server.objects.get_or_create(
                 hostname=hostname,
-                env=env_value
+                env=env_value,
+                disable_autoremove=disable_autoremove,
+                enable_apt_release_info_change=enable_apt_release_info_change,
+                reboot_on_success=reboot_on_success,
+                reboot_after_updates=reboot_after_updates,
+                max_allowed_uptime=max_allowed_uptime
             )
             logger.info(f"Successfully registered server {hostname}")
             status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
@@ -462,6 +472,7 @@ class InspectServerInfo(APIView):
             'timestamp': s.timestamp,
             'status': s.status,
             'total': s.total_updated,
+            'duration': format_duration(s.duration),
             'error_log': s.error_log
         } for s in recent_sessions]
 
@@ -508,6 +519,7 @@ class ServerPatchHistory(APIView):
             'timestamp': s.timestamp,
             'status': s.status,
             'total': s.total_updated,
+            'duration': format_duration(s.duration),
             'error_log': s.error_log
         } for s in sessions]
 
@@ -564,6 +576,7 @@ class PatchSessionDetail(APIView):
             'id': session.id,
             'timestamp': session.timestamp,
             'total_updated': session.total_updated,
+            'duration': format_duration(session.duration),
             'status': session.status,
             'error_log': session.error_log,
             'updates': [{

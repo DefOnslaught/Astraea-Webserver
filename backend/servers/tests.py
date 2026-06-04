@@ -56,7 +56,12 @@ class PatchingSystemTests(APITestCase):
         """Test to ensure a server can successfully register"""
         payload = {
             'hostname': "test_register",
-            'env': 'Production'    
+            'env': 'Production',
+            "disable_autoremove": False,
+            "enable_apt_release_info_change": False,
+            "reboot_on_success": False,
+            "reboot_after_updates": True,
+            "max_allowed_uptime": 20
         }
         url = reverse('register_server')
 
@@ -98,7 +103,13 @@ class PatchingSystemTests(APITestCase):
             "patch_schedule": "10AM Wednesday Weeks 1 & 3",
             "uptime": "1 hour",
             "env": "Prod",
+            "disable_autoremove": False,
+            "enable_apt_release_info_change": False,
+            "reboot_on_success": False,
+            "reboot_after_updates": True,
+            "max_allowed_uptime": 20,
             "total_packages_updated": 2,
+            "duration": 30,
             "packages": [
                 {"package_name": "openssl", "version": "3.0.8"},
                 {"package_name": "bash", "version": "5.2.15"}
@@ -120,6 +131,12 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(server.patch_schedule, "10AM Wednesday Weeks 1 & 3")
         self.assertGreater(server.last_reboot, past_reboot)
         self.assertEqual(server.env, "Prod")
+        self.assertEqual(server.disable_autoremove, False)
+        self.assertEqual(server.enable_apt_release_info_change, False)
+        self.assertEqual(server.reboot_on_success, False)
+        self.assertEqual(server.reboot_after_updates, True)
+        self.assertEqual(server.max_allowed_uptime, 20)
+        self.assertEqual(server.duration, 30)
         self.assertEqual(Package.objects.count(), 2)
         self.assertEqual(PackageUpdate.objects.filter(session__server=server).count(), 2)
 
@@ -134,6 +151,12 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(cached_data['os_version'], "Debian 12")
         self.assertEqual(cached_data['patch_schedule'], "10AM Wednesday Weeks 1 & 3")
         self.assertEqual(cached_data['env'], "Prod")
+        self.assertEqual(cached_data['disable_autoremove'], False)
+        self.assertEqual(cached_data['enable_apt_release_info_change'], False)
+        self.assertEqual(cached_data['reboot_on_success'], False)
+        self.assertEqual(cached_data['reboot_after_updates'], True)
+        self.assertEqual(cached_data['max_allowed_uptime'], 20)
+        self.assertEqual(cached_data['duration'], 30)
         from django.utils.dateparse import parse_datetime
         cached_time = parse_datetime(cached_data['last_reboot'])
         self.assertAlmostEqual(cached_time, new_reboot_time, delta=timedelta(seconds=1))
@@ -180,7 +203,13 @@ class PatchingSystemTests(APITestCase):
                 "last_reboot": reboot_time,
                 "uptime": "10 days",
                 "env": "Prod",
+                "disable_autoremove": False,
+                "enable_apt_release_info_change": False,
+                "reboot_on_success": False,
+                "reboot_after_updates": True,
+                "max_allowed_uptime": 20,
                 "total_packages_updated": 1,
+                "duration": 30,
                 "patch_schedule": "10AM Wednesday Weeks 1 and 3",
                 "packages": [
                     {"package_name": "openssl", "version": "3.0.8"},
@@ -303,7 +332,8 @@ class PatchingSystemTests(APITestCase):
         session = PatchSession.objects.create(
             server=server,
             status='success',
-            total_updated=5
+            total_updated=5,
+            duration=25
         )
         # Create a dummy package update
         package = Package.objects.create(name="openssl", version="3.0.1")

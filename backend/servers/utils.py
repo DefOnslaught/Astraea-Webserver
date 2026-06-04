@@ -250,11 +250,17 @@ def cache_individual_vms(vms):
             "last_reboot": format_date(get_val('last_reboot')),
             "uptime": get_val('uptime', ''),
             "env": get_val('env', ''),
-            "patch_schedule": get_val('patch_schedule'),
+            "patch_schedule": get_val('patch_schedule', ''),
+            "disable_autoremove": get_val('disable_autoremove', ''),
+            "enable_apt_release_info_change": get_val('enable_apt_release_info_change', ''),
+            "reboot_on_success": get_val('reboot_on_success', ''),
+            "reboot_after_updates": get_val('reboot_after_updates', ''),
+            "max_allowed_uptime": get_val('max_allowed_uptime', ''),
             "last_patch": format_date(get_val('last_patch_date')),
             "last_patch_status": last_status,
             "enable_patching": get_val('enable_patching', True),
             "total_packages_updated": get_val('total_packages_updated', ''),
+            "duration": get_val('duration', ''),
             "date_registered": format_date(get_val('date_registered')),
             "enable_notifications": get_val('enable_notifications', True)
         }
@@ -433,3 +439,28 @@ def natural_sort_key(s):
     """
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split('([0-9]+)', s)]
+
+
+def format_duration(seconds):
+    """Converts raw seconds into a human-readable string layout."""
+    if not seconds:
+        return "0s"
+        
+    try:
+        seconds = int(seconds)
+    except (ValueError, TypeError):
+        return "0s"
+
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    secs = seconds % 60
+
+    parts = []
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if secs > 0 or not parts:
+        parts.append(f"{secs}s")
+
+    return " ".join(parts)
