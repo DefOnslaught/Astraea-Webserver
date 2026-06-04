@@ -7,7 +7,15 @@ Backend:
 
     - Do 'Forgot Password', need to create logic that handles this
 
+    - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID
+
 Frontend:
+
+    Configuration
+        - Zabbix
+            - API key (method to request to see it once saved, so it's not sent on each page load or saved in cache)
+            - url
+            - timeframe to set the maintenance mode
 
     - Have a way to remove the 'register' page option if disabled (Not stupidly needed, v1.1?)
 

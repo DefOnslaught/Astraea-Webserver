@@ -17,6 +17,8 @@ Astraea utilizes a central Hub-and-Spoke model:
 * **Task Engine:** Redis & Celery-powered asynchronous workers for handling fleet-wide patch triggers.
 * **Remote Agents:** Lightweight Python agent installed on target nodes that report back to the Centralized Manager via a secure REST API.
 * **Caching:** Powered by **Redis**, our caching layer is built with absolute speed in mind. By offloading frequently accessed session data and volatile system metrics to an in-memory store, Astraea ensures **extremely fast results** and a highly responsive UI, even when managing a massive fleet of distributed agents.
+* **Notifications:** Sends notifications to configured services such as Email or Discord. Can be toggled per server, patch status, or notify for any out of date servers.
+* **Zabbix Support:** !COMING SOON! Integrates with [Zabbix](https://www.zabbix.com/) to disable alerts while a system is patching.
 
 ---
 
