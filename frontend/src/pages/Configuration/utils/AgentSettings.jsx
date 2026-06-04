@@ -4,6 +4,8 @@ import {
     Copy, Key, Calendar, ChevronRight, Settings2, Command, ChevronDown,
     History, ShieldAlert, Sliders, ToggleLeft, ToggleRight
 } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
 import CronModal from "./modals/CronModal";
@@ -408,52 +410,72 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
                         <Sliders className="w-3.5 h-3.5 text-indigo-400" /> System Automation Policies
                     </h4>
-                    
+
+                    {/* Clean, unified grid where peer cells auto-stretch to match the tallest row element */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Switches */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-200">Disable Autoremove</p>
-                                    <p className="text-xs text-slate-500">Prevents automatic purge of unused dependency files.</p>
-                                </div>
-                                <button type="button" onClick={() => toggleFlag('disable_autoremove')} className="text-indigo-400 transition-transform active:scale-95">
-                                    {agentConfig.disable_autoremove ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
-                                </button>
-                            </div>
 
-                            <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div>
+                        {/* CARD 1: Disable Autoremove */}
+                        <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors min-h-22.5">
+                            <div className="pr-4">
+                                <p className="text-sm font-semibold text-slate-200">Disable Autoremove</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Prevents automatic purge of unused dependency files.</p>
+                            </div>
+                            <button type="button" onClick={() => toggleFlag('disable_autoremove')} className="text-indigo-400 transition-transform active:scale-95 shrink-0">
+                                {agentConfig.disable_autoremove ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
+                            </button>
+                        </div>
+
+                        {/* CARD 2: Reboot On Success */}
+                        <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors min-h-22.5">
+                            <div className="pr-4">
+                                <p className="text-sm font-semibold text-slate-200">Reboot On Success</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Reboots the node instantly following clean runs.</p>
+                            </div>
+                            <button type="button" onClick={() => toggleFlag('reboot_on_success')} className="text-indigo-400 transition-transform active:scale-95 shrink-0">
+                                {agentConfig.reboot_on_success ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
+                            </button>
+                        </div>
+
+                        {/* CARD 3: Enable APT Release Info Change */}
+                        <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors min-h-22.5">
+                            <div className="pr-4">
+                                <div className="flex items-center gap-2">
                                     <p className="text-sm font-semibold text-slate-200">Enable APT Release Info Change</p>
-                                    <p className="text-xs text-slate-500">Permit running system upgrades over changing base releases.</p>
+                                    {/* Warning Info Icon with enhanced tooltip */}
+                                    <span
+                                        title="ADVANCED SETTING: This option enables the '--allow-releaseinfo-change' flag in APT. 
+                
+Use only if you are experiencing 'Repository changed its Release file' errors. Enabling this on an incorrect repository can result in insecure updates or broken package dependencies. Intended for Debian-based systems only. If you are unsure, leave this disabled."
+                                        className="cursor-help text-amber-500/70 hover:text-amber-400 transition-all animate-pulse"
+                                    >
+                                        <FontAwesomeIcon icon={faCircleInfo} className="w-3.5 h-3.5" />
+                                    </span>
                                 </div>
-                                <button type="button" onClick={() => toggleFlag('enable_apt_release_info_change')} className="text-indigo-400 transition-transform active:scale-95">
-                                    {agentConfig.enable_apt_release_info_change ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
-                                </button>
+                                <p className="text-xs text-slate-500 mt-0.5">Permit system upgrades even if the repository release origin has changed.</p>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => toggleFlag('enable_apt_release_info_change')}
+                                className="text-indigo-400 transition-transform active:scale-95 shrink-0"
+                            >
+                                {agentConfig.enable_apt_release_info_change ?
+                                    <ToggleRight className="w-8 h-8 text-indigo-500" /> :
+                                    <ToggleLeft className="w-8 h-8 text-gray-600" />
+                                }
+                            </button>
                         </div>
 
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-200">Reboot On Success</p>
-                                    <p className="text-xs text-slate-500">Reboots the node instantly following clean runs.</p>
-                                </div>
-                                <button type="button" onClick={() => toggleFlag('reboot_on_success')} className="text-indigo-400 transition-transform active:scale-95">
-                                    {agentConfig.reboot_on_success ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
-                                </button>
+                        {/* CARD 4: Reboot After Updates */}
+                        <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors min-h-22.5">
+                            <div className="pr-4">
+                                <p className="text-sm font-semibold text-slate-200">Reboot After Updates</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Reboots the node instantly after an update (min. 1 package updated).</p>
                             </div>
-
-                            <div className="flex items-center justify-between p-3.5 bg-gray-900/40 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
-                                <div>
-                                    <p className="text-sm font-semibold text-slate-200">Reboot After Updates</p>
-                                    <p className="text-xs text-slate-500">Reboots the node instantly after an update, minimum 1 package updated</p>
-                                </div>
-                                <button type="button" onClick={() => toggleFlag('reboot_after_updates')} className="text-indigo-400 transition-transform active:scale-95">
-                                    {agentConfig.reboot_after_updates ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
-                                </button>
-                            </div>
+                            <button type="button" onClick={() => toggleFlag('reboot_after_updates')} className="text-indigo-400 transition-transform active:scale-95 shrink-0">
+                                {agentConfig.reboot_after_updates ? <ToggleRight className="w-8 h-8 text-indigo-500" /> : <ToggleLeft className="w-8 h-8 text-gray-600" />}
+                            </button>
                         </div>
+
                     </div>
 
                     {/* Number Box Allocation Row */}
