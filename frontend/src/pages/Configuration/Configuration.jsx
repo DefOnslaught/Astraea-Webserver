@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
     Settings, Bell, Key, Cpu
 } from "lucide-react";
@@ -16,7 +16,10 @@ const Configuration = () => {
 
     // State Management
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState("general");
+    const [activeTab, setActiveTab] = useState(() => {
+        const hash = window.location.hash.replace("#", "");
+        return ["general", "notifications", "api", "agent"].includes(hash) ? hash : "general";
+    });
     const [successMsg, setSuccessMsg] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState("");
@@ -40,6 +43,28 @@ const Configuration = () => {
         setError(msg);
         setTimeout(() => setError(""), 3000);
     };
+
+    useEffect(() => {
+        if (activeTab === "general") {
+            window.history.replaceState(null, null, window.location.pathname);
+        } else {
+            window.location.hash = activeTab;
+        }
+    }, [activeTab]);
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace("#", "");
+            if (hash && hash !== activeTab) {
+                setActiveTab(hash);
+            } else if (!hash) {
+                setActiveTab("general");
+            }
+        };
+
+        window.addEventListener("hashchange", handleHashChange);
+        return () => window.removeEventListener("hashchange", handleHashChange);
+    }, [activeTab]);
 
     // --- Main Render ---
 
