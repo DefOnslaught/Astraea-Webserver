@@ -47,8 +47,8 @@ case $OS in
 esac
 
 # 4. Start Base Services
-sudo systemctl enable redis
-sudo systemctl start redis
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
 
 # 5. Automated Replacements (Replacing 'darren' with $TARGET_USER)
 echo "🔧 Configuring service files and permissions for $TARGET_USER..."
