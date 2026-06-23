@@ -143,7 +143,7 @@ backend/venv/bin/python backend/manage.py createsuperuser
 
 ---
 
-## 🐳 Containerized Deployment (Docker)
+## 🐳 Containerized Deployment (Docker) - WORK IN PROGRESS NOT TESTED
 
 For rapid deployment using Docker Compose, Astraea provides a pre-configured multi-container stack including the Web Server, Celery Worker, Celery Beat, Redis, and MySQL.
 
