@@ -118,7 +118,7 @@ const Register = () => {
     const strength = getPasswordStrength(password);
     const passwordsMatch = password.length > 0 && password === password2;
     const allFieldsFilled = username && email && password && password2;
-    const isFormInvalid = !allFieldsFilled || strength < 2 || !passwordsMatch;
+    const isFormInvalid = !allFieldsFilled || strength < 3 || !passwordsMatch;
 
     // Helper to determine color and label
     const strengthLevels = [
