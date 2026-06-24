@@ -1,4 +1,4 @@
-export const PUBLIC_PATHS = ["/login", "/register", "/verify"];
+export const PUBLIC_PATHS = ["/login", "/register", "/verify", "/forgot-password"];
 export const AUTH_PAGES = ["/login", "/register", "/logout"];
 
 export const API_ENDPOINTS = {
@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
     RESEND_VERIFICATION: "api/users/verify/resend/",
     PROFILE: "api/users/profile/",
     CHANGE_PASSWORD: "api/users/profile/change-password/",
+    FORGOT_PASSWORD_EMAIL: "api/users/reset-password/",
+    FORGOT_PASSWORD_RESET: "api/users/reset-password/reset/",
 
     DASHBOARD_STATS: "api/servers/dashboard/stats/",
     SERVER_SEARCH: "api/servers/search/",

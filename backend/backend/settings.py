@@ -176,10 +176,11 @@ SIMPLE_JWT = {
 
 
 """
-    Verification Related
+    Settings used by Verification and Password Reset
 """
 BASE_URL = os.getenv('BASE_URL')
 VERIFY_LINK_EXPIRY_MINUTES = int(os.getenv('VERIFY_LINK_EXPIRY_MINUTES', 60))
+RESET_LINK_EXPIRY_MINUTES = int(os.getenv('RESET_LINK_EXPIRY_MINUTES', 60))
 
 
 """ 

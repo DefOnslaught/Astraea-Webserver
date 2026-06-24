@@ -38,3 +38,13 @@ class Verification(models.Model):
 
     class Meta:
         verbose_name = "Verification"
+
+class ResetPassword(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="passwordreset")
+    is_reset = models.BooleanField(default=False)
+    resend_request = models.PositiveIntegerField(default=0)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Reset Password"

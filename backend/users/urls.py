@@ -9,6 +9,8 @@ from .views import (
     RegisterView,
     VerificationVerifyView,
     VerificationResendView,
+    ResetPasswordView,
+    ProcessPasswordResetView,
     TokenOPView, 
     CustomTokenRefreshView,
     UserProfileView,
@@ -27,6 +29,8 @@ urlpatterns = [
     path('logout_all_devices/', LogoutAllDevicesView.as_view(), name='logout_all_devices'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
     path('profile/change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
+    path('reset-password/reset/', ProcessPasswordResetView.as_view(), name='reset-password-reset'),
 
     # After Auth
     path('basic-info/', BasicUserInfoView.as_view(), name='basic-info'),

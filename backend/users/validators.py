@@ -34,5 +34,5 @@ class ComplexityValidator:
 
     def get_help_text(self):
         return _(
-            "Your password must contain at least 8 characters, one uppercase letter, one number, and one symbol."
+            f"Your password must contain at least {self.min_length} characters, one uppercase letter, one number, and one symbol."
         )
