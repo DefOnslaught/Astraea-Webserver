@@ -1,11 +1,10 @@
 Backend:
     - Figure out a way to handle Zabbix
         - Likely use celery to run timers for this
+        - use 'zabbix_utils' from pip
     - Add a method to generate csv files
 
     - Add Rate Limits
-
-    - Do 'Forgot Password', need to create logic that handles this
 
     - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID
 
@@ -16,8 +15,6 @@ Frontend:
             - API key (method to request to see it once saved, so it's not sent on each page load or saved in cache)
             - url
             - timeframe to set the maintenance mode
-
-    - Have a way to remove the 'register' page option if disabled (Not stupidly needed, v1.1?)
 
     - About Page (opened via clicking the version in sidebar)
         - check for updates (front-end only, react goes out and checks version from git?)
@@ -43,3 +40,17 @@ General Needs:
 
     For the inspect server section
         - Add a search bar to 'Patch History'
+
+
+    setup.sh
+        Install the proper node versions, use this site as a guide: https://nodesource.com/products/distributions
+
+    !Important!
+        - We need a update.sh script that will pull from the repo and update the website
+            
+            - Needs to ensure we make a copy of settings.py, with a message saying a copy of the old settings as been saved
+                - This way users can compare any changes with the new one
+            - Empty the 'backend/staticfiles/assets && find . -name 'index-*.js' -delete && find . -name 'index-*.css' -delete' files
+            - run make deploy (Option with a y/N that way they can modify the settings before - Needs to ensure permissions remain the same running it themselves, or using docker)
+
+            - Will not work with the docker deployment until we figure that out
