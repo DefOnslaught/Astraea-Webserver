@@ -46,11 +46,13 @@ def send_verification_email(self, email, username, token, expiry):
         time_str = f"{expiry} minute{'s' if expiry != 1 else ''}"
 
     verify_url = f"{settings.BASE_URL}/verify/{token}/"
+    favicon_url = f"{settings.BASE_URL}/static/favicon.png"
     template_name = "verification_email_template.html"
     subject = "Astraea - Verify Your Account"
     context = {
         'username': username,
         'verify_url': verify_url,
+        'favicon_url': favicon_url,
         'expiry_display': time_str    
     }
 
@@ -89,11 +91,13 @@ def send_reset_password_email(self, email, username, token, expiry):
         time_str = f"{expiry} minute{'s' if expiry != 1 else ''}"
     
     reset_url = f"{settings.BASE_URL}/forgot-password/{token}/"
+    favicon_url = f"{settings.BASE_URL}/static/favicon.png"
     template_name = "reset_password_email_template.html"
     subject = "Astraea - Reset Your Password"
     context = {
         'username': username,
         'reset_url': reset_url,
+        'favicon_url': favicon_url,
         'expiry_display': time_str    
     }
 
@@ -123,8 +127,10 @@ def send_password_changed_email(self, email, username):
 
     template_name = "password_reset_notify_email_template.html"
     subject = "Astraea - Password Been Reset"
+    favicon_url = f"{settings.BASE_URL}/static/favicon.png"
     context = {
         'username': username,
+        'favicon_url': favicon_url
     }
 
     try:

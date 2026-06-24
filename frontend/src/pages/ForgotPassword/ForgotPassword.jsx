@@ -70,7 +70,9 @@ const ForgotPassword = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-400">Email address</label>
                             <input
+                                id="email"
                                 type="email"
+                                autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
