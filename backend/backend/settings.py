@@ -235,6 +235,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'notifications.tasks.notify_out_of_date',
         'schedule': crontab(hour=10, minute=0),
     },
+    'delete-expired-password-reset-daily': {
+        'task': 'users.tasks.remove_expired_password_resets',
+        'schedule': crontab(hour=12, minute=0)
+    },
 }
 
 

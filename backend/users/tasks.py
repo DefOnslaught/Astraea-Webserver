@@ -1,6 +1,9 @@
 import logging
 from celery import shared_task
+from datetime import timedelta
+from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -8,7 +11,7 @@ from django.utils.html import strip_tags
 from django.conf import settings
 
 from .utils import cacheVerificationStatus
-from .models import Verification
+from .models import Verification, ResetPassword
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -151,3 +154,25 @@ def send_password_changed_email(self, email, username):
     except Exception as e:
         logger.error(f"[Email Password Reset Notify] SMTP Error: {str(e)}")
         raise self.retry(exc=e, countdown=60, max_retries=3)
+
+
+@shared_task
+def remove_expired_password_resets():
+    """Deletes password reset entries that are expired or hit max retries"""
+
+    threshold_time = timezone.now() - timedelta(minutes=settings.RESET_LINK_EXPIRY_MINUTES)
+    expired_queryset = ResetPassword.objects.filter(
+        Q(last_sent_at__lt=threshold_time) | Q(resend_request__gte=3)
+    )
+
+    count = expired_queryset.count()
+    
+    if count == 0:
+        if settings.DEBUG:
+            logger.info("No expired or invalid password resets found.")
+        return
+    
+    deleted_count, _ = expired_queryset.delete()
+    
+    if settings.DEBUG:
+        logger.info(f"Cleanup complete. Removed {deleted_count} expired password resets.")
