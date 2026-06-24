@@ -143,16 +143,9 @@ def delete_sent_notifications():
             logger.info("No expired notifications found to delete.")
         return
 
-    for expired in all_expired:
-        note_id = expired.id
-        try:
-            expired.delete()
-            if DEBUG:
-                logger.info(f"Successfully deleted notification with id: {note_id}")
-        except Exception as e:
-            logger.error(f"Unable to delete notification with id: {note_id}, {str(e)}")
+    deleted_count, _ = all_expired.delete()
             
-    logger.info(f"Cleanup complete. Removed {count} notifications.")
+    logger.info(f"Cleanup complete. Removed {deleted_count} notifications.")
 
 
 @shared_task
