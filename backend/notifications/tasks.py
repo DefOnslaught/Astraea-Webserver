@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.db import transaction
 from django.contrib.auth import get_user_model
 
-from backend.settings import PATCH_THRESHOLD_DAYS, DEBUG
 from servers.models import Server
 from configuration.models import NotificationService, NotificationSettings
 from .models import PendingNotification
@@ -35,7 +34,7 @@ def process_notification(self, notification_id):
     
 
     if notification.server and not getattr(notification.server, 'enable_notifications', True):
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f"Notification {notification_id} suppressed: Notifications disabled for server {notification.server.hostname}.")
         # Mark as sent
         notification.notifications_sent = True
@@ -51,7 +50,7 @@ def process_notification(self, notification_id):
     is_enabled = getattr(n_settings, check_field, True)
 
     if not is_enabled:
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f"Notification {notification_id} suppressed by global settings.")
         # Mark as sent so it doesn't keep showing up in 'unresolved' lists
         notification.notifications_sent = True
@@ -116,7 +115,7 @@ def process_notification(self, notification_id):
 
     notification.notifications_sent = True
     notification.save()
-    if DEBUG:
+    if settings.DEBUG:
         logger.info(f"Successfully processed notification ID {notification_id}")
 
 
@@ -139,19 +138,20 @@ def delete_sent_notifications():
 
     count = all_expired.count()
     if count == 0:
-        if DEBUG:
+        if settings.DEBUG:
             logger.info("No expired notifications found to delete.")
         return
 
     deleted_count, _ = all_expired.delete()
-            
-    logger.info(f"Cleanup complete. Removed {deleted_count} notifications.")
+    
+    if settings.DEBUG:
+        logger.info(f"Cleanup complete. Removed {deleted_count} notifications.")
 
 
 @shared_task
 def notify_out_of_date():
     """Consolidates outdated servers into a single notification."""
-    days = int(PATCH_THRESHOLD_DAYS)
+    days = int(settings.PATCH_THRESHOLD_DAYS)
     time_threshold = timezone.now() - timedelta(days=days)
 
     # servers that haven't been patched in 'X' days OR have never been patched (null)
