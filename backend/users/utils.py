@@ -2,11 +2,48 @@ import logging
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import Verification
 
 logger = logging.getLogger('django')
 User = get_user_model()
+
+
+def set_auth_cookies(response, access_token, refresh_token):
+    """Helper to set tokens in HttpOnly cookies"""
+    response.set_cookie(
+        key=settings.SIMPLE_JWT['AUTH_COOKIE'],
+        value=access_token,
+        max_age=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds(),
+        httponly=True,
+        secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+        samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+    )
+    response.set_cookie(
+        key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'],
+        value=refresh_token,
+        max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds(),
+        httponly=True,
+        secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+        samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+    )
+    return response
+
+
+def return_login_response(user, message):
+    """Helper to return the needed values when logging in"""
+    return Response({
+        'message': message,
+        "user": {
+            "username": user.username,
+            "email": user.email,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser
+        }
+    }, status=status.HTTP_200_OK)
+
 
 def cacheVerificationStatus():
     """

@@ -1,22 +1,12 @@
 from django.urls import path
 
-from .views import (
-    BasicUserInfoView, 
-    SessionStatusView, 
-    LogoutView, 
-    LogoutAllDevicesView, 
-    CSRFTokenView, 
-    RegisterView,
-    VerificationVerifyView,
-    VerificationResendView,
-    ResetPasswordView,
-    ProcessPasswordResetView,
-    TokenOPView, 
-    CustomTokenRefreshView,
-    UserProfileView,
-    ChangePasswordView,
-    SessionExtendView
-)
+from .views.AuthViews import TokenOPView, RegisterView, CustomTokenRefreshView, LogoutView, LogoutAllDevicesView
+from .views.LoggedInViews import BasicUserInfoView, SessionStatusView, SessionExtendView
+from .views.VerificationViews import VerificationVerifyView, VerificationResendView
+from .views.ResetPasswordViews import ResetPasswordView, ProcessPasswordResetView
+from .views.BaseViews import CSRFTokenView
+from .views.ProfileViews import UserProfileView, ChangePasswordView
+
 
 urlpatterns = [
     # Auth

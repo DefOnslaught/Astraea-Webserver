@@ -7,6 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
 from .factories import UserFactory
+from configuration.models import SysConfig
 
 User = get_user_model()
 
@@ -26,6 +27,12 @@ class AuthTests(APITestCase):
         # Cookie keys from your settings
         self.access_cookie = settings.SIMPLE_JWT['AUTH_COOKIE']
         self.refresh_cookie = settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH']
+
+        SysConfig.objects.create(
+            patching_enabled=True, 
+            skip_email_validation=True, 
+            disable_registration=False
+        )
 
     # --- REGISTRATION TESTS ---
     def test_registration_sets_cookies(self):
