@@ -16,6 +16,10 @@
                 <li>📦 <strong>Packages Updated:</strong> {{ updates_count }}</li>
                 <li>📅 <strong>Timestamp:</strong> {{ created_at|date:"Y-m-d H:i:s" }}</li>
                 <li>⏱️ <strong>Duration:</strong> {{ duration }}</li>
+                <li>
+                    <strong>Rebooted:</strong> 
+                    {{ was_rebooted|yesno:"🔄 Yes, ❌ No" }}
+                </li>
             </ul>
         </div>
 

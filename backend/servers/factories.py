@@ -11,6 +11,7 @@ class ServerFactory(factory.django.DjangoModelFactory):
     uptime = "10 days"
     patch_schedule = "10am Wednesday Weeks 1 & 3"
     last_reboot = factory.LazyFunction(lambda: timezone.now() - timezone.timedelta(days=14))
+    was_rebooted = True
     last_patch_date = factory.LazyFunction(lambda: timezone.now() - timezone.timedelta(days=45))
     total_packages_updated = 10
     duration = 60

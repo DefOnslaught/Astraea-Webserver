@@ -108,6 +108,7 @@ class PatchingSystemTests(APITestCase):
             "reboot_on_success": False,
             "reboot_after_updates": True,
             "max_allowed_uptime": 20,
+            "was_rebooted": True,
             "total_packages_updated": 2,
             "duration": 30,
             "packages": [
@@ -138,6 +139,7 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(server.max_allowed_uptime, 20)
         self.assertEqual(server.duration, 30)
         self.assertEqual(Package.objects.count(), 2)
+        self.assertTrue(server.was_rebooted)
         self.assertEqual(PackageUpdate.objects.filter(session__server=server).count(), 2)
 
         # Check Individual Cache updated
@@ -156,11 +158,14 @@ class PatchingSystemTests(APITestCase):
         self.assertEqual(cached_data['reboot_on_success'], False)
         self.assertEqual(cached_data['reboot_after_updates'], True)
         self.assertEqual(cached_data['max_allowed_uptime'], 20)
+        self.assertTrue(cached_data['was_rebooted'])
         self.assertEqual(cached_data['duration'], 30)
         from django.utils.dateparse import parse_datetime
         cached_time = parse_datetime(cached_data['last_reboot'])
         self.assertAlmostEqual(cached_time, new_reboot_time, delta=timedelta(seconds=1))
         self.assertEqual(str(server.server_id), str(cached_data['server_id']))
+        latest_session = PatchSession.objects.filter(server=server).first()
+        self.assertTrue(latest_session.was_rebooted)
 
     def test_dashboard_stats_signals(self):
         """Test that adding/deleting servers updates the dashboard counts in Redis."""
@@ -207,6 +212,7 @@ class PatchingSystemTests(APITestCase):
                 "enable_apt_release_info_change": False,
                 "reboot_on_success": False,
                 "reboot_after_updates": True,
+                "was_rebooted": True,
                 "max_allowed_uptime": 20,
                 "total_packages_updated": 1,
                 "duration": 30,
@@ -244,7 +250,8 @@ class PatchingSystemTests(APITestCase):
             "server_id": str(server_b.server_id),
             "hostname": "server-b",
             "interfaces": [{"ip_address": "10.0.0.1", "mac_address": "00:AA:BB:CC:DD:EE"}],
-            "packages": []
+            "packages": [],
+            "was_rebooted": False
         }
         
         response = self.client.post(url, payload, format='json', **self.headers)
@@ -504,6 +511,20 @@ class PatchingSystemTests(APITestCase):
 
         self.assertEqual(stats['outdated_servers'], 3)
 
+    def test_patch_history_returns_was_rebooted(self):
+        server = ServerFactory(hostname="history-test")
+        now = timezone.now()
+        PatchSession.objects.create(server=server, was_rebooted=True, status='success', timestamp=now - timedelta(minutes=10))
+        PatchSession.objects.create(server=server, was_rebooted=False, status='success', timestamp=now)
+
+        url = reverse('inspect_history')
+        response = self.client.get(f"{url}?server_id={server.server_id}")
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        reboot_statuses = [item['was_rebooted'] for item in response.data]
+        self.assertIn(True, reboot_statuses)
+        self.assertIn(False, reboot_statuses)
 
 class EnhancedSearchTests(APITestCase):
 

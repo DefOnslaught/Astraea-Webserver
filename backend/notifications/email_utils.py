@@ -28,6 +28,7 @@ def send_notification_email(notification, recipient_list):
         'created_at': notification.created_at,
         'updates_count': notification.extra_data.get('updates_count', 0),
         'server_name': notification.extra_data.get('server_name', 'System Cluster'),
+        'was_rebooted': notification.extra_data.get('was_rebooted', False),
         'duration': readable_duration,
         'status_color': '#2ecc71' if notification.status == 'success' else '#e74c3c' if notification.status == 'failed' else '#3498db',
         'PATCH_THRESHOLD_DAYS': settings.PATCH_THRESHOLD_DAYS

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import SectionLoader from '../../../components/SectionLoader';
-import { AlertTriangle, Loader2, ArrowDownCircle, Timer } from 'lucide-react';
+import { AlertTriangle, Loader2, ArrowDownCircle, Timer, RotateCcw } from 'lucide-react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { faCircleExclamation, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
 const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore }) => {
     const observerTarget = useRef(null);
@@ -61,21 +61,27 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                         <th className="pb-4">Duration</th>
                         <th className="pb-4">Status</th>
                         <th className="pb-4">Updated</th>
+                        <th className="pb-4">Rebooted</th>
                         <th className="pb-4">Logs / Errors</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                     {history.map(session => (
                         <tr key={session.id} className="hover:bg-slate-800/30 transition-colors group">
-                            <td className="py-4 text-slate-300 font-mono text-sm">
+                            <td className="py-4 font-mono text-sm">
                                 <button
                                     onClick={() => onSelectSession(session)}
-                                    className="hover:text-indigo-400 hover:underline decoration-indigo-500/50 transition-colors text-left"
+                                    className="group flex w-full text-left items-center gap-2 text-slate-200 hover:text-slate-50 transition-colors"
                                 >
-                                    {new Date(session.timestamp).toLocaleString('en-GB', {
-                                        dateStyle: 'medium',
-                                        timeStyle: 'short'
-                                    })}
+                                    <span className="group-hover:underline underline-offset-4">
+                                        {new Date(session.timestamp).toLocaleString('en-GB', {
+                                            dateStyle: 'medium',
+                                            timeStyle: 'short'
+                                        })}
+                                    </span>
+                                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <FontAwesomeIcon icon={faCircleInfo} className="w-3.5 h-3.5" />
+                                    </span>
                                 </button>
                             </td>
                             <td className="py-4 font-mono text-sm text-slate-400">
@@ -84,7 +90,7 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                                     <span>{session.duration}</span>
                                 </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="py-4">
                                 {(() => {
                                     const status = (session.status || 'unknown').toLowerCase();
 
@@ -119,7 +125,7 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                                             {/* Inline Badge Container */}
                                             <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full border ${theme.bg} transition-all duration-300`}>
                                                 {/* Status Dot */}
-                                                <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`}></div>
+                                                <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`}> </div>
 
                                                 {/* Status Label */}
                                                 <span className={`text-[11px] font-bold uppercase tracking-wider ${theme.text}`}>
@@ -137,6 +143,16 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                             </td>
                             <td className="py-4 text-slate-300">
                                 <span className="font-bold text-indigo-400">{session.total}</span> pkgs
+                            </td>
+                            <td className="py-4">
+                                {session.was_rebooted ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                        <RotateCcw className="w-3 h-3" />
+                                        Rebooted
+                                    </span>
+                                ) : (
+                                    <span className="text-slate-600 text-xs italic">No</span>
+                                )}
                             </td>
                             <td className="py-4">
                                 {session.error_log ? (

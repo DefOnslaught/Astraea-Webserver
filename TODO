@@ -3,8 +3,6 @@ Backend:
 
     - Add Rate Limits
 
-    - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID 
-
 Frontend:
 
     - About Page (opened via clicking the version in sidebar)
@@ -31,7 +29,3 @@ General Needs:
 
     For the inspect server section
         - Add a search bar to 'Patch History'
-
-
-    Update.sh
-        - Will not work with the docker deployment until we figure that out

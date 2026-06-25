@@ -104,6 +104,13 @@ def send_msg(message: str, url: str, patch_status=None, report_details=None):
                 value=f"`{report_details.get('duration', 'N/A')}`", 
                 inline=True
             )
+            was_rebooted = report_details.get('was_rebooted', False)
+            reboot_label = "🔄 Yes" if was_rebooted else "➖ No"
+            embed.add_field(
+                name="♻️ System Rebooted", 
+                value=f"**{reboot_label}**", 
+                inline=True
+            )
 
         # Global Footer Configuration
         embed.set_footer(text="Astraea Central Management Instance")

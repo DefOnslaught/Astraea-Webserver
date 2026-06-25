@@ -249,6 +249,7 @@ def cache_individual_vms(vms):
             "os_version": get_val('os_version', 'Unknown'),
             "last_reboot": format_date(get_val('last_reboot')),
             "uptime": get_val('uptime', ''),
+            "was_rebooted": get_val('was_rebooted', False),
             "env": get_val('env', ''),
             "patch_schedule": get_val('patch_schedule', ''),
             "disable_autoremove": get_val('disable_autoremove', ''),

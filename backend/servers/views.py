@@ -497,6 +497,7 @@ class InspectServerInfo(APIView):
             'id': s.id,
             'timestamp': s.timestamp,
             'status': s.status,
+            'was_rebooted': s.was_rebooted,
             'total': s.total_updated,
             'duration': format_duration(s.duration),
             'error_log': s.error_log
@@ -544,6 +545,7 @@ class ServerPatchHistory(APIView):
             'id': s.id,
             'timestamp': s.timestamp,
             'status': s.status,
+            'was_rebooted': s.was_rebooted,
             'total': s.total_updated,
             'duration': format_duration(s.duration),
             'error_log': s.error_log
@@ -604,6 +606,7 @@ class PatchSessionDetail(APIView):
             'total_updated': session.total_updated,
             'duration': format_duration(session.duration),
             'status': session.status,
+            'was_rebooted': session.was_rebooted,
             'error_log': session.error_log,
             'updates': [{
                 'name': u.package.name,

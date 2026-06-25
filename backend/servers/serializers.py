@@ -22,7 +22,7 @@ class PackageUpdateSerializer(serializers.ModelSerializer):
 class PatchSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatchSession
-        fields = ['id', 'timestamp', 'status', 'total_updated', 'duration', 'error_log']
+        fields = ['id', 'timestamp', 'status', 'was_rebooted', 'total_updated', 'duration', 'error_log']
 
 
 class NetworkInterfaceSerializer(serializers.ModelSerializer):
@@ -70,7 +70,8 @@ class ServerInfoSerializer(serializers.ModelSerializer):
             'server_id', 'hostname', 'interfaces', 'os_version', 
             'last_reboot', 'uptime', 'patch_schedule', 'env',
             'date_registered', 'max_allowed_uptime', 'disable_autoremove',
-            'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates'
+            'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates',
+            'was_rebooted'
         ]
     
     def update(self, instance, validated_data):
@@ -111,6 +112,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
     error_log = serializers.CharField(required=False, allow_blank=True, allow_null=True, write_only=True)
     server_id = serializers.UUIDField(required=True)
     hostname = serializers.CharField(max_length=255)
+    was_rebooted = serializers.BooleanField(required=True)
 
     class Meta:
         model = Server
@@ -119,7 +121,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             'last_reboot', 'uptime', 'total_packages_updated', 'duration',
             'packages', 'patch_schedule', 'env', 'status',
             'error_log', 'disable_autoremove', 'enable_apt_release_info_change', 
-            'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime'
+            'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime',
+            'was_rebooted'
         ]
 
     def update(self, instance, validated_data):
@@ -136,6 +139,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         total_updated = validated_data.pop('total_packages_updated', 0)
         run_duration = validated_data.pop('duration', 0)
         session_errors = validated_data.pop('error_log', None)
+        was_session_rebooted = validated_data.pop('was_rebooted', False)
         
         validated_data['last_patch_date'] = timezone.now()
         
@@ -160,6 +164,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
             session = PatchSession.objects.create(
                 server=server,
                 status=session_status,
+                was_rebooted=was_session_rebooted,
                 error_log=session_errors,
                 total_updated=total_updated,
                 duration=run_duration
@@ -191,7 +196,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 extra_data={
                     'server_name': server.hostname,
                     'updates_count': total_updated,
-                    'duration': run_duration
+                    'duration': run_duration,
+                    'was_rebooted': was_session_rebooted
                 }
             )
             transaction.on_commit(lambda: process_notification.delay(new_note.id))
