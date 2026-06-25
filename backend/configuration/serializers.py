@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import APIKey, SysConfig, NotificationService, AgentInstallConfig, ZabbixConfiguration
+from .models import APIKey, SysConfig, NotificationService, NotificationSettings, AgentInstallConfig, ZabbixConfiguration
 
 class APIKeySerializer(serializers.ModelSerializer):
     class Meta:
@@ -26,6 +26,12 @@ class NotificationServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationService
         fields = ['id', 'name', 'type', 'url', 'recipients', 'active']
+
+
+class NotificationSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationSettings
+        fields = ['failed', 'success', 'partial', 'out_of_date']
 
 
 class AgentInstallConfigSerializer(serializers.ModelSerializer):

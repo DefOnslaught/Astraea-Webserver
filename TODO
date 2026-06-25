@@ -10,6 +10,9 @@ Frontend:
         - Version history (no backend, just text on front-end)
         - About section
 
+    - Configuration
+        - 'Disable the ability for creating new user accounts. Must be made in /administration/' Make /administration/ a link
+
 General Needs:
 
     Administration - System Access (Rename to something else) 
@@ -18,6 +21,7 @@ General Needs:
 
     Notification
         - Add: Notify on Server delete, Add, modify
+        - Implement caching
 
 
     Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits
