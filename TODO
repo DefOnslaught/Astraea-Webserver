@@ -3,9 +3,7 @@ Backend:
 
     - Add Rate Limits
 
-    - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID
-
-    - Go through and ensure we are using settings.VARIABLE, not directly calling it 
+    - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID 
 
 Frontend:
 
@@ -38,12 +36,5 @@ General Needs:
     setup.sh
         Install the proper node versions, use this site as a guide: https://nodesource.com/products/distributions
 
-    !Important!
-        - We need a update.sh script that will pull from the repo and update the website
-            
-            - Needs to ensure we make a copy of settings.py, with a message saying a copy of the old settings as been saved
-                - This way users can compare any changes with the new one
-            - Empty the 'backend/staticfiles/assets && find . -name 'index-*.js' -delete && find . -name 'index-*.css' -delete' files
-            - run make deploy (Option with a y/N that way they can modify the settings before - Needs to ensure permissions remain the same running it themselves, or using docker)
-
-            - Will not work with the docker deployment until we figure that out
+    Update.sh
+        - Will not work with the docker deployment until we figure that out

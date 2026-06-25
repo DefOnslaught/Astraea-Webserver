@@ -1,4 +1,4 @@
-.PHONY: buildBackend buildFrontend test test-only deploy initialSetup restart clearCache status docker-up docker-down docker-status docker-logs help
+.PHONY: buildBackend buildFrontend test test-only deploy initialSetup dbMigrations restart clearCache status docker-up docker-down docker-status docker-logs help
 
 ### Unique variables per project
 PROJECT_NAME = "Astraea"
@@ -110,6 +110,10 @@ initialSetup:
 	@$(TIME_CMD) -o .initialSetup_time $(M_SILENT) initialSetup-internal
 	$(call PRINT_TIME,.initialSetup_time)
 
+dbMigrations:
+	@$(TIME_CMD) -o .dbMigrations_time $(M_SILENT) dbMigrations-internal
+	$(call PRINT_TIME,.dbMigrations_time)
+
 restart:
 	@$(TIME_CMD) -o .restart_time $(M_SILENT) restart-internal
 	$(call PRINT_TIME,.restart_time)
@@ -168,12 +172,14 @@ restart-internal:
 	@sudo systemctl restart astraea-beat
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv setupCelery
+initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv setupCelery dbMigrations-internal
+	@echo "$(GREEN)Setup Complete.$(RESET)"
+
+dbMigrations-internal:
 	@echo "$(BLUE)Running Migrations...$(RESET)"
+	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@$(VENV_PYTHON) backend/manage.py makemigrations
 	@$(VENV_PYTHON) backend/manage.py migrate
-	@$(VENV_PYTHON) backend/manage.py wait_for_db
-	@echo "$(GREEN)Setup Complete.$(RESET)"
 
 virtualenv:
 	@python3 -m venv backend/venv
