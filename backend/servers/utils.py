@@ -4,8 +4,8 @@ from django.core.cache import cache
 from django.utils import timezone
 from django.db import close_old_connections
 from django.db.models import Max, Q
+from django.conf import settings
 
-from backend.settings import DEBUG
 from .models import Server, PatchSession, PackageUpdate
 
 logger = logging.getLogger('django')
@@ -83,7 +83,7 @@ def refresh_dashboard_stats(vms=None):
     }
     
     cache.set("dashboard_stats", stats, timeout=None)
-    if DEBUG:
+    if settings.DEBUG:
         if cache.get("dashboard_stats"):
             logger.info(f"Cache has been successfully set for 'refresh_dashboard_stats'")
         else:
@@ -172,7 +172,7 @@ def update_dashboard_counts(instance, was_outdated, is_outdated, was_enabled=Tru
     stats["last_updated"] = timezone.now().isoformat()
     cache.set("dashboard_stats", stats, timeout=None)
     
-    if DEBUG:
+    if settings.DEBUG:
         if cache.get("dashboard_stats"):
             logger.info(f"Cache has been successfully set for 'update_dashboard_counts'")
         else:
@@ -280,7 +280,7 @@ def cache_individual_vms(vms):
         updated_index = sorted(index_map.values(), key=lambda x: natural_sort_key(x['hostname']))
         cache.set("server_search_index", updated_index, timeout=None)
     
-        if DEBUG:
+        if settings.DEBUG:
             if cache.get("server_search_index"):
                 logger.info(f"Cache has been successfully set for 'cache_individual_vms'")
             else:
@@ -298,7 +298,7 @@ def remove_vm_from_index(server_id):
     
     if len(updated_index) != len(current_index):
         cache.set("server_search_index", updated_index, timeout=None)
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f"Server with ID {server_id} was removed from the cache successfully.")
 
 
@@ -345,7 +345,7 @@ def refresh_package_search_index():
 
     final_index = sorted(final_index, key=lambda x: x['name'])
     cache.set("package_search_index", final_index, timeout=None)
-    if DEBUG:
+    if settings.DEBUG:
         logger.info(f"Successfully set cache for 'Package Search Index'")
     return final_index
 
@@ -366,7 +366,7 @@ def warm_cache_in_background():
             vms = Server.objects.prefetch_related('interfaces').all()
             cache_individual_vms(vms)
             refresh_dashboard_stats(vms=vms)
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info("Background cache warming completed.")
         except Exception as e:
             logger.error(f"Background cache warm failed: {e}")

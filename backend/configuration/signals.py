@@ -2,7 +2,7 @@ import logging
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import APIKey, SysConfig, ZabbixConfiguration, ZabbixMaintenance
+from .models import APIKey, SysConfig, ZabbixConfiguration
 from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache
 
 from users.utils import removeAllCacheVerificationStatus

@@ -1,6 +1,6 @@
 import factory
 from django.utils import timezone
-from .models import Server, Package, PackageUpdate, NetworkInterface
+from .models import Server, Package, NetworkInterface
 
 class ServerFactory(factory.django.DjangoModelFactory):
     class Meta:

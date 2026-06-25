@@ -9,7 +9,6 @@ from django.template import Context, Template
 from django.db import transaction
 from django.conf import settings
 
-from backend.settings import DEBUG, BASE_DIR
 from servers.permissions import HasInternalAPIKey
 from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo, ZabbixConfiguration
 from .serializers import ApiKeyUpdateSerializer, APIKeySerializer, NotificationServiceSerializer, AgentInstallConfigSerializer, ZabbixConfigSerializer, SysConfigSerializer
@@ -28,7 +27,7 @@ class CreateAPIKeyView(APIView):
             new_key = APIKey.objects.create(name=name, key=key_val)            
             serializer = APIKeySerializer(new_key)
             
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully created API key with name: {name}")
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -71,7 +70,7 @@ class UpdateAPIKey(APIView):
         serializer = ApiKeyUpdateSerializer(api_key, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully updated API key: {api_key.name}")
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -89,7 +88,7 @@ class DeleteAPIKey(APIView):
             key = get_object_or_404(APIKey, id=key_id)
             key_name = key.name
             key.delete()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully deleted API Key `{key_name}`")
             return Response({'message': f'API Key {key_name} deleted successfully'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -158,7 +157,7 @@ class NotificationSettingsView(APIView):
             settings.partial = data['partial']
             settings.out_of_date = data['out_of_date']
             settings.save()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully updated Notification Settings")
             return Response({'message': 'Successfully updated Notification Settings'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -191,11 +190,11 @@ class NotificationServicesView(APIView):
         serializer = NotificationServiceSerializer(data=processed_data)
         if serializer.is_valid():
             serializer.save()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully created Notification Service: {data.get('name')}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         
-        if DEBUG:
+        if settings.DEBUG:
                 logger.info(f"Unable to create Notification Service: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -221,11 +220,11 @@ class NotificationServicesView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully updated Notification Service: {service.name}")
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        if DEBUG:
+        if settings.DEBUG:
                 logger.info(f"Unable to update Notification Service: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -238,7 +237,7 @@ class NotificationServicesView(APIView):
         service = get_object_or_404(NotificationService, id=service_id)
         service_name = service.name
         service.delete()
-        if DEBUG:
+        if settings.DEBUG:
                 logger.info(f"Successfully deleted Notification Service {service_name}")
         return Response({'message': f'Successfully deleted Notification Service {service_name}'}, status=status.HTTP_200_OK)
 
@@ -257,7 +256,7 @@ class AgentCreateConfigView(APIView):
         if serializer.is_valid():
             config = serializer.save()
             
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully created Agent Install UUID `{config.uid}`")
 
             return Response({
@@ -265,7 +264,7 @@ class AgentCreateConfigView(APIView):
                 'message': "Deployment configuration stored successfully."
             }, status=status.HTTP_201_CREATED)
         
-        if DEBUG:
+        if settings.DEBUG:
             logger.error(f"Serializer errors: {serializer.errors}")
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -297,10 +296,10 @@ class AgentInstallScriptView(APIView):
         else:
             filename = 'install_agent.sh'
 
-        script_path = os.path.join(BASE_DIR, 'configuration', 'scripts', filename)
+        script_path = os.path.join(settings.BASE_DIR, 'configuration', 'scripts', filename)
         
         if not os.path.exists(script_path):
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f'Script {filename} not found on server')
             return Response({'message': f'Script {filename} not found on server'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -329,7 +328,7 @@ class AgentInstallScriptView(APIView):
         response = HttpResponse(rendered_script, content_type='text/x-sh')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f'Successfully sending Agent Install Script')
         return response
 
@@ -338,14 +337,14 @@ class AgentFileHandlerView(APIView):
     permission_classes = [HasInternalAPIKey]
 
     def get(self, request):
-        file_path = os.path.join(BASE_DIR, 'protected_storage', 'astraea_agent.tar.gz')
+        file_path = os.path.join(settings.BASE_DIR, 'protected_storage', 'astraea_agent.tar.gz')
         
         if not os.path.exists(file_path):
-            if DEBUG:
+            if settings.DEBUG:
                 logger.error(f'Agent package not found on server')
             return Response({'message': 'Agent package not found on server'}, status=status.HTTP_404_NOT_FOUND)
 
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f"Successfully serving 'astraea_agent.tar.gz' to download")
 
         return FileResponse(
@@ -361,7 +360,7 @@ class AgentUploadHandlerView(APIView):
     # Constants for failsafes
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
     ALLOWED_EXTENSIONS = ('.zip', '.tar', '.tar.gz')
-    STORAGE_DIR = os.path.join(BASE_DIR, 'protected_storage')
+    STORAGE_DIR = os.path.join(settings.BASE_DIR, 'protected_storage')
     AGENT_FILE = 'astraea_agent.tar.gz'
     AGENT_PATH = os.path.join(STORAGE_DIR, AGENT_FILE)
 
@@ -372,11 +371,11 @@ class AgentUploadHandlerView(APIView):
             return Response({'version': info.version}, status=status.HTTP_200_OK)
         
         if not os.path.exists(self.AGENT_PATH):
-            if DEBUG:
+            if settings.DEBUG:
                 logger.error(f'Agent package not found on server')
             return Response({'message': 'Agent package not found on server'}, status=status.HTTP_404_NOT_FOUND)
         
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f"Successfully serving 'astraea_agent.tar.gz' to download")
 
         return FileResponse(
@@ -480,7 +479,7 @@ class DeleteAgentInstallConfig(APIView):
             config = get_object_or_404(AgentInstallConfig, uid=uid)
             created_at = config.created_at
             config.delete()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Successfully deleted Agent Install Config made at {created_at}")
             return Response({'message': f'Successfully deleted Agent Install Config made at {created_at}"'}, status=status.HTTP_200_OK)
         except Exception as e:

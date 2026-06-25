@@ -2,7 +2,7 @@ import logging
 import threading
 from datetime import datetime
 from discord import SyncWebhook, Embed
-from backend.settings import DEBUG, PATCH_THRESHOLD_DAYS
+from django.conf import settings
 
 logger = logging.getLogger('django')
 
@@ -38,7 +38,7 @@ def send_msg(message: str, url: str, patch_status=None, report_details=None):
         # BRANCH A: OUTDATED MAINTENANCE LAYOUT
         # =================================================================
         if normalized_status == 'outdated':
-            threshold = report_details.get('PATCH_THRESHOLD_DAYS', PATCH_THRESHOLD_DAYS)
+            threshold = report_details.get('PATCH_THRESHOLD_DAYS', settings.PATCH_THRESHOLD_DAYS)
             
             embed = Embed(
                 title="⚠️ Maintenance Required",
@@ -109,7 +109,7 @@ def send_msg(message: str, url: str, patch_status=None, report_details=None):
         embed.set_footer(text="Astraea Central Management Instance")
         webhook.send(embed=embed)
 
-        if DEBUG:
+        if settings.DEBUG:
             logger.info(f'[Discord Utils] Routed and dispatched {normalized_status} alert')
         
         return True

@@ -13,7 +13,6 @@ from django.db.models.functions import Length
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
-from backend.settings import DEBUG
 from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index, format_duration
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer, ServerInfoSerializer
@@ -629,7 +628,7 @@ class PurgeDatabaseOldPackagesView(APIView):
             
             # 2. Perform the deletion
             orphaned_packages.delete()
-            if DEBUG:
+            if settings.DEBUG:
                 logger.info(f"Database Purge: Removed {count} orphaned packages.")
             
             return Response({
