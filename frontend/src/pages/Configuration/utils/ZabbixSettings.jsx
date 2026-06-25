@@ -121,7 +121,7 @@ const ZabbixSettings = ({ triggerSuccess, setError }) => {
                                 type="url"
                                 value={settings.api_url}
                                 onChange={(e) => setSettings({ ...settings, api_url: e.target.value })}
-                                placeholder="http://zabbix.example.com/api_jsonrpc.php"
+                                placeholder="https://zabbix.example.com/"
                                 className="bg-transparent flex-1 text-sm text-white placeholder-gray-600 outline-none"
                             />
                         </div>
