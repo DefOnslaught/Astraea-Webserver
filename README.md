@@ -3,6 +3,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-6.0+-092e20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![React](https://img.shields.io/badge/React-18+-61dafb?logo=react&logoColor=black)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-26+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Astraea** is a high-performance Server Patching Management system designed to provide a unified command center for infrastructure maintenance. It works in tandem with the [Astraea Agent](https://github.com/DefOnslaught/Astraea-Agent) to automate patching toggles, track patching history, and monitor installed packages across distributed Linux environments.
@@ -14,11 +15,11 @@
 Astraea utilizes a central Hub-and-Spoke model:
 
 * **Astraea Dashboard:** A Django/React web interface for system administrators.
-* **Task Engine:** Redis & Celery-powered asynchronous workers for handling fleet-wide patch triggers.
+* **Task Engine:** Redis & Celery-powered asynchronous workers for handling fleet-wide patch triggers and external service integrations (like Zabbix maintenance windows), ensuring the web dashboard remains non-blocking and highly responsive.
 * **Remote Agents:** Lightweight Python agent installed on target nodes that report back to the Centralized Manager via a secure REST API.
 * **Caching:** Powered by **Redis**, our caching layer is built with absolute speed in mind. By offloading frequently accessed session data and volatile system metrics to an in-memory store, Astraea ensures **extremely fast results** and a highly responsive UI, even when managing a massive fleet of distributed agents.
 * **Notifications:** Sends notifications to configured services such as Email or Discord. Can be toggled per server, patch status, or notify for any out of date servers.
-* **Zabbix Support:** !COMING SOON! Integrates with [Zabbix](https://www.zabbix.com/) to disable alerts while a system is patching.
+* **Zabbix Support:** Integrates with Zabbix to automatically handle maintenance windows during patching cycles.
 
 ---
 
