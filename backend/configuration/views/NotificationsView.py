@@ -8,6 +8,7 @@ from django.conf import settings
 
 from configuration.models import NotificationSettings, NotificationService
 from configuration.serializers import NotificationServiceSerializer, NotificationSettingsSerializer
+from configuration.utils import get_notification_config, get_notification_services
 
 logger = logging.getLogger('django')
 
@@ -16,7 +17,7 @@ class NotificationSettingsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        settings, _ = NotificationSettings.objects.get_or_create(id=1)
+        settings = get_notification_config()
         serializer = NotificationSettingsSerializer(settings)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -45,7 +46,7 @@ class NotificationServicesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        services = NotificationService.objects.all().order_by('-created_at')
+        services = get_notification_services()
         serializer = NotificationServiceSerializer(services, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     

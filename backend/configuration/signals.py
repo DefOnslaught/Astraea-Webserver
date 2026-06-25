@@ -2,8 +2,8 @@ import logging
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import APIKey, SysConfig, ZabbixConfiguration
-from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache
+from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService
+from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache, set_notification_config, set_notification_services
 
 from users.utils import removeAllCacheVerificationStatus
 from users.tasks import create_bulk_verify_existing_users
@@ -46,6 +46,16 @@ def update_sys_config_cache(sender, instance, **kwargs):
     # Prevents stale data/leaks
     elif old_skip is False and new_skip is True:
         removeAllCacheVerificationStatus()
+
+
+@receiver(post_save, sender=NotificationSettings)
+def update_notification_settings_on_save(sender, instance, **kwargs):
+    set_notification_config(instance)
+
+
+@receiver([post_save, post_delete], sender=NotificationService)
+def invalidate_notification_services_cache(sender, **kwargs):
+    set_notification_services()
 
 
 @receiver(post_save, sender=ZabbixConfiguration)

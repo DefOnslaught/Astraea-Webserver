@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
-from configuration.utils import cache_active_api_keys, get_sys_config, get_zabbix_config
+from configuration.utils import cache_active_api_keys, get_sys_config, get_zabbix_config, get_notification_config, get_notification_services
 from users.utils import cacheVerificationStatus
 
 # Main use is to be ran before Django boots up, that way everything is in cache for the first user
@@ -36,7 +36,13 @@ class Command(BaseCommand):
         if not sys_config.get('skip_email_validation'):
             cacheVerificationStatus()
         
-        # 7. Cache the Zabbix configuration
+        # 7. Cache the Notification configuration
+        get_notification_config()
+
+        # 8. Cache Notification Services
+        get_notification_services()
+
+        # 8. Cache the Zabbix configuration
         get_zabbix_config()
         
         self.stdout.write(self.style.SUCCESS(f"Successfully warmed cache."))

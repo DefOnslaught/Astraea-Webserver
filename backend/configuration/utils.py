@@ -2,7 +2,7 @@ import logging
 from django.core.cache import cache
 
 from django.conf import settings
-from .models import APIKey, SysConfig, ZabbixConfiguration
+from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService
 
 logger = logging.getLogger('django')
 
@@ -95,4 +95,73 @@ def get_zabbix_config():
         
         data = set_zabbix_config_cache(config_instance)
 
+    return data
+
+
+NOTIFICATION_CONFIG_CACHE_KEY = 'notification_configuration_dict'
+
+def set_notification_config(config_instance):
+    """
+    Serializes and stores the config instance values into cache.
+    """
+
+    if not config_instance:
+        cache.set(NOTIFICATION_CONFIG_CACHE_KEY, {}, timeout=None)
+        return {}
+
+    config_dict = {
+        'id': config_instance.id,
+        'failed': config_instance.failed,
+        'success': config_instance.success,
+        'partial': config_instance.partial,
+        'out_of_date': config_instance.out_of_date
+    }
+
+    cache.set(NOTIFICATION_CONFIG_CACHE_KEY, config_dict, timeout=None)
+    if settings.DEBUG:
+        logger.info(f"Cache has been successfully set for 'set_notification_config'")
+    return config_dict
+
+
+def get_notification_config():
+    """
+    Retrieves the Notification configuration from cache, or falls back to the database.
+    """
+
+    data = cache.get(NOTIFICATION_CONFIG_CACHE_KEY)
+
+    if data is None:
+        config_instance, created = NotificationSettings.objects.get_or_create(id=1)
+        if created and settings.DEBUG:
+            logger.info("Initialized ZabbixConfiguration singleton in database.")
+        
+        data = set_notification_config(config_instance)
+
+    return data
+
+
+NOTIFICATION_SERVICES_CACHE_KEY = 'active_notification_services_list'
+
+def set_notification_services():
+    """
+    Fetches active services from DB and refreshes the cache.
+    """
+    active_services = list(NotificationService.objects.filter(active=True).values(
+        'id', 'name', 'type', 'url', 'recipients'
+    ))
+    
+    cache.set(NOTIFICATION_SERVICES_CACHE_KEY, active_services, timeout=None)
+    
+    if settings.DEBUG:
+        logger.info(f"Cache refreshed for {len(active_services)} active NotificationServices.")
+    return active_services
+
+
+def get_notification_services():
+    """
+    Retrieves the list of active services from cache, or populates it.
+    """
+    data = cache.get(NOTIFICATION_SERVICES_CACHE_KEY)
+    if data is None:
+        data = set_notification_services()
     return data

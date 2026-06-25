@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 
 from servers.models import Server
 from configuration.models import NotificationService, NotificationSettings
+from configuration.utils import get_notification_config, get_notification_services
 from .models import PendingNotification
 from .discord_utils import send_msg
 from .email_utils import send_notification_email
@@ -41,13 +42,10 @@ def process_notification(self, notification_id):
         notification.save()
         return
 
-    n_settings = NotificationSettings.objects.first()
-    if not n_settings:
-        n_settings, _ = NotificationSettings.objects.get_or_create()
-    
+    n_settings = get_notification_config()
 
     check_field = 'out_of_date' if notification.status == 'outdated' else notification.status
-    is_enabled = getattr(n_settings, check_field, True)
+    is_enabled = n_settings.get(check_field, True)
 
     if not is_enabled:
         if settings.DEBUG:
@@ -59,12 +57,6 @@ def process_notification(self, notification_id):
 
     notification.last_attempt = timezone.now()
     notification.save()
-
-    active_services = NotificationService.objects.filter(active=True)
-    if not active_services.exists():
-        return
-
-    sent_service_ids = notification.successful_services.values_list('id', flat=True)
     
     duration_seconds = notification.extra_data.get('duration', 0)
     readable_duration = format_duration(duration_seconds)
@@ -79,12 +71,19 @@ def process_notification(self, notification_id):
         'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
     }
 
+    active_services = get_notification_services()
+    if not active_services:
+        return
+
+    sent_service_ids = notification.successful_services.values_list('id', flat=True)
+    sent_service_ids_str = {str(sid) for sid in sent_service_ids}
+
     # 4. Dispatch Loop
     for service in active_services:
-        if service.id in sent_service_ids:
+        if str(service['id']) in sent_service_ids_str:
             continue
 
-        s_type = service.type.lower()
+        s_type = service['type'].lower()
         try:
             success = False
             
@@ -107,7 +106,7 @@ def process_notification(self, notification_id):
                 success = send_notification_email(notification, recipient_list)
 
             if success:
-                notification.successful_services.add(service)
+                notification.successful_services.add(service['id'])
                 
         except Exception as e:
             notification.retry_count += 1

@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.contrib.auth import get_user_model
 
 from .models import APIKey, SysConfig, NotificationService, NotificationSettings, AgentInstallConfig, ZabbixConfiguration
+from .utils import NOTIFICATION_SERVICES_CACHE_KEY
 
 User = get_user_model()
 
@@ -203,6 +204,15 @@ class NotificationServiceTest(APITestCase):
         # URLs - Ensure these names match your urls.py path(..., name='...')
         self.settings_url = reverse('notify_settings')
         self.services_url = reverse('notify_services')
+    
+    def assert_cache_contains_service(self, service_name, should_be_present=True):
+        cached_services = cache.get(NOTIFICATION_SERVICES_CACHE_KEY)
+        names = [s['name'] for s in (cached_services or [])]
+        
+        if should_be_present:
+            self.assertIn(service_name, names, f"Service '{service_name}' not found in cache.")
+        else:
+            self.assertNotIn(service_name, names, f"Service '{service_name}' should not be in cache.")
 
     # --- NotificationSettingsView Tests ---
 
@@ -249,6 +259,8 @@ class NotificationServiceTest(APITestCase):
         service = NotificationService.objects.get()
         self.assertEqual(service.url, "https://discord.com/api/webhooks/123")
 
+        self.assert_cache_contains_service("Ops Discord", should_be_present=True)
+
     def test_create_smtp_service(self):
         """Verify SMTP service creation with recipients mapping."""
         payload = {
@@ -263,6 +275,8 @@ class NotificationServiceTest(APITestCase):
         
         service = NotificationService.objects.get(name="Admin Email")
         self.assertEqual(service.recipients, "admin@astraea.io, dev@astraea.io")
+
+        self.assert_cache_contains_service("Admin Email", should_be_present=True)
 
     def test_patch_service_toggle_active(self):
         """Verify partial update (toggle active status)."""
@@ -292,12 +306,25 @@ class NotificationServiceTest(APITestCase):
         response = self.client.delete(self.services_url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(NotificationService.objects.filter(id=service.id).exists())
+        self.assert_cache_contains_service("Delete Me", should_be_present=False)
 
     def test_missing_data_wrapper_returns_400(self):
         """Verify 400 error if payload doesn't contain 'data' key."""
         response = self.client.post(self.services_url, {"name": "Bad Payload"}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['message'], "Missing required data")
+    
+    def test_cache_lifecycle(self):
+        """Verify that cache is populated and then cleared on service deletion."""
+        self.client.get(self.services_url)
+        
+        service = NotificationService.objects.create(name="CacheTest", type="discord")
+        self.assert_cache_contains_service("CacheTest", should_be_present=True)
+        
+        payload = {"data": {"id": str(service.id)}}
+        self.client.delete(self.services_url, payload, format='json')
+
+        self.assert_cache_contains_service("CacheTest", should_be_present=False)
 
 class AgentHandlerTests(APITestCase):
     
