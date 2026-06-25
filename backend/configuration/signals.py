@@ -2,8 +2,8 @@ import logging
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import APIKey, SysConfig
-from .utils import cache_active_api_keys, set_sys_config_cache
+from .models import APIKey, SysConfig, ZabbixConfiguration, ZabbixMaintenance
+from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache
 
 from users.utils import removeAllCacheVerificationStatus
 from users.tasks import create_bulk_verify_existing_users
@@ -46,3 +46,13 @@ def update_sys_config_cache(sender, instance, **kwargs):
     # Prevents stale data/leaks
     elif old_skip is False and new_skip is True:
         removeAllCacheVerificationStatus()
+
+
+@receiver(post_save, sender=ZabbixConfiguration)
+def update_zabbix_cache_on_save(sender, instance, **kwargs):
+    set_zabbix_config_cache(instance)
+
+
+@receiver(post_delete, sender=ZabbixConfiguration)
+def clear_zabbix_cache_on_delete(sender, instance, **kwargs):
+    set_zabbix_config_cache(None)

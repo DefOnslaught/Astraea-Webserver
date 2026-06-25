@@ -148,6 +148,11 @@ const InspectServer = () => {
                                     Notifications Disabled
                                 </span>
                             )}
+                            {!serverInfo.enable_zabbix && (
+                                <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
+                                    Zabbix Disabled
+                                </span>
+                            )}
                         </h1>
                         <p className="text-slate-400 font-mono text-sm">{serverInfo.server_id}</p>
                     </div>

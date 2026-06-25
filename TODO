@@ -1,20 +1,13 @@
 Backend:
-    - Figure out a way to handle Zabbix
-        - Likely use celery to run timers for this
-        - use 'zabbix_utils' from pip
     - Add a method to generate csv files
 
     - Add Rate Limits
 
     - Ensure we properly handle the situation if an agent sends data with an unknown UUID or duplicate UUID
 
-Frontend:
+    - Go through and ensure we are using settings.VARIABLE, not directly calling it 
 
-    Configuration
-        - Zabbix
-            - API key (method to request to see it once saved, so it's not sent on each page load or saved in cache)
-            - url
-            - timeframe to set the maintenance mode
+Frontend:
 
     - About Page (opened via clicking the version in sidebar)
         - check for updates (front-end only, react goes out and checks version from git?)

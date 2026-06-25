@@ -16,6 +16,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
     const [formData, setFormData] = useState({
         enable_patching: true,
         enable_notifications: true,
+        enable_zabbix: true,
         patch_schedule: '',
         env: ''
     });
@@ -43,6 +44,7 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                 setFormData({
                     enable_patching: res.data.enable_patching,
                     enable_notifications: res.data.enable_notifications,
+                    enable_zabbix: res.data.enable_zabbix,
                     patch_schedule: res.data.patch_schedule || '',
                     env: res.data.env || ''
                 });
@@ -160,6 +162,22 @@ const ConfigureServerModal = ({ server_id, onClose, onUpdateSuccess }) => {
                                         type="checkbox"
                                         checked={formData.enable_notifications}
                                         onChange={(e) => setFormData({ ...formData, enable_notifications: e.target.checked })}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                            {/* ZABBIX TOGGLE CARD */}
+                            <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-200">Enable Zabbix</span>
+                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Toggle Zabbix</span>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.enable_zabbix}
+                                        onChange={(e) => setFormData({ ...formData, enable_zabbix: e.target.checked })}
                                         className="sr-only peer"
                                     />
                                     <div className="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>

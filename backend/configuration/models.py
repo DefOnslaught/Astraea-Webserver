@@ -1,5 +1,6 @@
 import secrets, uuid
 from django.db import models
+from django.core.exceptions import ValidationError
 
 class APIKey(models.Model):
     name = models.CharField(max_length=100, help_text="e.g., 'Production Linux Cluster'", db_index=True)
@@ -107,3 +108,27 @@ class AstraeaAgentInfo(models.Model):
 
     class Meta:
         verbose_name_plural = "Agent Agent Info"
+
+
+class ZabbixConfiguration(models.Model):
+    enable = models.BooleanField(default=False)
+    api_url = models.URLField(help_text="e.g., http://zabbix.example.com/", blank=True, null=True)
+    api_token = models.CharField(max_length=255, blank=True, null=True)
+    
+    def clean(self):
+        if not self.pk and ZabbixConfiguration.objects.exists():
+            raise ValidationError('Only one ZabbixConfiguration instance is allowed. Update the existing record.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+class ZabbixMaintenance(models.Model):
+    zabbix_config = models.ForeignKey(ZabbixConfiguration, on_delete=models.CASCADE)
+    server_id = models.CharField(max_length=255, db_index=True, null=True, blank=True)
+    host_id = models.CharField(max_length=50)
+    maintenance_id = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Zabbix Maintenance Tracker"

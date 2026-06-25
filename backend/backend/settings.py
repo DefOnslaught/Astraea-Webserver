@@ -239,6 +239,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'users.tasks.remove_expired_password_resets',
         'schedule': crontab(hour=12, minute=0)
     },
+    'failsafe-zabbix-cleanup': {
+        'task': 'configuration.tasks.failsafe_cleanup_orphans',
+        'schedule': timedelta(minutes=15),
+    },
 }
 
 

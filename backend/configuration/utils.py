@@ -1,8 +1,8 @@
 import logging
 from django.core.cache import cache
 
-from .models import APIKey, SysConfig
-from backend.settings import DEBUG
+from django.conf import settings
+from .models import APIKey, SysConfig, ZabbixConfiguration
 
 logger = logging.getLogger('django')
 
@@ -16,7 +16,7 @@ def cache_active_api_keys():
     
     cache.set("active_api_keys", active_keys, timeout=None)
     
-    if DEBUG:
+    if settings.DEBUG:
         logger.info(f"Cache warmed: {len(active_keys)} active API keys stored.")
     return active_keys
 
@@ -26,13 +26,17 @@ def set_sys_config_cache(config_instance):
     """
     Active Write: Maps the model instance to a dict and pushes to cache.
     """
+    if not config_instance:
+        cache.set(SYS_CONFIG_CACHE_KEY, {}, timeout=None)
+        return {}
+    
     data = {
         "patching_enabled": config_instance.patching_enabled,
         "skip_email_validation": config_instance.skip_email_validation,
         "disable_registration": config_instance.disable_registration,
     }
     cache.set(SYS_CONFIG_CACHE_KEY, data, timeout=None)
-    if DEBUG:
+    if settings.DEBUG:
         logger.info(f"Cache has been successfully set for 'set_sys_config_cache'")
     return data
 
@@ -48,9 +52,47 @@ def get_sys_config():
 
         if not config:
             config, created = SysConfig.objects.get_or_create()
-            if created and DEBUG:
+            if created and settings.DEBUG:
                 logger.info("Initialized SysConfig singleton in database.")
 
         data = set_sys_config_cache(config)
+
+    return data
+
+ZABBIX_CONFIG_CACHE_KEY = "zabbix_configuration_dict"
+
+def set_zabbix_config_cache(config_instance):
+    """
+    Serializes and stores the config instance values into cache.
+    """
+    if not config_instance:
+        cache.set(ZABBIX_CONFIG_CACHE_KEY, {}, timeout=None)
+        return {}
+        
+    config_dict = {
+        'id': config_instance.id,
+        'enable': config_instance.enable,
+        'api_url': config_instance.api_url,
+        'api_token': config_instance.api_token
+    }
+    cache.set(ZABBIX_CONFIG_CACHE_KEY, config_dict, timeout=None)
+    if settings.DEBUG:
+        logger.info(f"Cache has been successfully set for 'set_zabbix_config_cache'")
+    return config_dict
+
+
+def get_zabbix_config():
+    """
+    Retrieves the Zabbix configuration from cache, or falls back to the database.
+    """
+    
+    data = cache.get(ZABBIX_CONFIG_CACHE_KEY)
+
+    if data is None:
+        config_instance, created  = ZabbixConfiguration.objects.get_or_create()
+        if created and settings.DEBUG:
+            logger.info("Initialized ZabbixConfiguration singleton in database.")
+        
+        data = set_zabbix_config_cache(config_instance)
 
     return data

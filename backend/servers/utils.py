@@ -262,7 +262,8 @@ def cache_individual_vms(vms):
             "total_packages_updated": get_val('total_packages_updated', ''),
             "duration": get_val('duration', ''),
             "date_registered": format_date(get_val('date_registered')),
-            "enable_notifications": get_val('enable_notifications', True)
+            "enable_notifications": get_val('enable_notifications', True),
+            "enable_zabbix": get_val('enable_zabbix', True)
         }
 
         # 2. Update individual granular keys

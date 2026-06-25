@@ -12,6 +12,7 @@ click==8.4.1
 click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
+discord==2.3.2
 discord.py==2.7.1
 Django==6.0.6
 django-cors-headers==4.9.0
@@ -45,5 +46,6 @@ urllib3==2.7.0
 vine==5.1.0
 wcwidth==0.8.1
 yarl==1.24.2
+zabbix-utils==2.0.4
 zope.event==6.2
 zope.interface==8.5

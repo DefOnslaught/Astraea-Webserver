@@ -20,6 +20,7 @@ class Server(models.Model):
     duration = models.IntegerField(default=0)
     date_registered = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     enable_notifications = models.BooleanField(default=True, db_index=True)
+    enable_zabbix = models.BooleanField(default=True, db_index=True)
 
     def __str__(self):
         return self.hostname

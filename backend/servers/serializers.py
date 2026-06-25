@@ -55,7 +55,7 @@ class ServerUpdateSerializer(serializers.ModelSerializer):
     server_id = serializers.CharField(read_only=True)
     class Meta:
         model = Server
-        fields = ['server_id', 'enable_patching', 'patch_schedule', 'env', 'enable_notifications']
+        fields = ['server_id', 'enable_patching', 'patch_schedule', 'env', 'enable_notifications', 'enable_zabbix']
 
 
 class ServerInfoSerializer(serializers.ModelSerializer):
@@ -69,9 +69,8 @@ class ServerInfoSerializer(serializers.ModelSerializer):
         fields = [
             'server_id', 'hostname', 'interfaces', 'os_version', 
             'last_reboot', 'uptime', 'patch_schedule', 'env',
-            'date_registered', 'enable_notifications', 'disable_autoremove',
-            'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates',
-            'max_allowed_uptime'
+            'date_registered', 'max_allowed_uptime', 'disable_autoremove',
+            'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates'
         ]
     
     def update(self, instance, validated_data):

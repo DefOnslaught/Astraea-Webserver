@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo
+from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo, ZabbixConfiguration, ZabbixMaintenance
 
 @admin.register(APIKey)
 class APIKeyAdmin(admin.ModelAdmin):
@@ -30,3 +30,13 @@ class AgentInstallConfigAdmin(admin.ModelAdmin):
 @admin.register(AstraeaAgentInfo)
 class AstraeaAgentInfoAdmin(admin.ModelAdmin):
     list_display = ('version', 'updated_at')
+
+@admin.register(ZabbixConfiguration)
+class SysConfigAdmin(admin.ModelAdmin):
+    fields = ('enable', 'api_url', 'api_token')
+    list_display = ('enable', 'api_url', 'api_token')
+
+@admin.register(ZabbixMaintenance)
+class NotificationServiceAdmin(admin.ModelAdmin):
+    fields = ('zabbix_config', 'server_id', 'host_id', 'maintenance_id')
+    list_display = ('zabbix_config', 'server_id', 'host_id', 'maintenance_id', 'created_at')

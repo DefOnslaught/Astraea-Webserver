@@ -7,12 +7,13 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse, FileResponse
 from django.template import Context, Template
 from django.db import transaction
+from django.conf import settings
 
 from backend.settings import DEBUG, BASE_DIR
 from servers.permissions import HasInternalAPIKey
-from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo
-from .serializers import ApiKeyUpdateSerializer, APIKeySerializer, NotificationServiceSerializer, AgentInstallConfigSerializer
-from .utils import get_sys_config
+from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo, ZabbixConfiguration
+from .serializers import ApiKeyUpdateSerializer, APIKeySerializer, NotificationServiceSerializer, AgentInstallConfigSerializer, ZabbixConfigSerializer, SysConfigSerializer
+from .utils import get_sys_config, get_zabbix_config
 
 logger = logging.getLogger('django')
 
@@ -101,29 +102,27 @@ class SystemConfig(APIView):
 
     def get(self, request):
         data = get_sys_config()
-
         return Response(data, status=status.HTTP_200_OK)
 
     def patch(self, request):
-        data = request.data.get('data')
+        config = SysConfig.objects.first()
+        if not config:
+            config = SysConfig()
 
-        if data is None:
-            return Response({'message': "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+        payload = request.data.get('data', request.data)
+        if not payload:
+            return Response({'message': 'Missing required data'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            config = SysConfig.objects.first()
-            if not config:
-                config = SysConfig()
-            config.patching_enabled = data['patching_enabled']
-            config.skip_email_validation = data['skip_email_validation']
-            config.disable_registration = data['disable_registration']
-            config.save()
-            if DEBUG:
+        serializer = SysConfigSerializer(config, data=payload, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            if settings.DEBUG:
                 logger.info(f"Successfully updated System Settings")
             return Response({'message': 'Successfully updated System Settings'}, status=status.HTTP_200_OK)
-        except Exception as e:
-            logger.error(f'Unable to update System Settings: {str(e)}')
-            return Response({'message': f'Unable to update System Settings: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        logger.error(f'Unable to update System Settings: {serializer.errors}') 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class NotificationSettingsView(APIView):
@@ -487,3 +486,32 @@ class DeleteAgentInstallConfig(APIView):
         except Exception as e:
             logger.error(f"Failed deleting Agent Install Config: {str(e)}")
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ZabbixConfig(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        config_data = get_zabbix_config()
+        serializer = ZabbixConfigSerializer(config_data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def patch(self, request):
+        config = ZabbixConfiguration.objects.first()
+        if not config:
+            config = ZabbixConfiguration()
+        
+        payload = request.data.get('data', request.data)
+        if not payload:
+            return Response({'message': 'Missing required data'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ZabbixConfigSerializer(config, data=payload, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            if settings.DEBUG:
+                logger.info(f"Successfully updated Zabbix Settings")
+            return Response({'message': 'Successfully updated Zabbix Settings'}, status=status.HTTP_200_OK)
+        
+        logger.error(f'Unable to update Zabbix Settings: {serializer.errors}') 
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

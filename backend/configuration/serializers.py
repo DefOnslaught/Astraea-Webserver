@@ -1,12 +1,18 @@
 from rest_framework import serializers
 
-from .models import APIKey, NotificationService, AgentInstallConfig
+from .models import APIKey, SysConfig, NotificationService, AgentInstallConfig, ZabbixConfiguration
 
 class APIKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = APIKey
         fields = ['name', 'key', 'created_at', 'last_used', 'is_active']
         read_only_fields = ['id']
+
+
+class SysConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SysConfig
+        fields = ['patching_enabled', 'skip_email_validation', 'disable_registration']
 
 
 class ApiKeyUpdateSerializer(serializers.ModelSerializer):
@@ -53,3 +59,9 @@ class AgentInstallConfigSerializer(serializers.ModelSerializer):
         if not value.is_active:
             raise serializers.ValidationError("This API Key is disabled.")
         return value
+
+
+class ZabbixConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ZabbixConfiguration
+        fields = ['enable', 'api_url', 'api_token']

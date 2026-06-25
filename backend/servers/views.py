@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Max, F
 from django.db.models.functions import Length
@@ -17,7 +18,10 @@ from .models import Server, Package, PatchSession, PackageUpdate
 from .utils import warm_cache_in_background, evaluate_comparison, parse_relative_date, cache_individual_vms, refresh_package_search_index, format_duration
 from .serializers import ServerSearchSerializer, ServerPatchSerializer, ServerUpdateSerializer, ServerInfoSerializer
 from .permissions import HasInternalAPIKey
-from configuration.utils import get_sys_config
+from configuration.utils import get_sys_config, get_zabbix_config
+from configuration.zabbix_utils import complete_maintenance_window
+from configuration.models import ZabbixMaintenance
+from configuration.tasks import schedule_zabbix_maintenance_task
 
 logger = logging.getLogger('django')
 
@@ -371,6 +375,16 @@ class ServerPatchingEnableCheck(APIView):
             cached_data = cache.get(cache_key)
         
         is_enabled = cached_data.get('enable_patching')
+
+        if is_enabled:
+            zabbix_config = get_zabbix_config()
+            if zabbix_config.get('enable') and cached_data.get('enable_zabbix'):
+                if zabbix_config.get('api_token'):
+                    hostname = cached_data.get('hostname')
+                    schedule_zabbix_maintenance_task.delay(hostname, server_id, zabbix_config)
+                else:
+                    logger.warning(f"Zabbix enabled but API Token is missing for server {server_id}")
+
         return Response({'can_patch': is_enabled}, status=status.HTTP_200_OK)
 
 
@@ -432,10 +446,23 @@ class SavePatchingData(APIView):
                         'errors': serializer.errors
                     }, status=status.HTTP_400_BAD_REQUEST)
                 
-                # Triggers the refined create() logic
-                serializer.save()
+                instance = serializer.save()
                 
-                logger.info(f"Patch data synced for: {hostname} | ID: {server_uuid} | Source: {ip_address}")
+                zabbix_config = get_zabbix_config()
+                if zabbix_config.get('enable') and instance.enable_zabbix:
+                    zabbix_maintenance = ZabbixMaintenance.objects.filter(
+                        server_id=server_uuid
+                    ).order_by('-created_at').first()
+
+                    if zabbix_maintenance:
+                        complete_maintenance_window(zabbix_maintenance.id)
+                        if settings.DEBUG:
+                            logger.info(f"Scheduled Zabbix maintenance removal for {hostname}")
+                    else:
+                        logger.warning(f"No active Zabbix maintenance record found for server {server_uuid}")
+                
+                if settings.DEBUG:
+                    logger.info(f"Patch data synced for: {hostname} | ID: {server_uuid} | Source: {ip_address}")
                 return Response({'message': 'Successfully processed patch telemetry'}, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -635,7 +662,7 @@ class UpdateServerInfo(APIView):
             cached_data = cache.get(cache_key)
         
         # Only send the needed data to reduce amount sent
-        fields = ['server_id', 'patch_schedule', 'enable_patching', 'env', 'hostname', 'enable_notifications']
+        fields = ['server_id', 'patch_schedule', 'enable_patching', 'env', 'hostname', 'enable_notifications', 'enable_zabbix']
         needed_results = {k: cached_data.get(k) for k in fields if k in cached_data}
         
         return Response(needed_results, status=status.HTTP_200_OK)

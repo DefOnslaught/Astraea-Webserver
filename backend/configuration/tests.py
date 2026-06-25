@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 
-from .models import APIKey, SysConfig, NotificationService, NotificationSettings, AgentInstallConfig, AstraeaAgentInfo
+from .models import APIKey, SysConfig, NotificationService, NotificationSettings, AgentInstallConfig, ZabbixConfiguration
 
 User = get_user_model()
 
@@ -419,3 +419,84 @@ class AgentHandlerTests(APITestCase):
 
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+class ZabbixConfigTests(APITestCase):
+
+    def setUp(self):
+        cache.clear()
+        ZabbixConfiguration.objects.all().delete()
+
+        self.user = User.objects.create_user(
+            email="test@example.com", 
+            username="testuser", 
+            password="password123"
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_get_zabbix_config_success(self):
+        """Verify we can retrieve the zabbix configuration."""
+        ZabbixConfiguration.objects.create(enable=True, api_url="http://zabbix.test.com", api_token="secret")
+        
+        url = reverse('zabbix_config')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('enable', response.data)
+        self.assertIn('api_url', response.data)
+        self.assertEqual(response.data['enable'], True)
+
+    def test_patch_zabbix_config_update_existing(self):
+        """Verify we can update an existing zabbix config record."""
+        ZabbixConfiguration.objects.create(enable=False, api_url="http://old.com", api_token="old")
+        url = reverse('zabbix_config')
+        
+        payload = {
+            "data": {
+                "enable": True,
+                "api_url": "http://new.com",
+                "api_token": "new"
+            }
+        }
+        
+        response = self.client.patch(url, payload, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verify DB change
+        config = ZabbixConfiguration.objects.first()
+        self.assertTrue(config.enable)
+        self.assertEqual(config.api_url, "http://new.com")
+
+    def test_patch_zabbix_config_create_if_not_exists(self):
+        """Verify the view creates a config record if none exists during a patch."""
+        ZabbixConfiguration.objects.all().delete()
+        
+        url = reverse('zabbix_config')
+        payload = {
+            "data": {
+                "enable": True,
+                "api_url": "http://zabbix.com",
+                "api_token": "token"
+            }
+        }
+        
+        response = self.client.patch(url, payload, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(ZabbixConfiguration.objects.count(), 1)
+
+    def test_patch_zabbix_config_missing_data(self):
+        """Verify 400 error when 'data' key is missing from payload."""
+        url = reverse('zabbix_config')
+        response = self.client.patch(url, {}, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['message'], "Missing required data")
+
+    def test_zabbix_config_unauthorized(self):
+        """Verify unauthenticated users are blocked."""
+        self.client.force_authenticate(user=None)
+        url = reverse('zabbix_config')
+        
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

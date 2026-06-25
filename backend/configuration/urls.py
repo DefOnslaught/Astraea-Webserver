@@ -3,7 +3,8 @@ from .views import (
     CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, 
     UpdateAPIKey, SystemConfig, NotificationSettingsView, 
     NotificationServicesView, AgentCreateConfigView, AgentInstallScriptView,
-    AgentFileHandlerView, AgentUploadHandlerView, GetAgentInstallConfigs, DeleteAgentInstallConfig)
+    AgentFileHandlerView, AgentUploadHandlerView, GetAgentInstallConfigs, 
+    DeleteAgentInstallConfig, ZabbixConfig)
 
 urlpatterns = [
     path('api-key/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
@@ -19,4 +20,5 @@ urlpatterns = [
     path('upload_agent_file/', AgentUploadHandlerView.as_view(), name='agent_upload_handler'),
     path('agent_install_configs/', GetAgentInstallConfigs.as_view(), name="agent_install_configs"),
     path('delete_agent_install_config/', DeleteAgentInstallConfig.as_view(), name="delete_agent_install_config"),
+    path('zabbix_config/', ZabbixConfig.as_view(), name='zabbix_config')
 ]

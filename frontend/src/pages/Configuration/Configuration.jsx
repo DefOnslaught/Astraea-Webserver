@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-    Settings, Bell, Key, Cpu
+    Settings, Bell, Key, Cpu, MonitorCog
 } from "lucide-react";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
@@ -9,16 +9,16 @@ import GeneralSettings from "./utils/GeneralSettings";
 import ApiKeySettings from "./utils/ApiKeySettings";
 import AgentSettings from "./utils/AgentSettings";
 import NotificationSettings from "./utils/NotificationSettings";
+import ZabbixSettings from "./utils/ZabbixSettings";
 import AccessForbidden from "../ErrorPages/AccessForbidden";
 
 const Configuration = () => {
     useDocumentTitle('Configuration | Astraea');
 
-    // State Management
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState(() => {
         const hash = window.location.hash.replace("#", "");
-        return ["general", "notifications", "api", "agent"].includes(hash) ? hash : "general";
+        return ["general", "notifications", "api", "agent", "zabbix"].includes(hash) ? hash : "general";
     });
     const [successMsg, setSuccessMsg] = useState("");
     const [showSuccess, setShowSuccess] = useState(false);
@@ -66,13 +66,12 @@ const Configuration = () => {
         return () => window.removeEventListener("hashchange", handleHashChange);
     }, [activeTab]);
 
-    // --- Main Render ---
-
     const tabs = [
         { id: 'general', label: 'System Settings', icon: <Settings className="w-4 h-4" /> },
         { id: 'notifications', label: 'Notifications', icon: <Bell className="w-4 h-4" /> },
         { id: 'api', label: 'API Keys', icon: <Key className="w-4 h-4" /> },
         { id: 'agent', label: 'Astraea Agent', icon: <Cpu className="w-4 h-4" /> },
+        { id: 'zabbix', label: 'Zabbix Settings', icon: <MonitorCog className="w-4 h-4" /> },
     ];
 
     const hasAdminAccess = user?.is_staff || user?.is_superuser;
@@ -117,6 +116,7 @@ const Configuration = () => {
                 {activeTab === "api" && <ApiKeySettings triggerSuccess={triggerSuccess} setError={showError} />}
                 {activeTab === "notifications" && <NotificationSettings triggerSuccess={triggerSuccess} setError={showError} />}
                 {activeTab === "agent" && <AgentSettings triggerSuccess={triggerSuccess} setError={showError} />}
+                {activeTab === "zabbix" && <ZabbixSettings triggerSuccess={triggerSuccess} setError={showError} />}
             </div>
         </div>
     );
