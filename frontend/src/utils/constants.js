@@ -23,7 +23,6 @@ export const API_ENDPOINTS = {
     SERVER_SEARCH: "api/servers/search/",
     PACKAGE_SEARCH: "api/servers/software/search/",
     PACKAGE_SERVER_LIST: "api/servers/software/server_list/",
-    PURGE_OLD_PACKAGES: "api/servers/software/purge_old_packages/",
 
     UPDATE_SERVER: "api/servers/patching/update/",
     DELETE_SERVER: "api/servers/patching/delete/",
@@ -37,6 +36,7 @@ export const API_ENDPOINTS = {
     API_KEY_UPDATE: "api/config/api-key/update/",
     API_KEY_DELETE: "api/config/api-key/delete/",
     SYSTEM_CONFIG: "api/config/sysconfig/",
+    PURGE_OLD_PACKAGES: "api/config/sysconfig/purge_old_packages/",
     NOTIFY_SETTINGS: "api/config/notify_settings/",
     NOTIFY_SERVICES: "api/config/notify_services/",
     TEST_DISCORD: "api/notifications/test/discord/",

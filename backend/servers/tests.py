@@ -392,7 +392,7 @@ class PatchingSystemTests(APITestCase):
         self.assertIsNotNone(cached_data)
         self.assertEqual(cached_data['enable_patching'], False)
 
-    @patch('servers.views.warm_cache_in_background')
+    @patch('servers.views.DashboardViews.warm_cache_in_background')
     def test_dashboard_cold_cache_triggers_warming(self, mock_warm):
         """If cache is empty, view should return 202 and trigger warming task."""
         url = reverse('dashboard_stats')
