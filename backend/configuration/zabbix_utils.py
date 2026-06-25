@@ -13,7 +13,7 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
 
     try:
         zapi = ZabbixAPI(config_dict['api_url'])
-        zapi.login(api_token=config_dict['api_token'])
+        zapi.login(token=config_dict['api_token'])
 
         hosts = zapi.host.get(filter={"host": hostname})
         if not hosts:
@@ -57,3 +57,23 @@ def complete_maintenance_window(tracking_id):
     """
     from .tasks import remove_zabbix_maintenance
     remove_zabbix_maintenance.apply_async(args=[tracking_id], countdown=180)
+
+
+def test_zabbix_connection(config_dict):
+    """
+    Tests the connection to Zabbix API using the provided configuration.
+    Returns True if successful, raises an Exception otherwise.
+    """
+    if not config_dict.get('api_url') or not config_dict.get('api_token'):
+        raise ValueError("Missing API URL or Token.")
+
+    try:
+        zapi = ZabbixAPI(config_dict['api_url'])
+        zapi.login(token=config_dict['api_token'])
+        version = zapi.apiinfo.version()
+        logger.info(f"Zabbix connection successful. API Version: {version}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Zabbix connection test failed: {str(e)}")
+        raise Exception(f"Connection test failed: {str(e)}")

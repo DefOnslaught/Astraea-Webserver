@@ -1,29 +1,40 @@
 import { useState, useEffect, useMemo } from "react";
-import { Server, Save, RefreshCw, Loader2, Key, Globe, AlertCircle } from "lucide-react";
+import { Server, Save, RefreshCw, Loader2, Key, Globe, AlertCircle, Check } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
 
 const ZabbixSettings = ({ triggerSuccess, setError }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isTesting, setIsTesting] = useState(false);
+    const [testStatus, setTestStatus] = useState("idle");
     const [settings, setSettings] = useState({
         enable: false,
         api_url: "",
         api_token: "",
     });
 
-    // Derive validation state
+    useEffect(() => {
+        setTestStatus("idle");
+    }, [settings.api_url, settings.api_token]);
+
     const validation = useMemo(() => {
         const urlValid = settings.api_url && settings.api_url.trim().length > 0;
         const tokenValid = settings.api_token && settings.api_token.trim().length > 0;
+        
+        // 1. Requirement: Save disabled until Test success IF enabled
+        const needsTest = settings.enable && (urlValid && tokenValid);
+        const canSave = !settings.enable || (needsTest && testStatus === "success");
 
         return {
             isValid: !settings.enable || (urlValid && tokenValid),
+            canSave: canSave,
+            needsTest: needsTest,
             error: settings.enable && (!urlValid || !tokenValid)
                 ? "API URL and Token are required when Zabbix integration is enabled."
                 : null
         };
-    }, [settings]);
+    }, [settings, testStatus]);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -42,6 +53,20 @@ const ZabbixSettings = ({ triggerSuccess, setError }) => {
         };
         fetchSettings();
     }, []);
+
+    const handleTestConnection = async () => {
+        setIsTesting(true);
+        setTestStatus("idle");
+        try {
+            await api.post(API_ENDPOINTS.TEST_ZABBIX, { data: settings });
+            setTestStatus("success");
+            triggerSuccess("Connection successful! Zabbix is reachable.");
+        } catch (err) {
+            setError(err.response?.data?.message || "Connection failed.");
+        } finally {
+            setIsTesting(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!validation.isValid) return;
@@ -124,12 +149,26 @@ const ZabbixSettings = ({ triggerSuccess, setError }) => {
                     </div>
                 )}
 
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        onClick={handleTestConnection}
+                        disabled={isTesting || !validation.isValid || testStatus === "success" || !settings.enable}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all 
+                            ${testStatus === "success"
+                                ? 'bg-green-600 text-white cursor-default'
+                                : (!validation.isValid || !settings.enable)
+                                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-700 hover:bg-gray-600 text-white'}`}
+                    >
+                        {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {testStatus === "success" ? "Connected" : "Test Connection"}
+                    </button>
+
                     <button
                         onClick={handleSave}
-                        disabled={isSaving || !validation.isValid}
+                        disabled={isSaving || !validation.canSave}
                         className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg 
-                            ${!validation.isValid
+                            ${!validation.canSave
                                 ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                                 : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20'}`}
                     >

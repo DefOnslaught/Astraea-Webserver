@@ -33,8 +33,5 @@ General Needs:
         - Add a search bar to 'Patch History'
 
 
-    setup.sh
-        Install the proper node versions, use this site as a guide: https://nodesource.com/products/distributions
-
     Update.sh
         - Will not work with the docker deployment until we figure that out

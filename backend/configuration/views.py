@@ -13,6 +13,7 @@ from servers.permissions import HasInternalAPIKey
 from .models import APIKey, SysConfig, NotificationSettings, NotificationService, AgentInstallConfig, AstraeaAgentInfo, ZabbixConfiguration
 from .serializers import ApiKeyUpdateSerializer, APIKeySerializer, NotificationServiceSerializer, AgentInstallConfigSerializer, ZabbixConfigSerializer, SysConfigSerializer
 from .utils import get_sys_config, get_zabbix_config
+from .zabbix_utils import test_zabbix_connection
 
 logger = logging.getLogger('django')
 
@@ -514,3 +515,23 @@ class ZabbixConfig(APIView):
         
         logger.error(f'Unable to update Zabbix Settings: {serializer.errors}') 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TestZabbixConnection(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        settings_data = request.data.get('data') 
+        
+        if not settings_data:
+            return Response({'message': "Configuration data is required to test the connection."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            test_zabbix_connection(settings_data)
+            if settings.DEBUG:
+                logger.info(f"Zabbix test connection successful!") 
+            return Response({'message': "Connection successful!"}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Failed Zabbix Connection Test: {str(e)}")
+            return Response({'message': f"Connection failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

@@ -26,7 +26,7 @@ def remove_zabbix_maintenance(self, tracking_id):
         config = record.zabbix_config
         
         zapi = ZabbixAPI(config.api_url)
-        zapi.login(api_token=config.api_token)
+        zapi.login(token=config.api_token)
         
         zapi.maintenance.delete([record.maintenance_id])
         

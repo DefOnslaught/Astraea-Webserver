@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     AGENT_INSTALL_CONFIGS: "api/config/agent_install_configs/",
     DELETE_AGENT_INSTALL_CONFIG: "api/config/delete_agent_install_config/",
     ZABBIX_CONFIG: "api/config/zabbix_config/",
+    TEST_ZABBIX: "api/config/zabbix_config/test/",
 
     FETCH_USERS: "api/admin/fetch_users/",
     INSPECT_USER: "api/admin/inspect_user/",
