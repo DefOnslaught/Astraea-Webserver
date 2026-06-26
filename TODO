@@ -15,8 +15,9 @@ Frontend:
 
 General Needs:
 
-    Administration - System Access (Rename to something else) 
-        - Have a button to refresh cache manually (if for some reason the data showing is wrong)
+    Administration - System Maintenance 
+        - System Log Export
+        - Database Connection Health
 
 
     Notification

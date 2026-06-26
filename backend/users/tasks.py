@@ -156,7 +156,7 @@ def send_password_changed_email(self, email, username):
         raise self.retry(exc=e, countdown=60, max_retries=3)
 
 
-@shared_task
+@shared_task(name="users.tasks.remove_expired_password_resets")
 def remove_expired_password_resets():
     """Deletes password reset entries that are expired or hit max retries"""
 

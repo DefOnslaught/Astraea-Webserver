@@ -51,6 +51,9 @@ export const API_ENDPOINTS = {
     FETCH_USERS: "api/admin/fetch_users/",
     INSPECT_USER: "api/admin/inspect_user/",
     CREATE_USER: "api/admin/create_user/",
+
+    RESET_CACHE: 'api/admin/refresh_cache/',
+    CELERY_STATS: 'api/admin/celery_stats/',
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

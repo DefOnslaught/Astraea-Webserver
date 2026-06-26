@@ -40,6 +40,7 @@ const Configuration = () => {
     };
 
     const showError = (msg) => {
+        setShowSuccess(false);
         setError(msg);
         setTimeout(() => setError(""), 3000);
     };

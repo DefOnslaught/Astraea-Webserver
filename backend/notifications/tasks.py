@@ -118,7 +118,7 @@ def process_notification(self, notification_id):
         logger.info(f"Successfully processed notification ID {notification_id}")
 
 
-@shared_task
+@shared_task(name="notifications.tasks.reconcile_task_path")
 def reconcile_notifications():
     """Checks for notifications that are stuck or failed."""
     
@@ -127,7 +127,7 @@ def reconcile_notifications():
         process_notification.delay(notification_id=note.id)
 
 
-@shared_task
+@shared_task(name="notifications.tasks.delete_sent_notifications")
 def delete_sent_notifications():
     """Deletes notifications that have been sent, or max retries."""
 
@@ -147,7 +147,7 @@ def delete_sent_notifications():
         logger.info(f"Cleanup complete. Removed {deleted_count} notifications.")
 
 
-@shared_task
+@shared_task(name="notifications.tasks.notify_out_of_date")
 def notify_out_of_date():
     """Consolidates outdated servers into a single notification."""
     days = int(settings.PATCH_THRESHOLD_DAYS)

@@ -42,7 +42,7 @@ def remove_zabbix_maintenance(self, tracking_id):
         raise self.retry(exc=e, countdown=60)
 
 
-@shared_task
+@shared_task(name="configuration.tasks.failsafe_cleanup_orphans")
 def failsafe_cleanup_orphans():
     """
     Sweeps for maintenance windows that were created over 65 minutes ago 

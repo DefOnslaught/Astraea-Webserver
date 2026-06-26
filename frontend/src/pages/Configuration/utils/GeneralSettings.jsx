@@ -6,8 +6,6 @@ import { API_ENDPOINTS } from "../../../utils/constants";
 const GeneralSettings = ({ triggerSuccess, setError }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isPurging, setIsPurging] = useState(false);
-    const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
 
     const [systemSettings, setSystemSettings] = useState({
         patchingEnabled: true,
@@ -49,19 +47,6 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
             setError("Failed to update settings.");
         } finally {
             setIsSaving(false);
-        }
-    };
-
-    const handlePurgeDatabase = async () => {
-        setIsPurging(true);
-        try {
-            await api.post(API_ENDPOINTS.PURGE_OLD_PACKAGES);
-            triggerSuccess("Orphaned package data purged.");
-            setShowPurgeConfirm(false);
-        } catch (err) {
-            setError("Database purge failed.");
-        } finally {
-            setIsPurging(false);
         }
     };
 
@@ -135,57 +120,6 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
                         Save General Settings
                     </button>
                 </div>
-            </div>
-
-            {/* Maintenance Mode */}
-            <div className="mt-4 p-6 bg-red-500/5 border border-red-500/10 rounded-2xl">
-                <div className="flex items-center gap-2 mb-4">
-                    <Skull className="text-red-500/50 w-4 h-4" />
-                    <h3 className="text-xs font-bold text-red-500/70 uppercase tracking-[0.2em]">Danger Zone</h3>
-                </div>
-
-                {!showPurgeConfirm ? (
-                    <div className="flex items-center justify-between p-4 border border-red-500/20 rounded-xl bg-red-500/5">
-                        <div className="max-w-md">
-                            <p className="text-sm font-bold text-gray-200 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-red-400" /> Purge Orphaned Packages
-                            </p>
-                            <p className="text-xs text-gray-500 leading-tight mt-1">
-                                Permanently delete package definitions not linked to any active server. This improves database performance but is irreversible.
-                            </p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowPurgeConfirm(true)}
-                            className="px-4 py-2 rounded-lg border border-red-500/30 text-red-500 text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
-                        >
-                            Purge
-                        </button>
-                    </div>
-                ) : (
-                    <div className="p-4 border border-red-500/40 rounded-xl bg-red-900/20 animate-in zoom-in-95 duration-200">
-                        <p className="text-xs font-bold text-red-400 text-center mb-4 italic">
-                            Wipe all unused package data?
-                        </p>
-                        <div className="flex gap-2 max-w-xs mx-auto">
-                            <button
-                                type="button"
-                                onClick={() => setShowPurgeConfirm(false)}
-                                className="flex-1 py-2 rounded-lg bg-white/5 text-gray-300 text-[10px] font-bold uppercase hover:bg-white/10 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handlePurgeDatabase}
-                                disabled={isPurging}
-                                className="flex-1 py-2 rounded-lg bg-red-600 text-white text-[10px] font-bold uppercase hover:bg-red-500 shadow-lg shadow-red-900/40 disabled:opacity-50"
-                            >
-                                {isPurging ? <RefreshCw className="w-3 h-3 animate-spin mx-auto" /> : "Confirm Purge"}
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
