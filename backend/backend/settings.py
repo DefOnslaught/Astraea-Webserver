@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'django_celery_beat',
     'backend',
     'users',
     'servers',
@@ -219,31 +220,9 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_REDIS_URL", "redis://127.0.0.1:6379/1"
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_ENABLE_UTC = False
 CELERY_TIMEZONE = TIME_ZONE
-
-CELERY_BEAT_SCHEDULE = {
-    'reconcile-pending-notifications-every-30-mins': {
-        'task': 'notifications.tasks.reconcile_notifications',
-        'schedule': timedelta(minutes=30),
-    },
-    'cleanup-old-notifications-hourly': {
-        'task': 'notifications.tasks.delete_sent_notifications',
-        'schedule': timedelta(hours=1),
-    },
-    'check-outdated-servers-daily': {
-        'task': 'notifications.tasks.notify_out_of_date',
-        'schedule': crontab(hour=10, minute=0),
-    },
-    'delete-expired-password-reset-daily': {
-        'task': 'users.tasks.remove_expired_password_resets',
-        'schedule': crontab(hour=12, minute=0)
-    },
-    'failsafe-zabbix-cleanup': {
-        'task': 'configuration.tasks.failsafe_cleanup_orphans',
-        'schedule': timedelta(minutes=15),
-    },
-}
 
 
 # Static files (CSS, JavaScript, Images)

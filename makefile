@@ -161,6 +161,7 @@ deploy-internal: test-deploy buildFrontend
 	@sudo systemctl restart gunicorn
 	@sudo systemctl restart nginx
 	@sudo systemctl restart astraea-worker
+	@$(VENV_PYTHON) backend/manage.py setup_periodic_tasks
 	@sudo systemctl restart astraea-beat
 	@echo "$(BOLD_GREEN)Deployment Successful!$(RESET)"
 
@@ -172,7 +173,7 @@ restart-internal:
 	@sudo systemctl restart astraea-beat
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
-initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv setupCelery dbMigrations-internal
+initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv dbMigrations-internal setupCelery
 	@echo "$(GREEN)Setup Complete.$(RESET)"
 
 dbMigrations-internal:
@@ -180,6 +181,7 @@ dbMigrations-internal:
 	@$(VENV_PYTHON) backend/manage.py wait_for_db
 	@$(VENV_PYTHON) backend/manage.py makemigrations
 	@$(VENV_PYTHON) backend/manage.py migrate
+	@$(VENV_PYTHON) backend/manage.py setup_periodic_tasks
 
 virtualenv:
 	@python3 -m venv backend/venv
