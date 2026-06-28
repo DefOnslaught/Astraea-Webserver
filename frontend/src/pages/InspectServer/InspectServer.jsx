@@ -177,10 +177,24 @@ const InspectServer = () => {
             {/* Top Level Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <StatCard icon={<Cpu className="text-blue-400" />} label="OS Version" value={serverInfo.os_version} />
-                <StatCard icon={<Clock className="text-orange-400" />} label="Uptime At Run" value={serverInfo.uptime} />
-                <StatCard icon={<Shield className="text-purple-400" />} label="Last Patch" value={serverInfo.last_patch ? new Date(serverInfo.last_patch).toLocaleDateString() : 'Never'} />
+                <StatCard icon={<Clock className="text-orange-400" />} label="Last Known Uptime" value={serverInfo.uptime} />
+                <StatCard icon={<Shield className="text-purple-400" />} label="Last Patch" value={serverInfo.last_patch ? new Date(serverInfo.last_patch).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }) : 'Never'} />
                 <StatCard icon={<Globe className="text-emerald-400" />} label="Environment" value={serverInfo.env} />
-                <StatCard icon={<CalendarDays className="text-orange-400" />} label="Date Registered" value={serverInfo.date_registered ? new Date(serverInfo.date_registered).toLocaleDateString() : 'Unknown'} />
+                <StatCard icon={<CalendarDays className="text-orange-400" />} label="Date Registered" value={serverInfo.date_registered ? new Date(serverInfo.date_registered).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                }) : 'Unknown'} />
             </div>
 
             {/* Main Content Tabs */}
