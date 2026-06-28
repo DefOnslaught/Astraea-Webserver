@@ -8,6 +8,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     const [statusMessage, setStatusMessage] = useState("");
     const [isPurging, setIsPurging] = useState(false);
     const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
+    const [isLoadingTasks, setIsLoadingTasks] = useState(true);
     const [celeryStats, setCeleryStats] = useState({
         workers: [],
         scheduled_tasks: [],
@@ -40,6 +41,8 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             setCeleryStats(res.data);
         } catch (err) {
             console.error("Failed to fetch celery stats");
+        } finally {
+            setIsLoadingTasks(false);
         }
     };
 
@@ -306,27 +309,36 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 {/* Scheduled Tasks List */}
                 <div className="mt-6">
                     <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Scheduled Tasks</h4>
-                    <div className="bg-gray-900/30 rounded-xl overflow-hidden border border-white/5">
-                        {celeryStats.scheduled_tasks.map((task, i) => (
-                            <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-white/5 last:border-0">
-                                <div>
-                                    <p className="text-xs text-gray-300 font-medium">{task.name}</p>
-                                    <p className="text-[9px] text-gray-500">
-                                        {task.last_run_at ? new Date(task.last_run_at).toLocaleString() : "Never ran"}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => handleRunTask(task.name)}
-                                        className="text-indigo-400 hover:text-indigo-300 transition-colors"
-                                        title="Run Now"
-                                    >
-                                        <Play className="w-3 h-3 fill-current" />
-                                    </button>
-                                    <div className={`w-2 h-2 rounded-full ${task.enabled ? 'bg-green-500' : 'bg-red-500'}`} />
-                                </div>
+                    <div className="bg-gray-900/30 rounded-xl overflow-hidden border border-white/5 min-h-25 flex flex-col justify-center">
+                        {isLoadingTasks ? (
+                            <div className="flex flex-col items-center justify-center p-4">
+                                <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin mb-2" />
+                                <p className="text-[10px] text-gray-500 uppercase">Loading tasks...</p>
                             </div>
-                        ))}
+                        ) : celeryStats.scheduled_tasks.length > 0 ? (
+                            celeryStats.scheduled_tasks.map((task, i) => (
+                                <div key={i} className="flex justify-between items-center px-4 py-3 border-b border-white/5 last:border-0">
+                                    <div>
+                                        <p className="text-xs text-gray-300 font-medium">{task.name}</p>
+                                        <p className="text-[9px] text-gray-500">
+                                            {task.last_run_at ? new Date(task.last_run_at).toLocaleString() : "Never ran"}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => handleRunTask(task.name)}
+                                            className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                                            title="Run Now"
+                                        >
+                                            <Play className="w-3 h-3 fill-current" />
+                                        </button>
+                                        <div className={`w-2 h-2 rounded-full ${task.enabled ? 'bg-green-500' : 'bg-red-500'}`} />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-4 text-center text-[10px] text-gray-500">No scheduled tasks found.</div>
+                        )}
                     </div>
                 </div>
             </div>
