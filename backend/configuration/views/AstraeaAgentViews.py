@@ -1,4 +1,4 @@
-import logging, os, tarfile, io, shutil, zipfile
+import logging, os, tarfile, io, zipfile
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -204,12 +204,13 @@ class AgentUploadHandlerView(APIView):
                             elif member.isdir():
                                 if not _is_forbidden_file(member.name):
                                     tar_out.addfile(member)
+
+            os.replace(temp_path, final_path)
+            
             with transaction.atomic():
                 info, created = AstraeaAgentInfo.objects.get_or_create(id=1) 
                 info.version = version
                 info.save()
-
-                shutil.move(temp_path, final_path)
             
             return Response({
                 'message': f"Astraea Agent updated to {version}"
