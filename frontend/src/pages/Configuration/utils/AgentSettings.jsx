@@ -109,7 +109,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                 setCurrentVersion(scriptVersion);
             }
         } catch (err) {
-            setError("Upload failed. Ensure the file is a valid Python script.");
+            setError(err.response?.data?.message || "Upload failed. Ensure the file is a valid Python script.");
         } finally {
             setUploading(false);
         }

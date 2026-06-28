@@ -148,6 +148,18 @@ class AgentUploadHandlerView(APIView):
         filename = uploaded_file.name.lower()
         if not filename.endswith(self.ALLOWED_EXTENSIONS):
             return Response({'message': "Invalid file type. Please upload .zip or .tar."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+        extracted_version = _extract_version_from_archive(uploaded_file, filename)
+        
+        if not extracted_version:
+            return Response({'message': "Uploaded file does not contain a valid version.txt"}, status=400)
+            
+        # 2. Compare the two versions
+        if extracted_version != version:
+            return Response({
+                'message': f"Version mismatch! Form says {version}, but archive says {extracted_version}."
+            }, status=400)
 
         
         os.makedirs(self.STORAGE_DIR, exist_ok=True)
@@ -222,6 +234,29 @@ class AgentUploadHandlerView(APIView):
             logger.error(f"Error saving agent upload: {str(e)}")
             return Response({'message': f"Internal error during processing: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+def _extract_version_from_archive(uploaded_file, filename):
+    """Peek inside the tar/zip to find the version.txt file."""
+    # We re-seek the file because it may have been read partially
+    uploaded_file.seek(0)
+    
+    if filename.endswith('.zip'):
+        with zipfile.ZipFile(uploaded_file) as z:
+            if 'version.txt' in z.namelist():
+                with z.open('version.txt') as f:
+                    return f.read().decode().strip().split('=')[-1].strip("'\"")
+    else: # Tar/Tar.gz
+        mode = "r:gz" if filename.endswith('.gz') else "r:"
+        with tarfile.open(fileobj=uploaded_file, mode=mode) as t:
+            try:
+                f = t.extractfile('version.txt')
+                if f:
+                    return f.read().decode().strip().split('=')[-1].strip("'\"")
+            except KeyError:
+                return None
+    return None
+
+
 class GetAgentInstallConfigs(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -245,6 +280,7 @@ class GetAgentInstallConfigs(APIView):
         } for config in configs]
 
         return Response(data, status=status.HTTP_200_OK)
+
 
 class DeleteAgentInstallConfig(APIView):
     permission_classes = [IsAuthenticated]
