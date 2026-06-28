@@ -10,9 +10,6 @@ Frontend:
         - Version history (no backend, just text on front-end)
         - About section
 
-    - Configuration
-        - 'Disable the ability for creating new user accounts. Must be made in /administration/' Make /administration/ a link
-
 General Needs:
 
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ShieldCheck, Save, AlertTriangle, RefreshCw, Skull, Loader2 } from "lucide-react";
 import api from "../../../utils/api";
 import { API_ENDPOINTS } from "../../../utils/constants";
@@ -99,7 +100,15 @@ const GeneralSettings = ({ triggerSuccess, setError }) => {
                     <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-xl border border-white/5">
                         <div>
                             <p className="text-sm font-medium text-white">Disable User Registration</p>
-                            <p className="text-xs text-gray-400">Disable the ability for creating new user accounts. Must be made in /administration/</p>
+                            <div className="flex items-center gap-2 mt-1">
+                                <p className="text-xs text-gray-400">Disable the ability to create new accounts. If Disabled, new accounts must be managed in </p>
+                                <Link
+                                    to="/administration"
+                                    className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-all"
+                                >
+                                    Administration →
+                                </Link>
+                            </div>
                         </div>
                         <button
                             onClick={() => setSystemSettings({ ...systemSettings, disableRegistration: !systemSettings.disableRegistration })}
