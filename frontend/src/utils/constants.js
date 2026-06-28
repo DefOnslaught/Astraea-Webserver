@@ -54,6 +54,9 @@ export const API_ENDPOINTS = {
 
     RESET_CACHE: 'api/admin/refresh_cache/',
     CELERY_STATS: 'api/admin/celery_stats/',
+    DB_STATS: 'api/admin/db_stats/',
+    SYSTEM_STATS: 'api/admin/system_stats/',
+    SYSTEM_LOGS: 'api/admin/system_logs/',
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

@@ -15,10 +15,6 @@ Frontend:
 
 General Needs:
 
-    Administration - System Maintenance 
-        - System Log Export
-        - Database Connection Health
-
 
     Notification
         - Add: Notify on Server delete, Add, modify

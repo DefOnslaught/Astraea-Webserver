@@ -1,6 +1,7 @@
 from django.urls import path
 
-from .views import FetchUsers, InspectUser, CreateNewUser, RefreshCacheView, CeleryMonitoringView
+from .views.UserAccountViews import FetchUsers, InspectUser, CreateNewUser
+from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView
 
 
 urlpatterns = [
@@ -10,4 +11,7 @@ urlpatterns = [
 
     path('refresh_cache/', RefreshCacheView.as_view(), name='refresh_cache'),
     path('celery_stats/', CeleryMonitoringView.as_view(), name='celery_stats'),
+    path('db_stats/', DatabaseStatsView.as_view(), name='db_stats'),
+    path('system_stats/', SystemStatsView.as_view(), name='system_stats'),
+    path('system_logs/<str:log_type>/', SystemLogsView.as_view(), name='system_logs'),
 ]
