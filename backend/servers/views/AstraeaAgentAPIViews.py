@@ -2,8 +2,6 @@ import logging, os
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
 from django.core.cache import cache
@@ -14,7 +12,7 @@ from servers.models import Server
 from servers.utils import cache_individual_vms
 from servers.serializers import ServerPatchSerializer, ServerInfoSerializer
 from servers.permissions import HasInternalAPIKey
-from configuration.utils import get_sys_config, get_zabbix_config
+from configuration.utils import get_sys_config, get_zabbix_config, get_agent_version
 from configuration.zabbix_utils import complete_maintenance_window
 from configuration.models import ZabbixMaintenance, AstraeaAgentInfo
 from configuration.tasks import schedule_zabbix_maintenance_task
@@ -174,26 +172,29 @@ class SavePatchingData(APIView):
             return Response({'message': 'Internal server error processing data'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class AgentVersionView(APIView):
+    permission_classes = [HasInternalAPIKey]
+    authentication_classes = []
 
-class AgentCheckUpdateView(APIView):
+    def get(self, request):
+        version = get_agent_version()
+        return Response({'version': version}, status=status.HTTP_200_OK)
+
+
+class AgentDownloadView(APIView):
     permission_classes = [HasInternalAPIKey]
     authentication_classes = []
 
     def get(self, request):
         file_path = os.path.join(settings.BASE_DIR, 'protected_storage', 'astraea_agent.tar.gz')
         
-        get_version = request.query_params.get('version')
-        if get_version:
-            info, created = AstraeaAgentInfo.objects.get_or_create(id=1)
-            return Response({'version': info.version}, status=status.HTTP_200_OK)
-
         if not os.path.exists(file_path):
             if settings.DEBUG:
-                logger.error(f'Agent package not found on server')
-            return Response({'message': 'Agent package not found on server'}, status=status.HTTP_404_NOT_FOUND)
+                logger.error('Agent package not found on server')
+            return Response({'message': 'Agent package not found'}, status=status.HTTP_404_NOT_FOUND)
 
         if settings.DEBUG:
-            logger.info(f"Successfully serving 'astraea_agent.tar.gz' to download")
+            logger.info("Successfully serving 'astraea_agent.tar.gz' to download")
 
         return FileResponse(
             open(file_path, 'rb'), 

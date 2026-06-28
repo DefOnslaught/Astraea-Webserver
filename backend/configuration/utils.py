@@ -2,7 +2,7 @@ import logging
 from django.core.cache import cache
 
 from django.conf import settings
-from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService
+from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService, AstraeaAgentInfo
 
 logger = logging.getLogger('django')
 
@@ -164,4 +164,34 @@ def get_notification_services():
     data = cache.get(NOTIFICATION_SERVICES_CACHE_KEY)
     if data is None:
         data = set_notification_services()
+    return data
+
+
+AGENT_VERSION_CACHE_KEY = "agent_version"
+
+def set_agent_version(instance=None):
+    """
+    Fetches agent version from DB and refreshes the cache.
+    """
+
+    if instance:
+        version = instance.version
+    else:
+        info, created = AstraeaAgentInfo.objects.get_or_create(id=1)
+        version = info.version
+
+    cache.set(AGENT_VERSION_CACHE_KEY, version, timeout=None)
+
+    if settings.DEBUG:
+        logger.info(f"Cache refreshed for Astraea Agent Info.")
+    return version
+
+def get_agent_version():
+    """
+    Retrieves the version from cache, or populates it.
+    """
+
+    data = cache.get(AGENT_VERSION_CACHE_KEY)
+    if data is None:
+        data = set_agent_version()
     return data

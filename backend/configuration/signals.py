@@ -2,8 +2,8 @@ import logging
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.conf import settings
-from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService
-from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache, set_notification_config, set_notification_services
+from .models import APIKey, SysConfig, ZabbixConfiguration, NotificationSettings, NotificationService, AstraeaAgentInfo
+from .utils import cache_active_api_keys, set_sys_config_cache, set_zabbix_config_cache, set_notification_config, set_notification_services, set_agent_version
 
 from users.utils import removeAllCacheVerificationStatus
 from users.tasks import create_bulk_verify_existing_users
@@ -66,3 +66,13 @@ def update_zabbix_cache_on_save(sender, instance, **kwargs):
 @receiver(post_delete, sender=ZabbixConfiguration)
 def clear_zabbix_cache_on_delete(sender, instance, **kwargs):
     set_zabbix_config_cache(None)
+
+
+@receiver(post_save, sender=AstraeaAgentInfo)
+def update_astraea_agent_cache_on_save(sender, instance, **kwargs):
+    set_agent_version(instance)
+
+
+@receiver(post_delete, sender=AstraeaAgentInfo)
+def clear_astraea_agent_cache_on_delete(sender, instance, **kwargs):
+    set_agent_version(None)

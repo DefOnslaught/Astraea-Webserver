@@ -1,7 +1,6 @@
 Backend:
     - Add a method to generate csv files
 
-    - Add Rate Limits
 
 Frontend:
 

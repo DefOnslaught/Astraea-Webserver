@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .views.DashboardViews import DashboardStatsView
 from .views.ServersSearchViews import QuickVMSearchView
 from .views.PackageSearchViews import PackageSearchView, PackageServerListView
-from .views.AstraeaAgentAPIViews import ServerPatchingEnableCheck, RegisterServer, SaveServerInfo, SavePatchingData
+from .views.AstraeaAgentAPIViews import ServerPatchingEnableCheck, RegisterServer, SaveServerInfo, SavePatchingData, AgentVersionView, AgentDownloadView
 from .views.ServerConfigureViews import DeleteServer, UpdateServerInfo
 from .views.ServerInspectViews import InspectServerInfo, ServerPatchHistory, ServerPackageInventory, PatchSessionDetail
 
@@ -23,4 +23,6 @@ urlpatterns = [
     path('inspect/patch_session/', PatchSessionDetail.as_view(), name='inspect_patch_session'),
     path('patching/update/', UpdateServerInfo.as_view(), name='update_server'),
     path('patching/delete/', DeleteServer.as_view(), name='delete_server'),
+    path('agent/check_version/', AgentVersionView.as_view(), name='agent_version_check'),
+    path('agent/get_agent/', AgentDownloadView.as_view(), name='agent_download'),
 ]
