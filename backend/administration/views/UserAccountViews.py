@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from users.serializers import UserSerializer
+from administration.serializers import UserSerializer
 from users.serializers import RegisterSerializer
 from users.permissions import checkIsStaff, checkIfHigherPermissions
 
