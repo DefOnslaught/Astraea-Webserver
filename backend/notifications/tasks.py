@@ -118,7 +118,7 @@ def process_notification(self, notification_id):
         logger.info(f"Successfully processed notification ID {notification_id}")
 
 
-@shared_task(name="notifications.tasks.reconcile_task_path")
+@shared_task(name="notifications.tasks.reconcile_notifications")
 def reconcile_notifications():
     """Checks for notifications that are stuck or failed."""
     
