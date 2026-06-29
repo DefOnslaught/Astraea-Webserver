@@ -175,6 +175,13 @@ else
     echo "⚠️  Warning: frontend/.env_example not found."
 fi
 
+PROTECTED_PATH="$PROJECT_ROOT/protected_storage"
+if [ ! -d "$PROTECTED_PATH" ]; then
+    echo "📂 Creating protected storage directory..."
+    sudo mkdir -p "$PROTECTED_PATH"
+    echo "✅ Protected storage directory ready."
+fi
+
 PROJECT_ROOT=$(pwd)
 echo "📂 Setting permissions for $PROJECT_ROOT..."
 
