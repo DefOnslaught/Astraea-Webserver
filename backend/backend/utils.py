@@ -2,7 +2,7 @@ from django.core.cache import cache
 
 from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
-from configuration.utils import cache_active_api_keys, get_sys_config, get_zabbix_config, get_notification_config, get_notification_services
+from configuration.utils import cache_active_api_keys, get_sys_config, get_zabbix_config, get_notification_config, get_notification_services, get_agent_version
 from users.utils import cacheVerificationStatus
 
 def cache_functions(clear_cache=False):
@@ -40,3 +40,6 @@ def cache_functions(clear_cache=False):
 
     # 8. Cache the Zabbix configuration
     get_zabbix_config()
+
+    # 9. Cache the Astraea Agent Version
+    get_agent_version()
