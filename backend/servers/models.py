@@ -61,6 +61,7 @@ class PatchSession(models.Model):
     error_log = models.TextField(null=True, blank=True)
     total_updated = models.IntegerField(default=0)
     duration = models.IntegerField(default=0)
+    uptime = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
         ordering = ['-timestamp']

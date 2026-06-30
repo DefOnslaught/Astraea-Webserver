@@ -22,7 +22,7 @@ class PackageUpdateSerializer(serializers.ModelSerializer):
 class PatchSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatchSession
-        fields = ['id', 'timestamp', 'status', 'was_rebooted', 'total_updated', 'duration', 'error_log']
+        fields = ['id', 'timestamp', 'status', 'was_rebooted', 'total_updated', 'duration', 'error_log', 'uptime']
 
 
 class NetworkInterfaceSerializer(serializers.ModelSerializer):
@@ -139,6 +139,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         total_updated = validated_data.pop('total_packages_updated', 0)
         run_duration = validated_data.pop('duration', 0)
         session_errors = validated_data.pop('error_log', None)
+        session_uptime = validated_data.pop('uptime', '')
         was_session_rebooted = validated_data.pop('was_rebooted', False)
         
         validated_data['last_patch_date'] = timezone.now()
@@ -167,7 +168,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 was_rebooted=was_session_rebooted,
                 error_log=session_errors,
                 total_updated=total_updated,
-                duration=run_duration
+                duration=run_duration,
+                uptime=session_uptime
             )
 
             # 4. Log individual package updates within this session

@@ -54,7 +54,7 @@ ALLOWED_REPORT_FIELDS = {
     # Allowed Relational Fields (Interfaces & Sessions)
     'interfaces__ip_address', 'interfaces__mac_address', 'interfaces__interface_name',
     'patch_sessions__status', 'patch_sessions__timestamp', 'patch_sessions__was_rebooted',
-    'patch_sessions__total_updated', 'patch_sessions__duration',
+    'patch_sessions__total_updated', 'patch_sessions__duration', 'patch_sessions__uptime',
     'patch_sessions__package_details__package__name', 'patch_sessions__package_details__package__version',
     'patch_sessions__package_details__old_version', 'patch_sessions__package_details__new_version'
 }

@@ -340,7 +340,8 @@ class PatchingSystemTests(APITestCase):
             server=server,
             status='success',
             total_updated=5,
-            duration=25
+            duration=25,
+            uptime='1 Hour'
         )
         # Create a dummy package update
         package = Package.objects.create(name="openssl", version="3.0.1")

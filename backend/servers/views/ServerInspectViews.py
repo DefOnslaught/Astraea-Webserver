@@ -44,6 +44,7 @@ class InspectServerInfo(APIView):
             'was_rebooted': s.was_rebooted,
             'total': s.total_updated,
             'duration': format_duration(s.duration),
+            'uptime': s.uptime,
             'error_log': s.error_log
         } for s in recent_sessions]
 
@@ -92,6 +93,7 @@ class ServerPatchHistory(APIView):
             'was_rebooted': s.was_rebooted,
             'total': s.total_updated,
             'duration': format_duration(s.duration),
+            'uptime': s.uptime,
             'error_log': s.error_log
         } for s in sessions]
 
@@ -149,6 +151,7 @@ class PatchSessionDetail(APIView):
             'timestamp': session.timestamp,
             'total_updated': session.total_updated,
             'duration': format_duration(session.duration),
+            'uptime': session.uptime,
             'status': session.status,
             'was_rebooted': session.was_rebooted,
             'error_log': session.error_log,

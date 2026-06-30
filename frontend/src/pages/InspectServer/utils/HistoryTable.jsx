@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import SectionLoader from '../../../components/SectionLoader';
-import { AlertTriangle, Loader2, ArrowDownCircle, Timer, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Loader2, ArrowDownCircle, Timer, RotateCcw, Clock } from 'lucide-react';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleExclamation, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
@@ -62,6 +62,7 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                         <th className="pb-4">Status</th>
                         <th className="pb-4">Updated</th>
                         <th className="pb-4">Rebooted</th>
+                        <th className="pb-4">Uptime At Run</th>
                         <th className="pb-4">Logs / Errors</th>
                     </tr>
                 </thead>
@@ -152,6 +153,16 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                                     </span>
                                 ) : (
                                     <span className="text-slate-600 text-xs italic">No</span>
+                                )}
+                            </td>
+                            <td className="py-4">
+                                {session.uptime ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                                        <Clock className="w-3 h-3 text-slate-500" />
+                                        {session.uptime}
+                                    </span>
+                                ) : (
+                                    <span className="text-slate-600 text-xs italic">Unknown</span>
                                 )}
                             </td>
                             <td className="py-4">
