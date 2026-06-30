@@ -78,28 +78,24 @@ def process_notification(self, notification_id):
     sent_service_ids = notification.successful_services.values_list('id', flat=True)
     sent_service_ids_str = {str(sid) for sid in sent_service_ids}
 
-    # 4. Dispatch Loop
     for service in active_services:
         if str(service['id']) in sent_service_ids_str:
             continue
 
-        s_type = service['type'].lower()
+        s_type = service.get('type', '').lower() 
         try:
             success = False
-            
-            # Webhook Delivery Channel
             if 'discord' in s_type:
                 success = send_msg(
                     message=notification.msg, 
-                    url=service.url, 
+                    url=service.get('url'),
                     patch_status=notification.status,
                     report_details=report_details
                 )
                 
-            # SMTP Delivery Channel
             elif 'email' in s_type or 'smtp' in s_type:
                 recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True))
-                additional_recipients = service.recipients
+                additional_recipients = service.get('recipients')
                 if additional_recipients:
                     extra_list = [r.strip() for r in additional_recipients.split(',') if r.strip()]
                     recipient_list.extend(extra_list)
@@ -110,7 +106,8 @@ def process_notification(self, notification_id):
                 
         except Exception as e:
             notification.retry_count += 1
-            logger.error(f"Error sending to {service.name}: {str(e)}")
+            service_name = service.get('name', 'Unknown Service')
+            logger.error(f"Error sending to {service_name}: {str(e)}")
 
     notification.notifications_sent = True
     notification.save()
