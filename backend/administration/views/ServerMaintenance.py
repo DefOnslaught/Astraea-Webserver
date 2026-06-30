@@ -113,7 +113,7 @@ class CeleryMonitoringView(APIView):
 
             task_map = {
                 "failsafe-zabbix-cleanup": "configuration.tasks.failsafe_cleanup_orphans",
-                "reconcile-pending-notifications": "notifications.tasks.reconcile_task_path",
+                "reconcile-pending-notifications": "notifications.tasks.reconcile_notifications",
                 "check-outdated-servers": "notifications.tasks.notify_out_of_date",
                 "delete-expired-password-resets": "users.tasks.remove_expired_password_resets",
                 "cleanup-old-notifications": "notifications.tasks.delete_sent_notifications",
