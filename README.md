@@ -23,6 +23,20 @@ Astraea utilizes a central Hub-and-Spoke model:
 
 ---
 
+## 📊 Dynamic Reporting Engine
+
+Astraea features a robust, asynchronous reporting engine designed for deep visibility into fleet-wide patch status and historical audit data.
+
+* **Custom Filtering:** Users can construct complex, multi-field queries (e.g., `env__icontains: "prod"`, `patch_sessions__timestamp: "<10d"`) to extract specific infrastructure data.
+* **Asynchronous Processing:** Long-running report generation is handled by Celery workers to keep the UI snappy. Users receive notifications or can track progress via the dashboard.
+* **Saved Filters:** Users can save frequently used query criteria for one-click report generation.
+* **Sharing & Collaboration:** Filters can be marked as `public` or `global` (staff-only), enabling team-wide standardization of compliance reporting.
+* **Export Ready:** All reports are generated as structured, timestamped CSV files, facilitating easy integration with external auditing tools.
+
+> **Why it matters:** By offloading heavy data aggregation to asynchronous workers, Astraea ensures that even the most complex, enterprise-wide compliance reports are generated without impacting the responsiveness of the dashboard.
+
+---
+
 ## 🛠️ Prerequisites (Bare Metal)
 
 Before installation, ensure your host meets the following requirements:
