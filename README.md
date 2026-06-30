@@ -43,7 +43,7 @@ Before installation, ensure your host meets the following requirements:
 | :--- | :--- | :--- |
 | **OS** | Ubuntu/Debian/RHEL | Supported by automated `setup.sh` |
 | **Python** | 3.10+ | Django 6.0 Core & Automation Scripts |
-| **Node.js** | v20+ | Vite Frontend Tooling |
+| **Node.js** | v26+ | Vite Frontend Tooling |
 | **Redis** | 6.0+ | Message Broker for Background Tasks |
 | **Database** | MySQL 8.0+ / PostgreSQL 15+ | Relational Data Store (utf8mb4) |
 | **Web Server** | Nginx | Serving the Website |
