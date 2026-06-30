@@ -117,6 +117,7 @@ class CeleryMonitoringView(APIView):
                 "check-outdated-servers": "notifications.tasks.notify_out_of_date",
                 "delete-expired-password-resets": "users.tasks.remove_expired_password_resets",
                 "cleanup-old-notifications": "notifications.tasks.delete_sent_notifications",
+                "delete-old-reports": "reports.tasks.delete_old_reports",
             }
 
             full_task_path = task_map.get(task_name)

@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/config/', include('configuration.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/admin/', include('administration.urls')),
+    path('api/reports/', include('reports.urls')),
 
     # React entry
     re_path(r"", frontend_view),

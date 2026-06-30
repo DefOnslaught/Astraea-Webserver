@@ -57,6 +57,16 @@ export const API_ENDPOINTS = {
     DB_STATS: 'api/admin/db_stats/',
     SYSTEM_STATS: 'api/admin/system_stats/',
     SYSTEM_LOGS: 'api/admin/system_logs/',
+
+    GET_FILTERS: 'api/reports/get_filters/',
+    FINISHED_REPORTS: 'api/reports/get_finished_reports/',
+    CREATE_QUERY: 'api/reports/create_query/',
+    GET_AVAILABLE_FIELDS: 'api/reports/get_available_fields/',
+    CHECK_REPORT: 'api/reports/check_report/',
+    DOWNLOAD_REPORT: 'api/reports/download_report/',
+    EDIT_FILTER: 'api/reports/edit_filter/',
+    DELETE_FILTER: 'api/reports/delete_filter/',
+    DELETE_REPORT: 'api/reports/delete_report/',
 };
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;

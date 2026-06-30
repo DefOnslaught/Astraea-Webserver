@@ -20,6 +20,7 @@ class Command(BaseCommand):
             ('check-outdated-servers', 'notifications.tasks.notify_out_of_date', None, cron_daily_10am),
             ('delete-expired-password-resets', 'users.tasks.remove_expired_password_resets', None, cron_daily_12pm),
             ('failsafe-zabbix-cleanup', 'configuration.tasks.failsafe_cleanup_orphans', schedule_15m),
+            ('delete-old-reports', 'reports.tasks.delete_old_reports', schedule_30m),
         ]
 
         for name, task_path, interval, *cron in tasks:

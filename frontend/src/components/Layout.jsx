@@ -11,7 +11,8 @@ import {
     faServer,
     faCubes,
     faGears,
-    faUsersGear
+    faUsersGear,
+    faFileLines
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../utils/AuthContext";
 import { usePathCheck } from "../hooks/usePathCheck";
@@ -135,6 +136,7 @@ function Layout({ children }) {
                     <SidebarLink to="/" icon={faHouse} label="Dashboard" isOpen={isSidebarOpen} isActive={pathname === "/"} />
                     <SidebarLink to="/servers" icon={faServer} label="Servers" isOpen={isSidebarOpen} isActive={pathname === "/servers"} />
                     <SidebarLink to="/packages" icon={faCubes} label="Packages" isOpen={isSidebarOpen} isActive={pathname === "/packages"} />
+                    <SidebarLink to="/reports" icon={faFileLines} label="Reports" isOpen={isSidebarOpen} isActive={pathname === "/reports"} />
                     {hasAdminAccess && (
                         <>
                             <SidebarLink

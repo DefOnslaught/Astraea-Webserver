@@ -4,6 +4,7 @@ from servers.models import Server
 from servers.utils import refresh_dashboard_stats, cache_individual_vms, refresh_package_search_index
 from configuration.utils import cache_active_api_keys, get_sys_config, get_zabbix_config, get_notification_config, get_notification_services, get_agent_version
 from users.utils import cacheVerificationStatus
+from reports.utils import get_public_global_filters 
 
 def cache_functions(clear_cache=False):
 
@@ -43,3 +44,6 @@ def cache_functions(clear_cache=False):
 
     # 9. Cache the Astraea Agent Version
     get_agent_version()
+
+    # 10. Cache public and global report filters
+    get_public_global_filters()
