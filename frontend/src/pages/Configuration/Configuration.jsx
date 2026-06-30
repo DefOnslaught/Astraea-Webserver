@@ -36,13 +36,13 @@ const Configuration = () => {
 
         successTimeoutRef.current = setTimeout(() => {
             setShowSuccess(false);
-        }, 1500);
+        }, 3000);
     };
 
     const showError = (msg) => {
         setShowSuccess(false);
         setError(msg);
-        setTimeout(() => setError(""), 3000);
+        setTimeout(() => setError(""), 3500);
     };
 
     useEffect(() => {
