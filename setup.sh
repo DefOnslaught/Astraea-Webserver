@@ -175,6 +175,8 @@ else
     echo "⚠️  Warning: frontend/.env_example not found."
 fi
 
+PROJECT_ROOT=$(pwd)
+
 PROTECTED_PATH="$PROJECT_ROOT/protected_storage"
 if [ ! -d "$PROTECTED_PATH" ]; then
     echo "📂 Creating protected storage directory..."
@@ -182,9 +184,21 @@ if [ ! -d "$PROTECTED_PATH" ]; then
     echo "✅ Protected storage directory ready."
 fi
 
-PROJECT_ROOT=$(pwd)
-echo "📂 Setting permissions for $PROJECT_ROOT..."
+echo "⬇️  Fetching the latest Astraea Agent..."
 
+AGENT_REPO="DefOnslaught/Astraea-Agent"
+
+DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$AGENT_REPO/releases/latest | grep "browser_download_url" | grep "\.tar\.gz" | cut -d '"' -f 4)
+
+if [ -n "$DOWNLOAD_URL" ]; then
+    sudo curl -L -o "$PROTECTED_PATH/astraea_agent_latest.tar.gz" "$DOWNLOAD_URL"
+    echo "✅ Downloaded latest agent to $PROTECTED_PATH"
+else
+    echo "⚠️  Could not automatically fetch the latest agent. You may need to upload it manually via the UI."
+    echo "Get the latest here: https://github.com/DefOnslaught/Astraea-Agent"
+fi
+
+echo "📂 Setting permissions for $PROJECT_ROOT..."
 sudo usermod -a -G $TARGET_USER www-data
 sudo chown -R $TARGET_USER:www-data "$PROJECT_ROOT"
 sudo chmod -R 750 "$PROJECT_ROOT"
