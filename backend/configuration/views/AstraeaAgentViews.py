@@ -154,8 +154,7 @@ class AgentUploadHandlerView(APIView):
         
         if not extracted_version:
             return Response({'message': "Uploaded file does not contain a valid version.txt"}, status=400)
-            
-        # 2. Compare the two versions
+
         if extracted_version != version:
             return Response({
                 'message': f"Version mismatch! Form says {version}, but archive says {extracted_version}."
@@ -182,41 +181,49 @@ class AgentUploadHandlerView(APIView):
         def _is_safe_path(basedir, path):
             target = os.path.join(basedir, path)
             return os.path.abspath(target).startswith(os.path.abspath(basedir))
+        
+        def _get_normalized_name(name):
+            if name in ['Astraea Agent/', 'Astraea_Agent/', 'Astraea-Agent/']:
+                return None
+            
+            for prefix in ['Astraea Agent/', 'Astraea_Agent/']:
+                if name.startswith(prefix):
+                    return name.replace(prefix, 'Astraea-Agent/', 1)
+            return name
 
+        uploaded_file.seek(0)
         try:
             with tarfile.open(temp_path, "w:gz") as tar_out:
                 if filename.endswith('.zip'):
                     with zipfile.ZipFile(uploaded_file) as zip_in:
                         for member in zip_in.infolist():
-                            if _is_forbidden_file(member.filename):
-                                continue
+                            if _is_forbidden_file(member.filename): continue
+                            
+                            new_name = _get_normalized_name(member.filename)
+                            if not new_name: continue 
+                            if not _is_safe_path(self.STORAGE_DIR, new_name): continue
 
-                            if not _is_safe_path(self.STORAGE_DIR, member.filename):
-                                continue
-
-                            data = zip_in.read(member.filename)
-                            tarinfo = tarfile.TarInfo(name=member.filename)
-                            tarinfo.size = len(data)
-                            tar_out.addfile(tarinfo, io.BytesIO(data))
-            
-                elif filename.endswith(('.tar', '.tar.gz')):
-                    mode = "r:gz" if filename.endswith('.gz') else "r:"
-                    with tarfile.open(fileobj=uploaded_file, mode=mode) as tar_in:
+                            if not member.is_dir():
+                                data = zip_in.read(member.filename)
+                                tarinfo = tarfile.TarInfo(name=new_name)
+                                tarinfo.size = len(data)
+                                tar_out.addfile(tarinfo, io.BytesIO(data))
+                
+                else: # Tar/Tar.gz
+                    with tarfile.open(fileobj=uploaded_file, mode="r:*") as tar_in:
                         for member in tar_in.getmembers():
-                            if _is_forbidden_file(member.name):
-                                continue
-
-                            if not _is_safe_path(self.STORAGE_DIR, member.name):
-                                continue
+                            if _is_forbidden_file(member.name): continue
+                            
+                            new_name = _get_normalized_name(member.name)
+                            if not new_name: continue
+                            
+                            member.name = new_name
+                            if not _is_safe_path(self.STORAGE_DIR, member.name): continue
                             
                             if member.isfile() or member.islnk() or member.issym():
                                 f = tar_in.extractfile(member)
-                                if f:
-                                    tar_out.addfile(member, f)
-                            elif member.isdir():
-                                if not _is_forbidden_file(member.name):
-                                    tar_out.addfile(member)
-
+                                if f: tar_out.addfile(member, f)
+            
             os.replace(temp_path, final_path)
             
             with transaction.atomic():
@@ -237,23 +244,26 @@ class AgentUploadHandlerView(APIView):
 
 def _extract_version_from_archive(uploaded_file, filename):
     """Peek inside the tar/zip to find the version.txt file."""
-    # We re-seek the file because it may have been read partially
     uploaded_file.seek(0)
-    
+    prefixes = ['', 'Astraea Agent/', 'Astraea_Agent/', 'Astraea-Agent/']
     if filename.endswith('.zip'):
         with zipfile.ZipFile(uploaded_file) as z:
-            if 'version.txt' in z.namelist():
-                with z.open('version.txt') as f:
-                    return f.read().decode().strip().split('=')[-1].strip("'\"")
-    else: # Tar/Tar.gz
-        mode = "r:gz" if filename.endswith('.gz') else "r:"
-        with tarfile.open(fileobj=uploaded_file, mode=mode) as t:
-            try:
-                f = t.extractfile('version.txt')
-                if f:
-                    return f.read().decode().strip().split('=')[-1].strip("'\"")
-            except KeyError:
-                return None
+            namelist = z.namelist()
+            for prefix in prefixes:
+                path = f"{prefix}version.txt"
+                if path in namelist:
+                    with z.open(path) as f:
+                        return f.read().decode().strip().split('=')[-1].strip("'\"")
+    else:
+        with tarfile.open(fileobj=uploaded_file, mode="r:*") as t:
+            for prefix in prefixes:
+                path = f"{prefix}version.txt"
+                try:
+                    f = t.extractfile(path)
+                    if f:
+                        return f.read().decode().strip().split('=')[-1].strip("'\"")
+                except (KeyError, tarfile.ReadError):
+                    continue
     return None
 
 
