@@ -21,8 +21,6 @@ Astraea utilizes a central Hub-and-Spoke model:
 * **Notifications:** Sends notifications to configured services such as Email or Discord. Can be toggled per server, patch status, or notify for any out of date servers.
 * **Zabbix Support:** Integrates with Zabbix to automatically handle maintenance windows during patching cycles.
 
----
-
 ## 📊 Dynamic Reporting Engine
 
 Astraea features a robust, asynchronous reporting engine designed for deep visibility into fleet-wide patch status and historical audit data.
