@@ -3,7 +3,7 @@ from django.urls import path
 from .views.APIKeyViews import CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, UpdateAPIKey
 from .views.SystemConfigViews import SystemConfig, PurgeDatabaseOldPackagesView
 from .views.NotificationsView import NotificationSettingsView, NotificationServicesView
-from .views.AstraeaAgentViews import AgentCreateConfigView, AgentInstallScriptView, AgentUploadHandlerView, GetAgentInstallConfigs, DeleteAgentInstallConfig
+from .views.AstraeaAgentViews import AgentCreateConfigView, AgentInstallScriptView, AgentFileHandlerView, AgentUploadHandlerView, GetAgentInstallConfigs, DeleteAgentInstallConfig
 from .views.ZabbixViews import ZabbixConfig, TestZabbixConnection
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path('notify_services/', NotificationServicesView.as_view(), name='notify_services'),
     path('agent_create_config/', AgentCreateConfigView.as_view(), name='agent_create_config'),
     path('install_script/<str:uid>/', AgentInstallScriptView.as_view(), name='agent_install_script'),
+    path('agent_file/', AgentFileHandlerView.as_view(), name='agent_file_handler'),
     path('upload_agent_file/', AgentUploadHandlerView.as_view(), name='agent_upload_handler'),
     path('agent_install_configs/', GetAgentInstallConfigs.as_view(), name="agent_install_configs"),
     path('delete_agent_install_config/', DeleteAgentInstallConfig.as_view(), name="delete_agent_install_config"),

@@ -2,7 +2,6 @@
 # Astraea Agent Auto-Installer
 set -e
 
-# 1. Variables injected by Django Template
 API_KEY="{{ API_KEY }}"
 BASE_URL="{{ BASE_URL }}"
 ASTRAEA_UID="{{ UID }}"
@@ -26,22 +25,24 @@ fi
 
 echo "--- Fetching Astraea Agent Package ---"
 mkdir -p $INSTALL_DIR
-# Use internal API key to download the core tarball
-curl -sSL -H "X-Api-Key: $API_KEY" -o astraea_agent.tar.gz "$BASE_URL/api/config/agent_file/"
+if ! curl -f -sSL -H "X-Api-Key: $API_KEY" -o astraea_agent.tar.gz "$BASE_URL/api/config/agent_file/"; then
+    echo "❌ Failed to download the Astraea Agent. Check your API_KEY, BASE_URL, or server logs."
+    exit 1
+fi
 tar -xzf astraea_agent.tar.gz -C $INSTALL_DIR --strip-components=1
+rm astraea_agent.tar.gz
 cd $INSTALL_DIR
 
-# 2. FAILSAFE: Download Logic-Specific Script
-# If the logic isn't standard, we download the patching-week script from the server
+
 if [ "$EXE_LOGIC" != "standard" ]; then
     echo "--- Downloading Logic Script: $EXE_LOGIC ---"
-    # We call back to the view asking for the 'logic_script'
-    curl -sSL -o "patching-$EXE_LOGIC.sh" \
-         "$BASE_URL/api/config/install_script/$ASTRAEA_UID/?file=logic_script"
+    if ! curl -f -sSL -o "patching-$EXE_LOGIC.sh" "$BASE_URL/api/config/install_script/$ASTRAEA_UID/?file=logic_script"; then
+        echo "❌ Failed to download the Patching Execution Logic. Check your BASE_URL, or server logs."
+        exit 1
+    fi
     chmod +x "patching-$EXE_LOGIC.sh"
 fi
 
-# 3. Configures '.env'
 if [ -f ".env_example" ]; then
     if [ ! -f ".env" ]; then
         cp ".env_example" ".env"
@@ -52,7 +53,6 @@ else
     echo "Warning: env_example not found."
 fi
 
-# 4. Edit .env
 sed -i "s|^API_KEY=.*|API_KEY=$API_KEY|" .env
 sed -i "s|^ENV=.*|ENV=$ENVIRONMENT|" .env
 PATCH_SCHEDULE_ESCAPED=$(echo "{{ PATCHING_SCHEDULE|safe }}" | sed 's/&/\\&/g')
@@ -66,7 +66,6 @@ sed -i "s|^MAX_ALLOWED_UPTIME_DAYS=.*|MAX_ALLOWED_UPTIME_DAYS=$MAX_ALLOWED_UPTIM
 
 echo "--- Configuration Applied ---"
 
-# 5. Determine Execution Path
 if [ "$EXE_LOGIC" == "week1and3" ]; then
     EXEC_CMD="/bin/bash $INSTALL_DIR/patching-week1and3.sh"
 elif [ "$EXE_LOGIC" == "week2and4" ]; then
@@ -83,7 +82,6 @@ else
     EXEC_CMD="/usr/bin/python3 $INSTALL_DIR/core/initialize.py"
 fi
 
-# 6 Install Python Dependencies
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
@@ -92,21 +90,18 @@ else
     exit 1
 fi
 
-# Ensure python3 is actually installed first to verify the version
 if ! command -v python3 &> /dev/null; then
     echo "--- Installing base Python3 ---"
     case $OS in
         ubuntu|debian)
-            sudo apt update && sudo apt install -y python3 ;;
+            apt update && apt install -y python3 ;;
         fedora|centos|rhel)
-            sudo dnf install -y python3 ;;
+            dnf install -y python3 ;;
     esac
 fi
 
-# Get current system python version (e.g., "3.12")
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 
-# Enforce a minimum capability baseline of 3.10 using bc or awk numeric comparisons
 IS_MODERN=$(python3 -c "import sys; print(1 if sys.version_info >= (3, 10) else 0)")
 
 if [ "$IS_MODERN" -ne 1 ]; then
@@ -116,17 +111,15 @@ fi
 
 case $OS in
     ubuntu|debian)
-        sudo apt update
-        # Dynamically map the venv package to match the system host version
-        sudo apt install -y "python${PYTHON_VERSION}-venv"
+        apt update
+        apt install -y "python${PYTHON_VERSION}-venv"
         ;;
     
     fedora|centos|rhel)
         if [[ "$OS" != "fedora" ]]; then
-            sudo dnf install -y epel-release
+            dnf install -y epel-release
         fi
-        # RedHat variants typically group venv directly into python3-devel or the standard binary
-        sudo dnf install -y python3 python3-devel
+        dnf install -y python3 python3-devel
         ;;
 
     *)
@@ -135,7 +128,6 @@ case $OS in
     ;;
 esac
 
-# 7. Cron Setup (/etc/cron.d/ style)
 echo "--- Configuring System Cron: $CRON_FILE ---"
 
 cat <<EOF > $CRON_FILE
@@ -146,7 +138,6 @@ EOF
 
 chmod 644 $CRON_FILE
 
-# Remove any old entry from the user's personal crontab to avoid duplicates
 (crontab -l 2>/dev/null | grep -v "$INSTALL_DIR") | crontab - || true
 
 echo "--- Installation Complete: Logic [$EXE_LOGIC] applied ---"

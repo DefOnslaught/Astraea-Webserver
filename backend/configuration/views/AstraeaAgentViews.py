@@ -11,6 +11,7 @@ from django.conf import settings
 
 from configuration.models import AgentInstallConfig, AstraeaAgentInfo
 from configuration.serializers import AgentInstallConfigSerializer
+from servers.permissions import HasInternalAPIKey
 
 logger = logging.getLogger('django')
 
@@ -104,6 +105,27 @@ class AgentInstallScriptView(APIView):
         if settings.DEBUG:
             logger.info(f'Successfully sending Agent Install Script')
         return response
+
+
+class AgentFileHandlerView(APIView):
+    permission_classes = [HasInternalAPIKey]
+
+    def get(self, request):
+        file_path = os.path.join(settings.BASE_DIR, 'protected_storage', 'astraea_agent.tar.gz')
+        
+        if not os.path.exists(file_path):
+            if settings.DEBUG:
+                logger.error(f'Agent package not found on server')
+            return Response({'message': 'Agent package not found on server'}, status=status.HTTP_404_NOT_FOUND)
+
+        if settings.DEBUG:
+            logger.info(f"Successfully serving 'astraea_agent.tar.gz' to download")
+
+        return FileResponse(
+            open(file_path, 'rb'), 
+            as_attachment=True, 
+            filename='astraea_agent.tar.gz'
+        )
 
 
 class AgentUploadHandlerView(APIView):
