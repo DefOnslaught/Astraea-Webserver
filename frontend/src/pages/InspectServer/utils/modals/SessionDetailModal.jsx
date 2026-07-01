@@ -78,11 +78,8 @@ const SessionDetailsModal = ({ session, onClose }) => {
                             {details.error_log && (
                                 <div className="space-y-2">
                                     <h3 className="text-sm font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4" /> Error Log Output
+                                        <AlertTriangle className="w-4 h-4" /> Error Occurred
                                     </h3>
-                                    <pre className="p-4 bg-red-500/5 border border-red-500/20 rounded-lg text-xs text-red-200 font-mono overflow-x-auto whitespace-pre-wrap">
-                                        {details.error_log}
-                                    </pre>
                                 </div>
                             )}
 

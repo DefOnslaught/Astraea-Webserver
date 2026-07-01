@@ -4,7 +4,7 @@ import { AlertTriangle, Loader2, ArrowDownCircle, Timer, RotateCcw, Clock } from
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleExclamation, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
-const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore }) => {
+const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore, onHandleShowingErrorLog }) => {
     const observerTarget = useRef(null);
 
     useEffect(() => {
@@ -168,7 +168,7 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                             <td className="py-4">
                                 {session.error_log ? (
                                     <button
-                                        onClick={() => onSelectSession(session)}
+                                        onClick={() => onHandleShowingErrorLog(session.error_log, session.timestamp)}
                                         className="text-xs text-red-400 hover:text-red-300 underline underline-offset-4"
                                     >
                                         View Error Log

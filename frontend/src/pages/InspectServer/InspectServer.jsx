@@ -8,6 +8,7 @@ import SuccessToast from '../../components/SuccessToast';
 import SectionLoader from '../../components/SectionLoader';
 import PackageList from './utils/PackageList';
 import SessionDetailsModal from './utils/modals/SessionDetailModal';
+import ErrorLogModal from './utils/modals/ErrorLogModal';
 import HistoryTable from './utils/HistoryTable';
 import {
     Server, Shield, Globe, Cpu, Cog, X, Loader2,
@@ -35,6 +36,8 @@ const InspectServer = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
     const [selectedSession, setSelectedSession] = useState(null);
+    const [showErrorLog, setShowErrorLog] = useState(null);
+    const [sessionTimestamp, setSessionTimestamp] = useState(null);
     const navigate = useNavigate();
 
     useDocumentTitle(serverInfo ? `${serverInfo.hostname} | Astraea` : 'Loading | Astraea');
@@ -122,6 +125,11 @@ const InspectServer = () => {
         if (tab === 'history') {
             setIsHistoryLoading(false);
         }
+    };
+
+    const handleShowingErrorLog = (errorLog, timestamp) => {
+        setShowErrorLog(errorLog);
+        setSessionTimestamp(timestamp);
     };
 
     useEffect(() => { fetchServer(); }, [server_id]);
@@ -282,6 +290,7 @@ const InspectServer = () => {
                             hasMore={hasMoreHistory}
                             isInfinite={isHistoryInfinite}
                             loadMore={fetchFullHistory}
+                            onHandleShowingErrorLog={handleShowingErrorLog}
                         />
                     )}
                     {activeTab === 'packages' && <PackageList packages={packages} error={packagesError} loading={isPackagesLoading} />}
@@ -299,6 +308,13 @@ const InspectServer = () => {
                 <SessionDetailsModal
                     session={selectedSession}
                     onClose={() => setSelectedSession(null)}
+                />
+            )}
+            {showErrorLog && (
+                <ErrorLogModal 
+                    errorLog={showErrorLog}
+                    sessionTimestamp={sessionTimestamp}
+                    onClose={() => handleShowingErrorLog(null, null)}
                 />
             )}
         </div>
