@@ -144,17 +144,18 @@ NOTIFICATION_SERVICES_CACHE_KEY = 'active_notification_services_list'
 
 def set_notification_services():
     """
-    Fetches active services from DB and refreshes the cache.
+    Fetches all services from DB and refreshes the cache.
     """
-    active_services = list(NotificationService.objects.filter(active=True).values(
-        'id', 'name', 'type', 'url', 'recipients'
+    all_services = list(NotificationService.objects.all().values(
+        'id', 'name', 'type', 'url', 'email_all_users', 
+        'main_email_recipients', 'recipients', 'active'
     ))
     
-    cache.set(NOTIFICATION_SERVICES_CACHE_KEY, active_services, timeout=None)
+    cache.set(NOTIFICATION_SERVICES_CACHE_KEY, all_services, timeout=None)
     
     if settings.DEBUG:
-        logger.info(f"Cache refreshed for {len(active_services)} active NotificationServices.")
-    return active_services
+        logger.info(f"Cache refreshed for {len(all_services)} active NotificationServices.")
+    return all_services
 
 
 def get_notification_services():

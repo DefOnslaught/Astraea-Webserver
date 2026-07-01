@@ -25,7 +25,7 @@ class ApiKeyUpdateSerializer(serializers.ModelSerializer):
 class NotificationServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationService
-        fields = ['id', 'name', 'type', 'url', 'recipients', 'active']
+        fields = ['id', 'name', 'type', 'url', 'email_all_users', 'main_email_recipients', 'recipients', 'active']
 
 
 class NotificationSettingsSerializer(serializers.ModelSerializer):

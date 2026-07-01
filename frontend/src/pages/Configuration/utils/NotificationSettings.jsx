@@ -241,13 +241,9 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                                         </div>
 
                                         <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                                            {/* Note: stopPropagation prevents the row click (edit) when clicking toggle/delete */}
-                                            <button
-                                                onClick={() => handleToggleService(service)}
-                                                className={`text-[9px] font-black px-2.5 py-1 rounded-full border transition-all ${service.active ? 'border-emerald-500/40 text-emerald-500 bg-emerald-500/10' : 'border-gray-700 text-gray-500'}`}
-                                            >
+                                            <div className={`text-[9px] font-black px-2.5 py-1 rounded-full border ${service.active ? 'border-emerald-500/40 text-emerald-500 bg-emerald-500/10' : 'border-gray-700 text-gray-500 bg-transparent'}`}>
                                                 {service.active ? 'LIVE' : 'OFF'}
-                                            </button>
+                                            </div>
                                             <button
                                                 onClick={() => setServiceToDelete(service.id)}
                                                 className="p-2 text-gray-700 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all"
@@ -287,11 +283,14 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
     const [testResult, setTestResult] = useState(null);
+
     const [formData, setFormData] = useState({
         name: service?.name || "",
         type: service?.type || "discord",
         discordWebhook: service?.url || "",
         recipients: service?.recipients || "",
+        email_all_users: service?.email_all_users ?? true,
+        main_email_recipients: service?.main_email_recipients || "",
         active: service ? service.active : true
     });
 
@@ -301,13 +300,40 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
             type: service?.type || "discord",
             discordWebhook: service?.url || "",
             recipients: service?.recipients || "",
+            email_all_users: service?.email_all_users ?? true,
+            main_email_recipients: service?.main_email_recipients || "",
             active: service ? service.active : true
         });
     }, [service]);
 
     useEffect(() => { setTestResult(null); }, [formData]);
 
+    useEffect(() => {
+        if (formData.email_all_users) {
+            setFormData(prev => ({ ...prev, main_email_recipients: "" }));
+        }
+    }, [formData.email_all_users]);
+
     const isEditing = !!service;
+
+    const validateForm = () => {
+        if (!formData.name.trim()) return true;
+
+        if (formData.type === 'discord') {
+            return !formData.discordWebhook.trim();
+        }
+
+        if (formData.type === 'smtp') {
+            if (!formData.email_all_users && !formData.main_email_recipients.trim()) {
+                return true;
+            }
+            return false;
+        }
+
+        return true;
+    };
+
+    const isFormInvalid = validateForm();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -344,7 +370,12 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
             const payload = {
                 data: formData.type === 'discord'
                     ? { url: formData.discordWebhook, name: formData.name }
-                    : { name: formData.name, recipients: formData.recipients }
+                    : {
+                        name: formData.name,
+                        recipients: formData.recipients,
+                        email_all_users: formData.email_all_users,
+                        main_email_recipients: formData.main_email_recipients
+                    }
             };
 
             const endpoint = formData.type === 'discord'
@@ -379,6 +410,21 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
+
+                    <div className="flex items-center justify-between p-3 bg-gray-800/50 border border-white/5 rounded-xl mb-4">
+                        <div>
+                            <p className="text-sm font-bold text-gray-300">Service Status</p>
+                            <p className="text-[10px] text-gray-500">{formData.active ? 'This channel is active.' : 'This channel is disabled.'}</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, active: !formData.active })}
+                            className={`w-10 h-5 rounded-full transition-colors relative ${formData.active ? 'bg-emerald-500' : 'bg-gray-700'}`}
+                        >
+                            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${formData.active ? 'left-5.5' : 'left-0.5'}`} />
+                        </button>
+                    </div>
+
                     <div className="space-y-1">
                         <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Friendly Name</label>
                         <input
@@ -428,14 +474,43 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
                             <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex gap-3">
                                 <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                 <p className="text-[11px] text-gray-400 leading-normal">
-                                    By default, emails go to all registered users. Use the field below for aliases or non-system users. Ensure the `.env` is configured.
+                                    Distribute notifications via SMTP. Ensure your `.env` is configured for mail routing.
                                 </p>
                             </div>
+
+                            <div className="flex items-center justify-between p-3 bg-gray-800/50 border border-white/5 rounded-xl">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-300">Email All Users</p>
+                                    <p className="text-[10px] text-gray-500">Send alerts to every active registered user.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, email_all_users: !formData.email_all_users })}
+                                    className={`w-10 h-5 rounded-full transition-colors relative ${formData.email_all_users ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-gray-700'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${formData.email_all_users ? 'left-5.5' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+
+                            {!formData.email_all_users && (
+                                <div className="space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Main Recipients</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="ops@company.lan, admin@alias.com"
+                                        value={formData.main_email_recipients}
+                                        onChange={(e) => setFormData({ ...formData, main_email_recipients: e.target.value })}
+                                        className="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-emerald-500 outline-none"
+                                    />
+                                </div>
+                            )}
+
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Additional Recipients</label>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase ml-1">Additional CC Recipients (Optional)</label>
                                 <input
                                     type="text"
-                                    placeholder="it-team@company.lan, ops@alias.com"
+                                    placeholder="it-team@company.lan"
                                     value={formData.recipients}
                                     onChange={(e) => setFormData({ ...formData, recipients: e.target.value })}
                                     className="w-full bg-gray-800 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-emerald-500 outline-none"
@@ -447,18 +522,15 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
                     <div className="flex items-center gap-3 pt-2">
                         <button
                             type="button"
-                            // Disable if testing, if Discord URL is missing, OR if we already have a success
-                            disabled={
-                                isTesting ||
-                                (formData.type === 'discord' && !formData.discordWebhook) ||
-                                testResult === 'success'
-                            }
+                            disabled={isTesting || isFormInvalid || testResult === 'success'}
                             onClick={testService}
                             className={`flex-1 py-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${testResult === 'success'
-                                    ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10 cursor-not-allowed' :
-                                    testResult === 'error'
-                                        ? 'border-red-500 text-red-500 bg-red-500/10 animate-shake' :
-                                        'border-white/10 text-gray-400 hover:bg-white/5 active:scale-95'
+                                ? 'border-emerald-500 text-emerald-500 bg-emerald-500/10 cursor-not-allowed' :
+                                testResult === 'error'
+                                    ? 'border-red-500 text-red-500 bg-red-500/10 animate-shake' :
+                                    (isTesting || isFormInvalid)
+                                        ? 'border-white/5 text-gray-600 cursor-not-allowed'
+                                        : 'border-white/10 text-gray-400 hover:bg-white/5 active:scale-95'
                                 }`}
                         >
                             {isTesting ? (
@@ -481,11 +553,13 @@ const AddServiceModal = ({ service, onClose, onSuccess, setError }) => {
 
                     <button
                         type="submit"
-                        disabled={isSaving}
-                        className={`w-full py-4 rounded-xl text-sm font-bold mt-4 shadow-lg flex items-center justify-center gap-2 transition-all ${isEditing
-                                ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20'
-                                : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20'
-                            } text-white`}
+                        disabled={isSaving || isFormInvalid}
+                        className={`w-full py-4 rounded-xl text-sm font-bold mt-4 shadow-lg flex items-center justify-center gap-2 transition-all ${(isSaving || isFormInvalid)
+                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            : isEditing
+                                ? 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20 text-white'
+                                : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20 text-white'
+                            }`}
                     >
                         {isSaving ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

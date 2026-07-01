@@ -19,8 +19,8 @@ class NotificationSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationService)
 class NotificationServiceAdmin(admin.ModelAdmin):
-    fields = ('name', 'type', 'url', 'recipients', 'active')
-    list_display = ('id', 'name', 'type', 'url', 'recipients', 'active', 'created_at')
+    fields = ('name', 'type', 'url', 'email_all_users', 'main_email_recipients', 'recipients', 'active')
+    list_display = ('id', 'name', 'type', 'url', 'email_all_users', 'main_email_recipients', 'recipients', 'active', 'created_at')
 
 @admin.register(AgentInstallConfig)
 class AgentInstallConfigAdmin(admin.ModelAdmin):

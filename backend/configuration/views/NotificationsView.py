@@ -61,6 +61,8 @@ class NotificationServicesView(APIView):
             'type': data.get('type'),
             'url': data.get('discordWebhook') if data.get('type') == 'discord' else None,
             'recipients': data.get('recipients') if data.get('type') == 'smtp' else None,
+            'email_all_users': data.get('email_all_users', True),
+            'main_email_recipients': data.get('main_email_recipients') if data.get('type') == 'smtp' else None,
             'active': data.get('active', True)
         }
 
@@ -87,11 +89,17 @@ class NotificationServicesView(APIView):
         if 'name' in data: update_fields['name'] = data['name']
         if 'type' in data: update_fields['type'] = data['type']
         if 'active' in data: update_fields['active'] = data['active']
+
+        if 'email_all_users' in data: 
+            update_fields['email_all_users'] = data['email_all_users']
         
-        if data.get('type') == 'discord' and 'discordWebhook' in data:
-            update_fields['url'] = data['discordWebhook']
-        if data.get('type') == 'smtp' and 'recipients' in data:
-            update_fields['recipients'] = data['recipients']
+        is_smtp = data.get('type') == 'smtp' or (not data.get('type') and service.type == 'smtp')
+        
+        if is_smtp:
+            if 'recipients' in data:
+                update_fields['recipients'] = data['recipients']
+            if 'main_email_recipients' in data:
+                update_fields['main_email_recipients'] = data['main_email_recipients']
 
         serializer = NotificationServiceSerializer(service, data=update_fields, partial=True)
 

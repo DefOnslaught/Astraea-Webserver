@@ -71,14 +71,18 @@ def process_notification(self, notification_id):
         'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
     }
 
-    active_services = get_notification_services()
-    if not active_services:
+    all_services = get_notification_services()
+    if not all_services:
         return
 
     sent_service_ids = notification.successful_services.values_list('id', flat=True)
     sent_service_ids_str = {str(sid) for sid in sent_service_ids}
 
-    for service in active_services:
+    for service in all_services:
+
+        if not service.get('active', False):
+            continue
+
         if str(service['id']) in sent_service_ids_str:
             continue
 
@@ -94,12 +98,23 @@ def process_notification(self, notification_id):
                 )
                 
             elif 'email' in s_type or 'smtp' in s_type:
-                recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True))
+                if not service.get('email_all_users', True):
+                    recipient_list = service.get('main_email_recipients', '')
+                    recipient_list = [r.strip() for r in recipient_list.split(',') if r.strip()] if recipient_list else []
+                else:
+                    recipient_list = list(User.objects.filter(is_active=True).values_list('email', flat=True))
+                
                 additional_recipients = service.get('recipients')
                 if additional_recipients:
                     extra_list = [r.strip() for r in additional_recipients.split(',') if r.strip()]
                     recipient_list.extend(extra_list)
-                success = send_notification_email(notification, recipient_list)
+                    
+                recipient_list = list(set(recipient_list))
+                
+                if recipient_list:
+                    success = send_notification_email(notification, recipient_list)
+                else:
+                    success = False
 
             if success:
                 notification.successful_services.add(service['id'])

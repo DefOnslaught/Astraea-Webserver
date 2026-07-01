@@ -35,11 +35,10 @@ class NotificationService(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, help_text="e.g. 'Ops Discord Channel'")
     type = models.CharField(max_length=20, choices=SERVICE_TYPES, default='discord')
-    
-    # Store the primary endpoint (Webhook URL for Discord, or leave blank for SMTP)
+    # Store the primary endpoint (leave blank for SMTP)
     url = models.URLField(max_length=500, null=True, blank=True)
-    
-    # Store secondary data (like email recipient strings)
+    email_all_users = models.BooleanField(default=True)
+    main_email_recipients = models.TextField(null=True, blank=True, help_text="Comma-separated emails")
     recipients = models.TextField(null=True, blank=True, help_text="Comma-separated emails")
     
     active = models.BooleanField(default=True, db_index=True)
