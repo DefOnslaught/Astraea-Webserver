@@ -1,19 +1,24 @@
 Backend:
-
+    Some logic to store 'Check for updates' since github has a very limited public API cap 
 
 
 Frontend:
 
     - About Page (opened via clicking the version in sidebar)
-        - check for updates (front-end only, react goes out and checks version from git?)
+        - check for updates
         - Version history (no backend, just text on front-end)
         - About section
 
 General Needs:
 
 
+    Source Agent Auto Update:
+        - Maybe add a feature where we can toggle a check to see if there's a new agent version from github, using releases
+        - Could make this a notification check, run every 24 hours, same logic as self update check
+
+
     Notification
-        - Add: Notify on Server delete, Add, modify
+        - Add: Notify on Server delete, Add, modify, maybe notification if webserver is out of date?
 
 
     Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits

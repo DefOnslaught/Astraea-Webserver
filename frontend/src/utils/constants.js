@@ -57,6 +57,8 @@ export const API_ENDPOINTS = {
     DB_STATS: 'api/admin/db_stats/',
     SYSTEM_STATS: 'api/admin/system_stats/',
     SYSTEM_LOGS: 'api/admin/system_logs/',
+    DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',
+    CLEAR_ALL_LOGS: 'api/admin/clear_all_logs/',
 
     GET_FILTERS: 'api/reports/get_filters/',
     FINISHED_REPORTS: 'api/reports/get_finished_reports/',

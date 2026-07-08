@@ -14,6 +14,7 @@ from django.db import connections, connection
 
 from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
+from reports.tasks import delete_all_reports
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -285,3 +286,58 @@ class SystemLogsView(APIView):
             as_attachment=True, 
             filename=log_filename
         )
+    
+
+class DeleteAllReports(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if cache.get('is_deleting_all_reports'):
+            return Response({'message': 'Deletion is already in progress.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        cache.set('is_deleting_all_reports', True, timeout=180)
+
+        delete_all_reports.delay()
+
+        if settings.DEBUG:
+            logger.info(f'Deleting all reports in background by `{request.user.username}`')
+        
+        return Response({'message': 'Deleting all reports in background.'}, status=status.HTTP_200_OK)
+    
+
+class ClearAllLogs(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if cache.get('is_clearing_logs'):
+            return Response({'message': 'Log clearing is already in progress.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        
+        cache.set('is_clearing_logs', True, timeout=120)
+
+        try:
+            logs_dir = os.path.join(settings.BASE_DIR, 'logs')
+            log_files = [
+                'astraea_general.log', 
+                'astraea_errors.log', 
+                'celery-beat.log', 
+                'celery-worker.log'
+            ]
+
+            for log_file in log_files:
+                file_path = os.path.join(logs_dir, log_file)
+                with open(file_path, 'w'):
+                    pass
+
+            if settings.DEBUG:
+                logger.info(f"Log files successfully cleared by `{request.user.username}`")
+            
+            return Response({'message': 'Log files successfully cleared.'}, status=status.HTTP_200_OK)
+        
+        finally:
+            cache.delete('is_clearing_logs')

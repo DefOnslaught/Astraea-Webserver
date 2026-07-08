@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.core.exceptions import FieldError, ValidationError
 from django.utils.text import get_valid_filename
 from django.db.models import Max
+from django.core.cache import cache
 
 from .models import ReportRequest
 from servers.models import Server, PatchSession
@@ -140,3 +141,13 @@ def delete_old_reports():
     if settings.DEBUG:
         if total_deleted > 0:
             logger.info(f"Cleanup finished: {total_deleted} expired reports and files removed.")
+
+
+@shared_task()
+def delete_all_reports():
+    try:
+        for report in ReportRequest.objects.all().iterator(chunk_size=1000):
+            report.delete()
+            
+    finally:
+        cache.delete('is_deleting_all_reports')

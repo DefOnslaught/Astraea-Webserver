@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .views.UserAccountViews import FetchUsers, InspectUser, CreateNewUser
-from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView
+from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView, DeleteAllReports, ClearAllLogs
 
 
 urlpatterns = [
@@ -14,4 +14,6 @@ urlpatterns = [
     path('db_stats/', DatabaseStatsView.as_view(), name='db_stats'),
     path('system_stats/', SystemStatsView.as_view(), name='system_stats'),
     path('system_logs/<str:log_type>/', SystemLogsView.as_view(), name='system_logs'),
+    path('delete_all_reports/', DeleteAllReports.as_view(), name='delete_all_reports'),
+    path('clear_all_logs/', ClearAllLogs.as_view(), name='clear_all_logs'),
 ]

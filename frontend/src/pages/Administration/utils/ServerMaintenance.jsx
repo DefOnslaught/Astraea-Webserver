@@ -20,6 +20,10 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     const [sysStats, setSysStats] = useState(null);
     const [isLoadingSys, setIsLoadingSys] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState(false);
+    const [deletingAllReports, setDeletingAllReports] = useState(false);
+    const [showDeleteAllReportsConfirm, setShowDeleteAllReportsConfirm] = useState(false);
+    const [clearingAllLogs, setClearingAllLogs] = useState(false);
+    const [showClearingAllLogsConfirm, setShowClearingAllLogsConfirm] = useState(false);
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -40,7 +44,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             const res = await api.get(API_ENDPOINTS.CELERY_STATS);
             setCeleryStats(res.data);
         } catch (err) {
-            console.error("Failed to fetch celery stats");
+            console.error(err.response?.data?.message || "Failed to fetch celery stats");
         } finally {
             setIsLoadingTasks(false);
         }
@@ -62,13 +66,12 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             } catch (error) {
                 if (error.response?.status !== 429) {
                     setIsRefreshing(false);
-                    setError("Error checking status.");
+                    setError(err.response?.data?.message || "Error checking status.");
                     clearInterval(interval);
                 }
             }
         }, 3000);
 
-        // 3. Cleanup: prevent memory leaks
         return () => clearInterval(interval);
     };
 
@@ -92,7 +95,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             triggerSuccess("Orphaned package data purged.");
             setShowPurgeConfirm(false);
         } catch (err) {
-            setError("Database purge failed.");
+            setError(err.response?.data?.message || "Database purge failed.");
         } finally {
             setIsPurging(false);
         }
@@ -105,7 +108,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             setKillTarget(null);
             fetchStats();
         } catch (err) {
-            setError("Failed to terminate task.");
+            setError(err.response?.data?.message || "Failed to terminate task.");
         }
     };
 
@@ -115,7 +118,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             triggerSuccess(`Triggered ${taskName}`);
             fetchStats();
         } catch (err) {
-            setError("Failed to trigger task.");
+            setError(err.response?.data?.message || "Failed to trigger task.");
         }
     };
 
@@ -125,7 +128,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             const res = await api.get(API_ENDPOINTS.DB_STATS);
             setDbStats(res.data);
         } catch (err) {
-            setError("Failed to fetch database stats.");
+            setError(err.response?.data?.message || "Failed to fetch database stats.");
         } finally {
             setIsLoadingDb(false);
         }
@@ -137,7 +140,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             const res = await api.get(API_ENDPOINTS.SYSTEM_STATS);
             setSysStats(res.data);
         } catch (err) {
-            setError("Failed to fetch system stats.");
+            setError(err.response?.data?.message || "Failed to fetch system stats.");
         } finally {
             setIsLoadingSys(false);
         }
@@ -159,9 +162,35 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             link.remove();
             triggerSuccess(`Downloaded ${fileName}`);
         } catch (err) {
-            setError("Failed to download requested log file.");
+            setError(err.response?.data?.message || "Failed to download requested log file.");
         } finally {
             setDownloadingFile(false);
+        }
+    };
+
+    const handleDeleteAllReports = async () => {
+        setDeletingAllReports(true);
+        try {
+            const res = await api.delete(API_ENDPOINTS.DELETE_ALL_REPORTS);
+            triggerSuccess("All reports have been deleted.");
+            setShowDeleteAllReportsConfirm(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Error when deleting all reports.");
+        } finally {
+            setDeletingAllReports(false);
+        }
+    };
+
+    const handleClearingAllLogs = async () => {
+        setClearingAllLogs(true);
+        try {
+            const res = await api.delete(API_ENDPOINTS.CLEAR_ALL_LOGS);
+            triggerSuccess("All logs have been cleared.");
+            setShowClearingAllLogsConfirm(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Error when clearing all reports.");
+        } finally {
+            setClearingAllLogs(false);
         }
     };
 
@@ -381,7 +410,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 </div>
 
                 {!showPurgeConfirm ? (
-                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl">
+                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
                         <div>
                             <p className="text-sm font-semibold text-red-200">Purge Orphaned Packages</p>
                             <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete package definitions not linked to any active server.</p>
@@ -394,12 +423,60 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                         </button>
                     </div>
                 ) : (
-                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl">
+                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
                         <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
                         <div className="flex gap-2 justify-center">
                             <button onClick={() => setShowPurgeConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
                             <button onClick={handlePurgeDatabase} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
                                 {isPurging ? "Purging..." : "Confirm Delete"}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {!showDeleteAllReportsConfirm ? (
+                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
+                        <div>
+                            <p className="text-sm font-semibold text-red-200">Delete All Reports</p>
+                            <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete all reports from the server.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowDeleteAllReportsConfirm(true)}
+                            className="px-4 py-2 border border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                ) : (
+                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
+                        <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
+                        <div className="flex gap-2 justify-center">
+                            <button onClick={() => setShowDeleteAllReportsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
+                            <button onClick={handleDeleteAllReports} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
+                                {deletingAllReports ? "Deleting..." : "Confirm Delete"}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {!showClearingAllLogsConfirm ? (
+                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
+                        <div>
+                            <p className="text-sm font-semibold text-red-200">Clear All Logs</p>
+                            <p className="text-xs text-red-300/60 mt-1 max-w-sm">Clears all log files on the server.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowClearingAllLogsConfirm(true)}
+                            className="px-4 py-2 border border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                ) : (
+                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
+                        <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
+                        <div className="flex gap-2 justify-center">
+                                <button onClick={() => setShowClearingAllLogsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
+                            <button onClick={handleClearingAllLogs} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
+                                {clearingAllLogs ? "Clearing..." : "Confirm Delete"}
                             </button>
                         </div>
                     </div>
