@@ -382,6 +382,8 @@ def parse_relative_date(date_str):
     """
     Converts strings like '30d', '7d', '2w', '1y' into a datetime object.
     """
+    if not date_str:
+        return None
     match = re.match(r'(\d+)([dwmy])', date_str.lower())
     if not match:
         return None
@@ -466,3 +468,35 @@ def format_duration(seconds):
         parts.append(f"{secs}s")
 
     return " ".join(parts)
+
+
+def apply_history_search(queryset, search_val):
+    """
+    Translates search strings and date logic into Django ORM filters.
+    """
+    if not search_val:
+        return queryset
+        
+    search_val = str(search_val).strip()
+
+    op_match = re.match(r'^([><=]=?)(.*)', search_val)
+    if op_match:
+        op, val_str = op_match.groups()
+        target_date = parse_relative_date(val_str)
+        
+        if target_date:
+            # Note the inversion: ">30d" means "older than 30 days", 
+            # so the timestamp must be LESS than the target_date.
+            if op == '>': return queryset.filter(timestamp__lt=target_date)
+            if op == '<': return queryset.filter(timestamp__gt=target_date)
+            if op == '>=': return queryset.filter(timestamp__lte=target_date)
+            if op == '<=': return queryset.filter(timestamp__gte=target_date)
+            if op == '==': return queryset.filter(timestamp__date=target_date.date())
+            
+    if search_val.lower() == 'none':
+        return queryset.filter(Q(error_log__isnull=True) | Q(error_log=""))
+        
+    return queryset.filter(
+        Q(status__icontains=search_val) |
+        Q(error_log__icontains=search_val)
+    )

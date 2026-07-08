@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.db.models import F
 
 from servers.models import Server, PatchSession
-from servers.utils import cache_individual_vms, format_duration
+from servers.utils import cache_individual_vms, format_duration, apply_history_search
 
 logger = logging.getLogger('django')
 
@@ -18,6 +18,7 @@ class InspectServerInfo(APIView):
 
     def get(self, request):
         server_id = request.data.get('server_id') or request.query_params.get('server_id')
+        search_val = request.query_params.get('search')
 
         if not server_id:
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
@@ -30,7 +31,10 @@ class InspectServerInfo(APIView):
             cache_individual_vms([server])
             data = cache.get(cache_key)
 
-        recent_sessions = list(PatchSession.objects.filter(server__server_id=server_id).order_by('-timestamp')[:6])
+        base_qs = PatchSession.objects.filter(server__server_id=server_id)
+        filtered_qs = apply_history_search(base_qs, search_val)
+        
+        recent_sessions = list(filtered_qs.order_by('-timestamp')[:6])
         
         has_more = len(recent_sessions) > 5
         if has_more:
@@ -48,7 +52,6 @@ class InspectServerInfo(APIView):
             'error_log': s.error_log
         } for s in recent_sessions]
 
-        # Add Packages in the inventory
         latest_session = PatchSession.objects.filter(
             server__server_id=server_id,
             status='success'
@@ -72,6 +75,8 @@ class ServerPatchHistory(APIView):
 
     def get(self, request):
         server_id = request.query_params.get('server_id')
+        search_val = request.query_params.get('search')
+        
         if not server_id:
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -82,9 +87,10 @@ class ServerPatchHistory(APIView):
             limit = 10
             offset = 0
 
-        sessions = PatchSession.objects.filter(
-            server__server_id=server_id
-        ).order_by('-timestamp')[offset:offset + limit]
+        base_qs = PatchSession.objects.filter(server__server_id=server_id)
+        filtered_qs = apply_history_search(base_qs, search_val)
+        
+        sessions = filtered_qs.order_by('-timestamp')[offset:offset + limit]
 
         data = [{
             'id': s.id,

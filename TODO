@@ -11,6 +11,8 @@ Frontend:
 
 General Needs:
 
+    Agent builder:
+        - Ability to specify the URL to use as the endpoint 
 
     Source Agent Auto Update:
         - Maybe add a feature where we can toggle a check to see if there's a new agent version from github, using releases
@@ -26,7 +28,3 @@ General Needs:
         - Things to Save: 
             - Sidebar closed/open
             - Light mode/Dark Mode (A lot of work)
-            
-
-    For the inspect server section
-        - Add a search bar to 'Patch History'

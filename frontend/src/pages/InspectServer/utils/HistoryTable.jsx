@@ -4,7 +4,7 @@ import { AlertTriangle, Loader2, ArrowDownCircle, Timer, RotateCcw, Clock } from
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleExclamation, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 
-const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore, onHandleShowingErrorLog }) => {
+const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, hasMore, isInfinite, loadMore, searchQuery, onHandleShowingErrorLog }) => {
     const observerTarget = useRef(null);
 
     useEffect(() => {
@@ -49,7 +49,13 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
     }
 
     if (history.length === 0) {
-        return <div className="p-6 text-slate-500 italic text-center">No records have been found for this endpoint.</div>;
+        return (
+            <div className="p-6 text-slate-500 italic text-center">
+                {searchQuery
+                    ? `No records found matching "${searchQuery}".`
+                    : "No records have been found for this endpoint."}
+            </div>
+        );
     }
 
     return (
@@ -182,7 +188,6 @@ const HistoryTable = ({ history, onSelectSession, error, loading, loadingMore, h
                 </tbody>
             </table>
 
-            {/* ONLY RENDER THE FOOTER WRAPPER IF THERE IS ACTUALLY STUFF TO DO OR DISPLAY */}
             {(hasMore || isInfinite) && (
                 <div className="w-full flex flex-col items-center justify-center mt-6 pt-4 border-t border-slate-800/60">
                     {!isInfinite && hasMore && (

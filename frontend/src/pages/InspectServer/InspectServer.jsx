@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from '../../utils/api';
 import { API_ENDPOINTS } from "../../utils/constants";
@@ -10,11 +10,17 @@ import PackageList from './utils/PackageList';
 import SessionDetailsModal from './utils/modals/SessionDetailModal';
 import ErrorLogModal from './utils/modals/ErrorLogModal';
 import HistoryTable from './utils/HistoryTable';
+import HistorySearchGuide from './utils/HistorySearchGuide';
 import {
     Server, Shield, Globe, Cpu, Cog, X, Loader2,
     ChevronLeft, Package, Clock, AlertTriangle, Search,
     CalendarDays, RotateCcw
 } from 'lucide-react';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faMagnifyingGlass,
+    faCircleInfo,
+} from "@fortawesome/free-solid-svg-icons";
 
 const InspectServer = () => {
     const { server_id } = useParams();
@@ -24,10 +30,11 @@ const InspectServer = () => {
     const [history, setHistory] = useState([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
     const [historyError, setHistoryError] = useState("");
-    const [historyOffset, setHistoryOffset] = useState(5); // Start at 5 because first 5 are loaded by overview
+    const [historyOffset, setHistoryOffset] = useState(5);
     const [hasMoreHistory, setHasMoreHistory] = useState(true);
     const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
     const [isHistoryInfinite, setIsHistoryInfinite] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const [packages, setPackages] = useState([]);
     const [isPackagesLoading, setIsPackagesLoading] = useState(true);
     const [packagesError, setPackagesError] = useState("");
@@ -38,6 +45,8 @@ const InspectServer = () => {
     const [selectedSession, setSelectedSession] = useState(null);
     const [showErrorLog, setShowErrorLog] = useState(null);
     const [sessionTimestamp, setSessionTimestamp] = useState(null);
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const searchContainerRef = useRef(null);
     const navigate = useNavigate();
 
     useDocumentTitle(serverInfo ? `${serverInfo.hostname} | Astraea` : 'Loading | Astraea');
@@ -56,30 +65,38 @@ const InspectServer = () => {
         }
     };
 
-    const fetchFullHistory = async (isFirstLoadMore = false) => {
-        if (!hasMoreHistory || isHistoryLoadingMore) return;
+    const fetchFullHistory = async (isFirstLoadMore = false, reset = false, query = searchQuery) => {
+        if (!reset && (!hasMoreHistory || isHistoryLoadingMore)) return;
 
-        setIsHistoryLoadingMore(true);
-        const limit = 10;
+        if (!reset) setIsHistoryLoadingMore(true);
+        const limit = (reset && !query) ? 5 : 10;
+        const currentOffset = reset ? 0 : historyOffset;
 
         try {
-            const res = await api.get(
-                `${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}&limit=${limit}&offset=${historyOffset}`
-            );
+            let url = `${API_ENDPOINTS.SERVER_HISTORY}?server_id=${server_id}&limit=${limit}&offset=${currentOffset}`;
+            if (query) {
+                url += `&search=${encodeURIComponent(query)}`;
+            }
+
+            const res = await api.get(url);
 
             if (res.data && res.data.length > 0) {
                 setHistory(prev => {
+                    if (reset) return res.data;
                     const existingIds = new Set(prev.map(item => item.id));
                     const uniqueNewItems = res.data.filter(item => !existingIds.has(item.id));
                     return [...prev, ...uniqueNewItems];
                 });
 
-                setHistoryOffset(prev => prev + res.data.length);
+                setHistoryOffset(currentOffset + res.data.length);
 
                 if (res.data.length < limit) {
                     setHasMoreHistory(false);
+                } else {
+                    setHasMoreHistory(true);
                 }
             } else {
+                if (reset) setHistory([]);
                 setHasMoreHistory(false);
             }
 
@@ -94,6 +111,21 @@ const InspectServer = () => {
             setIsHistoryLoading(false);
             setIsHistoryLoadingMore(false);
         }
+    };
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        setIsGuideOpen(false);
+        setIsHistoryLoading(true);
+        fetchFullHistory(false, true, searchQuery);
+    };
+
+    const clearSearch = () => {
+        setSearchQuery('');
+        setIsHistoryLoading(true);
+        setIsHistoryInfinite(false);
+        fetchFullHistory(false, true, '');
+        setIsGuideOpen(false);
     };
 
     const fetchPackages = async () => {
@@ -133,6 +165,26 @@ const InspectServer = () => {
     };
 
     useEffect(() => { fetchServer(); }, [server_id]);
+
+    useEffect(() => {
+        const handleEvents = (event) => {
+            if (isGuideOpen && searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+                setIsGuideOpen(false);
+            }
+            if (event.key === 'Escape') {
+                setIsGuideOpen(false);
+            }
+        };
+
+        if (isGuideOpen) {
+            document.addEventListener("mousedown", handleEvents);
+            document.addEventListener("keydown", handleEvents);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleEvents);
+            document.removeEventListener("keydown", handleEvents);
+        };
+    }, [isGuideOpen]);
 
     if (isLoading) return <InspectSkeleton />;
     if (error) return <div className="p-10 text-red-500 flex items-center gap-2"><AlertTriangle /> {error}</div>;
@@ -176,7 +228,7 @@ const InspectServer = () => {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => {setIsConfigOpen(true);}} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-lg shadow-indigo-500/20">
+                    <button onClick={() => { setIsConfigOpen(true); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all shadow-lg shadow-indigo-500/20">
                         <Cog className="w-4 h-4" /> Configure
                     </button>
                 </div>
@@ -281,17 +333,54 @@ const InspectServer = () => {
                     )}
 
                     {activeTab === 'history' && (
-                        <HistoryTable
-                            history={history}
-                            onSelectSession={setSelectedSession}
-                            error={historyError}
-                            loading={isHistoryLoading}
-                            loadingMore={isHistoryLoadingMore}
-                            hasMore={hasMoreHistory}
-                            isInfinite={isHistoryInfinite}
-                            loadMore={fetchFullHistory}
-                            onHandleShowingErrorLog={handleShowingErrorLog}
-                        />
+                        <div className="space-y-4">
+                            <div className="relative w-full md:w-96">
+                                <form onSubmit={handleSearchSubmit} className="relative group" ref={searchContainerRef}>
+                                    <FontAwesomeIcon
+                                        icon={faMagnifyingGlass}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-indigo-400 transition-colors"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search patch history, logs, or status..."
+                                        className="w-full bg-gray-800/40 border border-white/5 rounded-xl py-3 pl-12 pr-20 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-gray-600"
+                                    />
+
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        {searchQuery && (
+                                            <button type="button" onClick={clearSearch} className="text-slate-400 hover:text-slate-200 transition-colors">
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsGuideOpen(!isGuideOpen)}
+                                            className={`text-gray-500 hover:text-indigo-400 transition-colors ${isGuideOpen ? 'text-indigo-400' : ''}`}
+                                        >
+                                            <FontAwesomeIcon icon={faCircleInfo} />
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <HistorySearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+                            </div>
+                            <HistorySearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+                            <HistoryTable
+                                history={history}
+                                onSelectSession={setSelectedSession}
+                                error={historyError}
+                                loading={isHistoryLoading}
+                                loadingMore={isHistoryLoadingMore}
+                                hasMore={hasMoreHistory}
+                                isInfinite={isHistoryInfinite}
+                                loadMore={fetchFullHistory}
+                                searchQuery={searchQuery}
+                                onHandleShowingErrorLog={handleShowingErrorLog}
+                            />
+                        </div>
                     )}
                     {activeTab === 'packages' && <PackageList packages={packages} error={packagesError} loading={isPackagesLoading} />}
                 </div>
@@ -311,7 +400,7 @@ const InspectServer = () => {
                 />
             )}
             {showErrorLog && (
-                <ErrorLogModal 
+                <ErrorLogModal
                     errorLog={showErrorLog}
                     sessionTimestamp={sessionTimestamp}
                     onClose={() => handleShowingErrorLog(null, null)}
@@ -321,7 +410,6 @@ const InspectServer = () => {
     );
 };
 
-// Sub-components for cleaner code
 const StatCard = ({ icon, label, value }) => (
     <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center gap-4">
         <div className="p-3 bg-slate-800 rounded-lg">{icon}</div>
