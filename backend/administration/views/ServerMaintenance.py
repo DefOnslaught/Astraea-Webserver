@@ -1,4 +1,5 @@
-import logging, subprocess, os, zipfile, io
+import logging, subprocess, os, zipfile, io, psutil, time
+from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -7,6 +8,7 @@ from celery import current_app
 from django_celery_beat.models import PeriodicTask
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.management import call_command
 from django.conf import settings
 from django.utils import timezone
 from django.http import FileResponse, HttpResponse
@@ -205,35 +207,44 @@ class SystemStatsView(APIView):
         if cached_data:
             return Response(cached_data, status=status.HTTP_200_OK)
 
+        uptime_seconds = time.time() - psutil.boot_time()
+        td = timedelta(seconds=int(uptime_seconds))
+        days = td.days
+        hours = td.seconds // 3600
+        minutes = (td.seconds % 3600) // 60
+        uptime_str = f"{days}d {hours}h {minutes}m" if days > 0 else f"{hours}h {minutes}m"
+
+        disk = psutil.disk_usage('/')
+        
+        virtual_mem = psutil.virtual_memory()
+        total_mb = virtual_mem.total // (1024 * 1024)
+        used_mb = virtual_mem.used // (1024 * 1024)
+
+        cpu_percent = psutil.cpu_percent(interval=0.1) 
+        try:
+            load_1, load_5, load_15 = os.getloadavg()
+        except (AttributeError, OSError):
+            load_1, load_5, load_15 = 0.0, 0.0, 0.0
+
         stats = {
             'services': {},
-            'uptime': '',
-            'disk_usage': '',
-            'memory': '',
-            'migrations': 'Up to date'
+            'uptime': uptime_str,
+            'disk_usage': f"{disk.percent}%",
+            'memory': f"{used_mb}MB / {total_mb}MB",
+            'migrations': 'Up to date',
+            'cpu_usage': f"{cpu_percent}%",
+            'load_avg': f"{load_1:.2f}, {load_5:.2f}, {load_15:.2f}",
+            'raw_metrics': {
+                'cpu_percent': cpu_percent,
+                'memory_percent': virtual_mem.percent,
+                'disk_percent': disk.percent,
+                'load_averages': [load_1, load_5, load_15]
+            }
         }
-
-        # 1. Check services
         for service in ['nginx', 'gunicorn', 'redis-server', 'astraea-beat', 'astraea-worker']:
             res = subprocess.run(['systemctl', 'is-active', service], capture_output=True, text=True)
             stats['services'][service] = res.stdout.strip()
 
-        # 2. Uptime
-        uptime = subprocess.run(['uptime', '-p'], capture_output=True, text=True)
-        stats['uptime'] = uptime.stdout.strip()
-
-        # 3. Disk Usage
-        disk = subprocess.run(['df', '-h', '/'], capture_output=True, text=True)
-        stats['disk_usage'] = disk.stdout.splitlines()[1].split()[4]
-
-        # 4. Memory
-        mem = subprocess.run(['free', '-m'], capture_output=True, text=True)
-        mem_line = mem.stdout.splitlines()[1].split()
-        stats['memory'] = f"{mem_line[2]}MB / {mem_line[1]}MB"
-
-        # 5. Migrations (Check for pending)
-        from django.core.management import call_command
-        import io
         out = io.StringIO()
         call_command('showmigrations', stdout=out)
         if '[ ]' in out.getvalue():
