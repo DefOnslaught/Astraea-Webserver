@@ -32,6 +32,7 @@ CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
 
 CSRF_COOKIE_HTTPONLY = False  # Must be False so JS can read it
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 
 # Prevent the site from being rendered in an <iframe> (Prevents Clickjacking)
 X_FRAME_OPTIONS = 'DENY'
