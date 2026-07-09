@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     DB_STATS: 'api/admin/db_stats/',
     SYSTEM_STATS: 'api/admin/system_stats/',
     CHECK_FOR_UPDATE: 'api/admin/check_for_update/',
+    CHECK_FOR_AGENT_UPDATE: 'api/admin/check_for_agent_update/',
     SYSTEM_LOGS: 'api/admin/system_logs/',
     DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',
     CLEAR_ALL_LOGS: 'api/admin/clear_all_logs/',
@@ -76,3 +77,5 @@ export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN
 export const PATCH_THRESHOLD_DAYS = import.meta.env.VITE_PATCH_THRESHOLD_DAYS;
 
 export const VERSION = "1.0.0"
+export const GITHUB_REPO = "https://github.com/DefOnslaught/Astraea-Webserver"
+export const AGENT_GITHUB_REPO = "https://github.com/DefOnslaught/Astraea-Agent"

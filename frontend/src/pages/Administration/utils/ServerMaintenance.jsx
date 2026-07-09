@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { RefreshCw, Database, AlertTriangle, Skull, Cpu, CheckCircle, Clock, Play } from "lucide-react";
+import { RefreshCw, Database, AlertTriangle, Skull, Cpu, CheckCircle, Clock, Play, ArrowRight } from "lucide-react";
 import api from "../../../utils/api";
-import { API_ENDPOINTS } from "../../../utils/constants";
+import { API_ENDPOINTS, VERSION, GITHUB_REPO, AGENT_GITHUB_REPO } from "../../../utils/constants";
 
 const ServerTools = ({ triggerSuccess, setError }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -19,6 +19,10 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     const [isLoadingDb, setIsLoadingDb] = useState(false);
     const [sysStats, setSysStats] = useState(null);
     const [isLoadingSys, setIsLoadingSys] = useState(false);
+    const [updateCheck, setUpdateCheck] = useState(null);
+    const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
+    const [agentUpdateCheck, setAgentUpdateCheck] = useState(null);
+    const [isCheckingForAgentUpdate, setIsCheckingForAgentUpdate] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState(false);
     const [deletingAllReports, setDeletingAllReports] = useState(false);
     const [showDeleteAllReportsConfirm, setShowDeleteAllReportsConfirm] = useState(false);
@@ -66,7 +70,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             } catch (error) {
                 if (error.response?.status !== 429) {
                     setIsRefreshing(false);
-                    setError(err.response?.data?.message || "Error checking status.");
+                    setError(error.response?.data?.message || "Error checking status.");
                     clearInterval(interval);
                 }
             }
@@ -143,6 +147,48 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             setError(err.response?.data?.message || "Failed to fetch system stats.");
         } finally {
             setIsLoadingSys(false);
+        }
+    };
+
+    const isUpdateAvailable = (current, latest) => {
+        if (!current || !latest) return false;
+
+        const v1 = current.toString().replace(/^v/, '').split('.').map(Number);
+        const v2 = latest.toString().replace(/^v/, '').split('.').map(Number);
+
+        const maxLength = Math.max(v1.length, v2.length);
+        for (let i = 0; i < maxLength; i++) {
+            const num1 = v1[i] || 0;
+            const num2 = v2[i] || 0;
+            if (num2 > num1) return true;
+            if (num2 < num1) return false;
+        }
+        return false;
+    };
+
+    const handleCheckForUpdates = async () => {
+        return; // REMOVE ME WHEN BACKEND IS BUILT :)
+        setIsCheckingForUpdate(true);
+        try {
+            const res = await api.get(API_ENDPOINTS.CHECK_FOR_UPDATE);
+            setUpdateCheck(res.data);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to check for updates.");
+        } finally {
+            setIsCheckingForUpdate(false);
+        }
+    };
+
+    const handleAgentCheckForUpdates = async () => {
+        return; // REMOVE ME WHEN BACKEND IS BUILT :)
+        setIsCheckingForAgentUpdate(true);
+        try {
+            const res = await api.get(API_ENDPOINTS.CHECK_FOR_AGENT_UPDATE);
+            setAgentUpdateCheck(res.data);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to check for agent updates.");
+        } finally {
+            setIsCheckingForAgentUpdate(false);
         }
     };
 
@@ -269,8 +315,10 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 </div>
 
                 {sysStats && (
-                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/5 pt-4 space-y-3">
-                        <div className="grid grid-cols-2 gap-4">
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/5 pt-4 space-y-4">
+
+                        {/* Services Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                             {Object.entries(sysStats.services).map(([name, status]) => (
                                 <div key={name} className="flex justify-between text-xs">
                                     <span className="text-gray-500 capitalize">{name}</span>
@@ -278,11 +326,150 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                                 </div>
                             ))}
                         </div>
-                        <div className="text-xs text-gray-300 border-t border-white/5 pt-3 space-y-1">
-                            <p>Uptime: <span className="text-white">{sysStats.uptime}</span></p>
-                            <p>Disk Usage: <span className="text-white">{sysStats.disk_usage}</span></p>
-                            <p>Memory: <span className="text-white">{sysStats.memory}</span></p>
-                            <p>Migrations: <span className={sysStats.migrations === 'Up to date' ? 'text-green-400' : 'text-yellow-400'}>{sysStats.migrations}</span></p>
+
+                        {/* System Metrics Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs border-t border-white/5 pt-4">
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">CPU Usage</span>
+                                <span className="text-white font-mono">{sysStats.cpu_usage}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Load Average</span>
+                                <span className="text-white font-mono">{sysStats.load_avg}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Memory</span>
+                                <span className="text-white font-mono">{sysStats.memory}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Disk Usage</span>
+                                <span className="text-white font-mono">{sysStats.disk_usage}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Uptime</span>
+                                <span className="text-white font-mono">{sysStats.uptime}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Migrations</span>
+                                <span className={`font-mono ${sysStats.migrations === 'Up to date' ? 'text-green-400' : 'text-yellow-400'}`}>
+                                    {sysStats.migrations}
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+            </div>
+            
+            {/* CHECK FOR UPDATES */}
+            <div className="p-4 bg-gray-900/50 rounded-xl border border-white/5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-white">Check For Updates</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea available. - Feature is not available yet</p>
+                    </div>
+                    <button
+                        onClick={handleCheckForUpdates}
+                        disabled={isCheckingForUpdate}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold uppercase transition-all disabled:opacity-50"
+                    >
+                        {isCheckingForUpdate ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Check For Update"}
+                    </button>
+                </div>
+
+                {updateCheck && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className="text-xs">
+                                    <p className="text-gray-500 uppercase tracking-wider mb-1">Current</p>
+                                    <p className="text-white font-mono">{VERSION}</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-600" />
+                                <div className="text-xs">
+                                    <p className="text-gray-500 uppercase tracking-wider mb-1">Latest</p>
+                                    <p className="text-white font-mono">{updateCheck.version}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                {isUpdateAvailable(VERSION, updateCheck.version) ? (
+                                    <>
+                                        <a
+                                            href={GITHUB_REPO}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-[11px] font-medium transition-all"
+                                        >
+                                            View Repo
+                                        </a>
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                                            <AlertTriangle className="w-3 h-3" /> Update Available
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                                        <CheckCircle className="w-3 h-3" /> Up to Date
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* CHECK FOR AGENT UPDATES */}
+            <div className="p-4 bg-gray-900/50 rounded-xl border border-white/5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-white">Check For Agent Updates</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea Agent available. - Feature is not available yet</p>
+                    </div>
+                    <button
+                        onClick={handleAgentCheckForUpdates}
+                        disabled={isCheckingForAgentUpdate}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold uppercase transition-all"
+                    >
+                        {isCheckingForAgentUpdate ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Check For Agent Update"}
+                    </button>
+                </div>
+
+                {agentUpdateCheck && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300 border-t border-white/5 pt-4">
+                        <div className="flex items-center justify-between p-3 bg-gray-900 rounded-lg border border-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className="text-xs">
+                                    <p className="text-gray-500 uppercase tracking-wider mb-1">Current</p>
+                                    <p className="text-white font-mono">{agentUpdateCheck.current_version}</p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-gray-600" />
+                                <div className="text-xs">
+                                    <p className="text-gray-500 uppercase tracking-wider mb-1">Latest</p>
+                                    <p className="text-white font-mono">{agentUpdateCheck.latest_version}</p>
+                                </div>
+                            </div>
+                                {/* TODO: If update is found, offer ability to download the newest version */}
+                            <div>
+                                {isUpdateAvailable(agentUpdateCheck.current_version, agentUpdateCheck.latest_version) ? (
+                                    <>
+                                        <a
+                                            href={AGENT_GITHUB_REPO}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-[11px] font-medium transition-all"
+                                        >
+                                            View Repo
+                                        </a>
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                                            <AlertTriangle className="w-3 h-3" /> Update Available
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                                        <CheckCircle className="w-3 h-3" /> Up to Date
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

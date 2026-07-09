@@ -5,11 +5,15 @@ Backend:
 Frontend:
 
     - About Page (opened via clicking the version in sidebar)
-        - check for updates
         - Version history (no backend, just text on front-end)
         - About section
 
 General Needs:
+
+    Administration - Server Maintenance
+        - check for updates
+
+        - check for agent updates, have the ability to download the update if new version is found
 
     Source Agent Auto Update:
         - Maybe add a feature where we can toggle a check to see if there's a new agent version from github, using releases
