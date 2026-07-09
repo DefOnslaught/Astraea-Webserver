@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .views.APIKeyViews import CreateAPIKeyView, GetAPIKeys, DeleteAPIKey, UpdateAPIKey
-from .views.SystemConfigViews import SystemConfig, PurgeDatabaseOldPackagesView
+from .views.SystemConfigViews import SystemConfig
 from .views.NotificationsView import NotificationSettingsView, NotificationServicesView
 from .views.AstraeaAgentViews import AgentCreateConfigView, AgentInstallScriptView, AgentFileHandlerView, AgentUploadHandlerView, GetAgentInstallConfigs, DeleteAgentInstallConfig
 from .views.ZabbixViews import ZabbixConfig, TestZabbixConnection
@@ -12,7 +12,6 @@ urlpatterns = [
     path('api-key/update/', UpdateAPIKey.as_view(), name='update_api_key'),
     path('api-key/delete/', DeleteAPIKey.as_view(), name='delete_api_key'),
     path('sysconfig/', SystemConfig.as_view(), name='system_config'),
-    path('sysconfig/purge_old_packages/', PurgeDatabaseOldPackagesView.as_view(), name='purge_old_packages'),
     path('notify_settings/', NotificationSettingsView.as_view(), name='notify_settings'),
     path('notify_services/', NotificationServicesView.as_view(), name='notify_services'),
     path('agent_create_config/', AgentCreateConfigView.as_view(), name='agent_create_config'),

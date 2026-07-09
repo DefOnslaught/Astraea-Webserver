@@ -8,7 +8,6 @@ from django.conf import settings
 from configuration.models import SysConfig
 from configuration.serializers import SysConfigSerializer
 from configuration.utils import get_sys_config
-from servers.models import Package
 
 logger = logging.getLogger('django')
 
@@ -39,31 +38,3 @@ class SystemConfig(APIView):
 
         logger.error(f'Unable to update System Settings: {serializer.errors}') 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class PurgeDatabaseOldPackagesView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            # 1. Identify packages not present in any PackageUpdate record
-            # 'usage_history' is the related_name from your PackageUpdate model
-            orphaned_packages = Package.objects.filter(usage_history__isnull=True)
-            
-            count = orphaned_packages.count()
-            
-            # 2. Perform the deletion
-            orphaned_packages.delete()
-            if settings.DEBUG:
-                logger.info(f"Database Purge: Removed {count} orphaned packages.")
-            
-            return Response({
-                'message': f'Successfully purged {count} orphaned packages.',
-                'purged_count': count
-            }, status=status.HTTP_200_OK)
-            
-        except Exception as e:
-            logger.error(f'Database purge failed: {str(e)}')
-            return Response({
-                'message': f'Internal server error during purge: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

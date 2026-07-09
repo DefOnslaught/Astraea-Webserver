@@ -36,7 +36,6 @@ export const API_ENDPOINTS = {
     API_KEY_UPDATE: "api/config/api-key/update/",
     API_KEY_DELETE: "api/config/api-key/delete/",
     SYSTEM_CONFIG: "api/config/sysconfig/",
-    PURGE_OLD_PACKAGES: "api/config/sysconfig/purge_old_packages/",
     NOTIFY_SETTINGS: "api/config/notify_settings/",
     NOTIFY_SERVICES: "api/config/notify_services/",
     TEST_DISCORD: "api/notifications/test/discord/",
@@ -59,6 +58,7 @@ export const API_ENDPOINTS = {
     CHECK_FOR_UPDATE: 'api/admin/check_for_update/',
     CHECK_FOR_AGENT_UPDATE: 'api/admin/check_for_agent_update/',
     SYSTEM_LOGS: 'api/admin/system_logs/',
+    PURGE_OLD_PACKAGES: "api/admin/purge_old_packages/",
     DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',
     CLEAR_ALL_LOGS: 'api/admin/clear_all_logs/',
 

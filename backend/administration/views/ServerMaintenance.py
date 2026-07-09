@@ -17,6 +17,7 @@ from django.db import connections, connection
 from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
 from reports.tasks import delete_all_reports
+from servers.models import Package
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -297,7 +298,32 @@ class SystemLogsView(APIView):
             as_attachment=True, 
             filename=log_filename
         )
-    
+
+
+class PurgeDatabaseOldPackagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            orphaned_packages = Package.objects.filter(usage_history__isnull=True)
+            
+            count = orphaned_packages.count()
+            
+            orphaned_packages.delete()
+            if settings.DEBUG:
+                logger.info(f"Database Purge: Removed {count} orphaned packages.")
+            
+            return Response({
+                'message': f'Successfully purged {count} orphaned packages.',
+                'purged_count': count
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f'Database purge failed: {str(e)}')
+            return Response({
+                'message': f'Internal server error during purge: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class DeleteAllReports(APIView):
     permission_classes = [IsAuthenticated]
