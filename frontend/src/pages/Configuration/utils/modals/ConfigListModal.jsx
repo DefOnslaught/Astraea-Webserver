@@ -89,6 +89,13 @@ const ConfigListModal = ({ onClose }) => {
         setExpandedUid(expandedUid === uid ? null : uid);
     };
 
+    const formatBaseUrl = (url) => {
+        if (!url || String(url).toLowerCase() === 'none' || String(url).toLowerCase() === 'null') {
+            return "Auto-Detect";
+        }
+        return url;
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-gray-900 border border-white/10 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
@@ -145,6 +152,10 @@ const ConfigListModal = ({ onClose }) => {
                                         {configs.map((cfg) => {
                                             const isExpanded = expandedUid === cfg.uid;
                                             const isConfirmingDelete = deleteConfirmUid === cfg.uid;
+
+                                            // Pre-calculate base URL display state
+                                            const displayBaseUrl = formatBaseUrl(cfg.base_url);
+                                            const isAutoDetect = displayBaseUrl === "Auto-Detect";
 
                                             return (
                                                 <Fragment key={cfg.uid}>
@@ -238,6 +249,12 @@ const ConfigListModal = ({ onClose }) => {
                                                                             <Calendar className="w-3.5 h-3.5 text-indigo-400" /> Scheduling & Execution
                                                                         </div>
                                                                         <div className="space-y-1.5">
+                                                                            <div className="flex justify-between">
+                                                                                <span className="text-gray-500">Base URL:</span>
+                                                                                <span className={`font-mono truncate ml-4 ${isAutoDetect ? 'text-gray-500 italic' : 'text-indigo-300'}`}>
+                                                                                    {displayBaseUrl}
+                                                                                </span>
+                                                                            </div>
                                                                             <div className="flex justify-between"><span className="text-gray-500">Cron Rule:</span> <span className="font-mono text-indigo-300">{cfg.cron || "None"}</span></div>
                                                                             <div className="flex justify-between"><span className="text-gray-500">Patch Schedule:</span> <span className="font-mono text-indigo-300">{cfg.patching_schedule || "None"}</span></div>
                                                                             <div className="flex justify-between"><span className="text-gray-500">Created At:</span> <span className="text-gray-300">{cfg.created_at ? new Date(cfg.created_at).toLocaleString() : "Unknown"}</span></div>

@@ -11,9 +11,6 @@ Frontend:
 
 General Needs:
 
-    Agent builder:
-        - Ability to specify the URL to use as the endpoint 
-
     Source Agent Auto Update:
         - Maybe add a feature where we can toggle a check to see if there's a new agent version from github, using releases
         - Could make this a notification check, run every 24 hours, same logic as self update check
@@ -28,3 +25,6 @@ General Needs:
         - Things to Save: 
             - Sidebar closed/open
             - Light mode/Dark Mode (A lot of work)
+
+    Docker Support
+        - Maybe use the docker sock to get system info for the administration server maintenance page

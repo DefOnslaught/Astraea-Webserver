@@ -56,7 +56,7 @@ class AgentInstallConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AgentInstallConfig
-        fields = ['uuid', 'label', 'apiKeyName', 'helperScript', 'environment',
+        fields = ['uuid', 'label', 'apiKeyName', 'base_url', 'helperScript', 'environment',
                   'schedule', 'patching_schedule', 'disable_autoremove', 'enable_apt_release_info_change',
                   'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime']
 

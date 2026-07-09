@@ -80,7 +80,6 @@ class AgentInstallScriptView(APIView):
         with open(script_path, 'r') as f:
             script_content = f.read()
         
-        # Render with context (API_KEY, BASE_URL, etc.)
         template = Template(script_content)
         context = Context({
             'API_KEY': config.api_key.key,
@@ -88,7 +87,7 @@ class AgentInstallScriptView(APIView):
             'CRON': config.cron,
             'PATCHING_SCHEDULE': config.patching_schedule,
             'EXE_LOGIC': config.exe_logic,
-            'BASE_URL': f"{request.scheme}://{request.get_host()}",
+            'BASE_URL': config.base_url or f"{request.scheme}://{request.get_host()}",
             'UID': uid,
             'DISABLE_AUTOREMOVE': config.disable_autoremove,
             'ENABLE_APT_ALLOW_RELEASE_INFO_CHANGE': config.enable_apt_release_info_change,
@@ -298,6 +297,7 @@ class GetAgentInstallConfigs(APIView):
         data = [{
             'label': config.label,
             'key': str(config.api_key),
+            'base_url': config.base_url,
             'uid': config.uid,
             'exe_logic': config.exe_logic,
             'environment': config.environment,

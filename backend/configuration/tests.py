@@ -352,6 +352,7 @@ class AgentHandlerTests(APITestCase):
         data = {
             "label": "Test Config",
             "apiKeyName": "Test-Key-01",
+            "base_url": "http://astraea.lan",
             "helperScript": "week1and3",
             "environment": "staging",
             "schedule": "0 0 * * 1",
@@ -373,6 +374,7 @@ class AgentHandlerTests(APITestCase):
         config = AgentInstallConfig.objects.get(uid=response.data['uuid'])
         self.assertEqual(config.label, "Test Config")
         self.assertEqual(config.api_key, api_key)
+        self.assertEqual(config.base_url, "http://astraea.lan")
         self.assertEqual(config.exe_logic, "week1and3")
         self.assertEqual(config.cron, "0 0 * * 1")
         self.assertEqual(config.patching_schedule, "04:00 AM Wednesday Weeks 1 & 3")

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
     FileCode, Upload, RefreshCw, Terminal, CheckCircle2, Loader2,
     Copy, Key, Calendar, ChevronRight, Settings2, Command, ChevronDown,
-    History, ShieldAlert, Sliders, ToggleLeft, ToggleRight
+    History, ShieldAlert, Sliders, ToggleLeft, ToggleRight, Globe
 } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleInfo } from "@fortawesome/free-solid-svg-icons";
@@ -21,11 +21,10 @@ const AgentTab = ({ triggerSuccess, setError }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [currentVersion, setCurrentVersion] = useState(null);
     const [downloading, setDownloading] = useState(false);
-
-    // Config States including updated backend flags
     const [availableKeys, setAvailableKeys] = useState([]);
     const [agentConfig, setAgentConfig] = useState({
         label: "",
+        base_url: "",
         schedule: "0 0 * * *",
         environment: "Production",
         apiKeyName: "",
@@ -316,9 +315,8 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                                 placeholder="e.g. Ubuntu Web Servers - Prod"
                                 value={agentConfig.label}
                                 onChange={(e) => setAgentConfig({ ...agentConfig, label: e.target.value })}
-                                className={`w-full bg-gray-900 border rounded-xl px-10 py-2.5 text-white text-sm outline-none transition-all ${
-                                    !agentConfig.label.trim() ? 'border-amber-500/20' : 'border-white/10 focus:border-indigo-500/50'
-                                }`}
+                                className={`w-full bg-gray-900 border rounded-xl px-10 py-2.5 text-white text-sm outline-none transition-all ${!agentConfig.label.trim() ? 'border-amber-500/20' : 'border-white/10 focus:border-indigo-500/50'
+                                    }`}
                             />
                             <Settings2 className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-500" />
                         </div>
@@ -330,9 +328,8 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                             <select
                                 value={agentConfig.apiKeyName || ""}
                                 onChange={(e) => setAgentConfig({ ...agentConfig, apiKeyName: e.target.value })}
-                                className={`w-full bg-gray-900 border rounded-xl px-10 py-2.5 text-sm appearance-none outline-none transition-all cursor-pointer ${
-                                    isCurrentKeyDisabled ? 'border-red-500/50 text-red-200' : 'border-white/10 text-white focus:border-indigo-500/50'
-                                }`}
+                                className={`w-full bg-gray-900 border rounded-xl px-10 py-2.5 text-sm appearance-none outline-none transition-all cursor-pointer ${isCurrentKeyDisabled ? 'border-red-500/50 text-red-200' : 'border-white/10 text-white focus:border-indigo-500/50'
+                                    }`}
                             >
                                 <option value="" disabled hidden>Select an API Key...</option>
                                 {availableKeys.sort((a, b) => b.is_active - a.is_active).map(k => (
@@ -357,6 +354,22 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                             <option value="Pre-Prod">Pre-Production</option>
                             <option value="Dev">Development</option>
                         </select>
+                    </div>
+
+                    {/* Base URL Override */}
+                    <div>
+                        <label className="text-[10px] font-bold text-gray-400 uppercase mb-2 block ml-1">Base URL Override (Optional)</label>
+                        <div className="relative group">
+                            <input
+                                type="url"
+                                placeholder="e.g. https://astraea.example.com"
+                                value={agentConfig.base_url}
+                                onChange={(e) => setAgentConfig({ ...agentConfig, base_url: e.target.value })}
+                                className="w-full bg-gray-900 border border-white/10 rounded-xl px-10 py-2.5 text-white text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-gray-600"
+                            />
+                            <Globe className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-500" />
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-1.5 ml-1">Leave blank to auto-detect from the host request.</p>
                     </div>
                 </div>
 
@@ -405,7 +418,7 @@ const AgentTab = ({ triggerSuccess, setError }) => {
                     </div>
                 </div>
 
-                {/* ADVANCED ADVANCED AUTOMATION POLICIES MATRIX */}
+                {/* ADVANCED AUTOMATION POLICIES MATRIX */}
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 ml-1">
                         <Sliders className="w-3.5 h-3.5 text-indigo-400" /> System Automation Policies
@@ -502,11 +515,10 @@ Use only if you are experiencing 'Repository changed its Release file' errors. E
                 <button
                     onClick={handleCreateAgentInstaller}
                     disabled={!agentConfig.apiKeyName || isCurrentKeyDisabled || !agentConfig.label.trim()}
-                    className={`w-full py-3.5 rounded-xl text-sm font-bold shadow-xl flex items-center justify-center gap-2 group transition-all ${
-                        (!agentConfig.apiKeyName || isCurrentKeyDisabled || !agentConfig.label.trim())
+                    className={`w-full py-3.5 rounded-xl text-sm font-bold shadow-xl flex items-center justify-center gap-2 group transition-all ${(!agentConfig.apiKeyName || isCurrentKeyDisabled || !agentConfig.label.trim())
                             ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                             : "bg-indigo-600 hover:bg-indigo-500 text-white"
-                    }`}
+                        }`}
                 >
                     {isCurrentKeyDisabled
                         ? "Invalid API Key Selection"

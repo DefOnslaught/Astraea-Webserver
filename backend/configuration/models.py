@@ -78,6 +78,7 @@ class AgentInstallConfig(models.Model):
     
     label = models.CharField(max_length=100, help_text="A friendly name for this configuration")
     api_key = models.ForeignKey('APIKey', on_delete=models.CASCADE, related_name='install_configs')
+    base_url = models.URLField(max_length=500, null=True, blank=True)
     uid = models.CharField(max_length=12, unique=True, editable=False, db_index=True)
     exe_logic = models.CharField(default='standard', choices=EXE_TYPES, max_length=20)
     environment = models.CharField(max_length=50, default='production')
