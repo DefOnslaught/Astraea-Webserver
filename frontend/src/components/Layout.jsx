@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../utils/AuthContext";
 import { usePathCheck } from "../hooks/usePathCheck";
 import LogoutModal from "./LogoutModal";
+import { VERSION } from "../utils/constants";
  
 function Layout({ children }) {
     const { user, isAuthorized, loading } = useAuth();
@@ -165,12 +166,12 @@ function Layout({ children }) {
                                 Astraea System
                             </span>
                             <span className="mt-1 px-2 py-0.5 rounded-full bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
-                                v1.0.0
+                                v{VERSION}
                             </span>
                         </div>
                     ) : (
                         <span className="px-2 py-0.5 rounded-md bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
-                            v1.0.0
+                            v{VERSION}
                         </span>
                     )}
                 </div>

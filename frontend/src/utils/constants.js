@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
     CELERY_STATS: 'api/admin/celery_stats/',
     DB_STATS: 'api/admin/db_stats/',
     SYSTEM_STATS: 'api/admin/system_stats/',
+    CHECK_FOR_UPDATE: 'api/admin/check_for_update/',
     SYSTEM_LOGS: 'api/admin/system_logs/',
     DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',
     CLEAR_ALL_LOGS: 'api/admin/clear_all_logs/',
@@ -73,3 +74,5 @@ export const API_ENDPOINTS = {
 
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;
 export const PATCH_THRESHOLD_DAYS = import.meta.env.VITE_PATCH_THRESHOLD_DAYS;
+
+export const VERSION = "1.0.0"
