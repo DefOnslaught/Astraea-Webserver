@@ -1,7 +1,7 @@
 from django.urls import path
 
 from .views.UserAccountViews import FetchUsers, InspectUser, CreateNewUser
-from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView, PurgeDatabaseOldPackagesView, DeleteAllReports, ClearAllLogs
+from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView, PurgeDatabaseOldPackagesView, DeleteAllReports, ClearAllLogs, DeletePatchHistoryView
 
 
 urlpatterns = [
@@ -17,4 +17,5 @@ urlpatterns = [
     path('purge_old_packages/', PurgeDatabaseOldPackagesView.as_view(), name='purge_old_packages'),
     path('delete_all_reports/', DeleteAllReports.as_view(), name='delete_all_reports'),
     path('clear_all_logs/', ClearAllLogs.as_view(), name='clear_all_logs'),
+    path('delete_patch_history/<int:days>/', DeletePatchHistoryView.as_view(), name='delete_patch_history'),
 ]

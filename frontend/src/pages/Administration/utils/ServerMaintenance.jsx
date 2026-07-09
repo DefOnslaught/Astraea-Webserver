@@ -28,6 +28,9 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     const [showDeleteAllReportsConfirm, setShowDeleteAllReportsConfirm] = useState(false);
     const [clearingAllLogs, setClearingAllLogs] = useState(false);
     const [showClearingAllLogsConfirm, setShowClearingAllLogsConfirm] = useState(false);
+    const [daysToKeep, setDaysToKeep] = useState(150);
+    const [isDeletingHistory, setIsDeletingHistory] = useState(false);
+    const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false);
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -237,6 +240,24 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             setError(err.response?.data?.message || "Error when clearing all reports.");
         } finally {
             setClearingAllLogs(false);
+        }
+    };
+
+    const handleDeletePatchHistory = async () => {
+        if (!daysToKeep || daysToKeep <= 0) {
+            setError("Please enter a valid number of days (must be greater than 0).");
+            return;
+        }
+
+        setIsDeletingHistory(true);
+        try {
+            const res = await api.delete(`${API_ENDPOINTS.DELETE_PATCH_HISTORY}${daysToKeep}/`);
+            triggerSuccess(res.data.message || `Successfully purged history older than ${daysToKeep} days.`);
+            setShowDeleteHistoryConfirm(false);
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to delete patch history.");
+        } finally {
+            setIsDeletingHistory(false);
         }
     };
 
@@ -589,85 +610,122 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 </div>
             </div>
 
-            {/* DANGER ZONE (Cleaned up look) */}
+            {/* DANGER ZONE */}
             <div className="border-t border-white/5 pt-6">
                 <div className="flex items-center gap-2 mb-4">
                     <Skull className="text-red-500 w-4 h-4" />
                     <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest">Danger Zone</h3>
                 </div>
 
-                {!showPurgeConfirm ? (
-                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
-                        <div>
-                            <p className="text-sm font-semibold text-red-200">Purge Orphaned Packages</p>
-                            <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete package definitions not linked to any active server.</p>
-                        </div>
-                        <button
-                            onClick={() => setShowPurgeConfirm(true)}
-                            className="px-4 py-2 border border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
-                        >
-                            Purge
-                        </button>
-                    </div>
-                ) : (
-                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
-                        <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
-                        <div className="flex gap-2 justify-center">
-                            <button onClick={() => setShowPurgeConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
-                            <button onClick={handlePurgeDatabase} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
-                                {isPurging ? "Purging..." : "Confirm Delete"}
+                <div className="space-y-4">
+                    {/* PURGE ORPHANED PACKAGES */}
+                    {!showPurgeConfirm ? (
+                        <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl">
+                            <div>
+                                <p className="text-sm font-semibold text-red-200">Purge Orphaned Packages</p>
+                                <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete packages with no usage history.</p>
+                            </div>
+                            <button onClick={() => setShowPurgeConfirm(true)} className="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/50 rounded-lg text-xs font-bold uppercase transition-all">
+                                Purge
                             </button>
                         </div>
-                    </div>
-                )}
-                {!showDeleteAllReportsConfirm ? (
-                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
-                        <div>
-                            <p className="text-sm font-semibold text-red-200">Delete All Reports</p>
-                            <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete all reports from the server.</p>
+                    ) : (
+                        <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-red-400 text-center mb-3">Are you sure you want to purge orphaned packages?</p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => setShowPurgeConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-red-400/70 hover:text-red-400 transition-colors">Cancel</button>
+                                <button onClick={handlePurgeDatabase} disabled={isPurging} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-bold uppercase disabled:opacity-50 flex items-center gap-2 transition-all">
+                                    {isPurging && <RefreshCw className="w-3 h-3 animate-spin" />}
+                                    Confirm Purge
+                                </button>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setShowDeleteAllReportsConfirm(true)}
-                            className="px-4 py-2 border border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
-                        >
-                            Delete
-                        </button>
-                    </div>
-                ) : (
-                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
-                        <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
-                        <div className="flex gap-2 justify-center">
-                            <button onClick={() => setShowDeleteAllReportsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
-                            <button onClick={handleDeleteAllReports} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
-                                {deletingAllReports ? "Deleting..." : "Confirm Delete"}
+                    )}
+
+                    {/* DELETE PATCH HISTORY */}
+                    {!showDeleteHistoryConfirm ? (
+                        <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl">
+                            <div>
+                                <p className="text-sm font-semibold text-red-200">Delete Patch History</p>
+                                <p className="text-xs text-red-300/60 mt-1 max-w-sm">Permanently delete patch sessions and records older than specified days.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg border border-red-500/20">
+                                    <span className="text-xs font-medium text-red-300/60">Days:</span>
+                                    <input
+                                        type="number"
+                                        value={daysToKeep}
+                                        onChange={(e) => setDaysToKeep(e.target.value)}
+                                        className="w-14 bg-transparent text-red-200 text-sm font-mono outline-none text-center"
+                                        min="1"
+                                    />
+                                </div>
+                                <button onClick={() => setShowDeleteHistoryConfirm(true)} className="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/50 rounded-lg text-xs font-bold uppercase transition-all">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-red-400 text-center mb-3">Are you sure you want to delete all history older than {daysToKeep} days?</p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => setShowDeleteHistoryConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-red-400/70 hover:text-red-400 transition-colors">Cancel</button>
+                                <button onClick={handleDeletePatchHistory} disabled={isDeletingHistory} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-bold uppercase disabled:opacity-50 flex items-center gap-2 transition-all">
+                                    {isDeletingHistory && <RefreshCw className="w-3 h-3 animate-spin" />}
+                                    Confirm Delete
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* DELETE ALL REPORTS */}
+                    {!showDeleteAllReportsConfirm ? (
+                        <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl">
+                            <div>
+                                <p className="text-sm font-semibold text-red-200">Delete All Reports</p>
+                                <p className="text-xs text-red-300/60 mt-1 max-w-sm">Wipes all generated infrastructure CSV reports.</p>
+                            </div>
+                            <button onClick={() => setShowDeleteAllReportsConfirm(true)} className="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/50 rounded-lg text-xs font-bold uppercase transition-all">
+                                Delete
                             </button>
                         </div>
-                    </div>
-                )}
-                {!showClearingAllLogsConfirm ? (
-                    <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl mb-4">
-                        <div>
-                            <p className="text-sm font-semibold text-red-200">Clear All Logs</p>
-                            <p className="text-xs text-red-300/60 mt-1 max-w-sm">Clears all log files on the server.</p>
+                    ) : (
+                        <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-red-400 text-center mb-3">Are you sure you want to delete ALL reports?</p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => setShowDeleteAllReportsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-red-400/70 hover:text-red-400 transition-colors">Cancel</button>
+                                <button onClick={handleDeleteAllReports} disabled={deletingAllReports} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-bold uppercase disabled:opacity-50 flex items-center gap-2 transition-all">
+                                    {deletingAllReports && <RefreshCw className="w-3 h-3 animate-spin" />}
+                                    Confirm Delete
+                                </button>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setShowClearingAllLogsConfirm(true)}
-                            className="px-4 py-2 border border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase hover:bg-red-500 hover:text-white transition-all"
-                        >
-                            Clear
-                        </button>
-                    </div>
-                ) : (
-                    <div className="p-4 bg-red-600/10 border border-red-500/30 rounded-xl mb-4">
-                        <p className="text-xs font-bold text-red-400 text-center mb-3 italic">Are you absolutely sure?</p>
-                        <div className="flex gap-2 justify-center">
-                                <button onClick={() => setShowClearingAllLogsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-gray-400 hover:text-white">Cancel</button>
-                            <button onClick={handleClearingAllLogs} className="px-4 py-2 bg-red-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-red-700">
-                                {clearingAllLogs ? "Clearing..." : "Confirm Delete"}
+                    )}
+
+                    {/* CLEAR ALL LOGS */}
+                    {!showClearingAllLogsConfirm ? (
+                        <div className="flex items-center justify-between p-4 bg-red-950/10 border border-red-500/20 rounded-xl">
+                            <div>
+                                <p className="text-sm font-semibold text-red-200">Clear All Logs</p>
+                                <p className="text-xs text-red-300/60 mt-1 max-w-sm">Truncates all current system and application log files.</p>
+                            </div>
+                            <button onClick={() => setShowClearingAllLogsConfirm(true)} className="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/50 rounded-lg text-xs font-bold uppercase transition-all">
+                                Clear
                             </button>
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                            <p className="text-xs font-bold text-red-400 text-center mb-3">Are you sure you want to clear ALL log files?</p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => setShowClearingAllLogsConfirm(false)} className="px-4 py-2 text-[10px] font-bold uppercase text-red-400/70 hover:text-red-400 transition-colors">Cancel</button>
+                                <button onClick={handleClearingAllLogs} disabled={clearingAllLogs} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-bold uppercase disabled:opacity-50 flex items-center gap-2 transition-all">
+                                    {clearingAllLogs && <RefreshCw className="w-3 h-3 animate-spin" />}
+                                    Confirm Clear
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -61,6 +61,7 @@ export const API_ENDPOINTS = {
     PURGE_OLD_PACKAGES: "api/admin/purge_old_packages/",
     DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',
     CLEAR_ALL_LOGS: 'api/admin/clear_all_logs/',
+    DELETE_PATCH_HISTORY: 'api/admin/delete_patch_history/',
 
     GET_FILTERS: 'api/reports/get_filters/',
     FINISHED_REPORTS: 'api/reports/get_finished_reports/',

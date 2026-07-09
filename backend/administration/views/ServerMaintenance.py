@@ -17,7 +17,7 @@ from django.db import connections, connection
 from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
 from reports.tasks import delete_all_reports
-from servers.models import Package
+from servers.models import Package, PatchSession
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -378,3 +378,38 @@ class ClearAllLogs(APIView):
         
         finally:
             cache.delete('is_clearing_logs')
+
+
+class DeletePatchHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, days):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            days = int(days)
+            if days <= 0:
+                return Response({'message': 'Days parameter must be a positive integer.'}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({'message': 'Invalid days parameter.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cutoff_date = timezone.now() - timedelta(days=days)
+
+
+        old_sessions = PatchSession.objects.filter(timestamp__lt=cutoff_date)
+        sessions_deleted_count, _ = old_sessions.delete()
+
+        orphaned_packages = Package.objects.filter(usage_history__isnull=True)
+        packages_deleted_count, _ = orphaned_packages.delete()
+
+        if settings.DEBUG:
+                logger.info(f"'{request.user.username}' successfully purged history older than {days} days.")
+
+        return Response({
+            'message': f'Successfully purged history older than {days} days.',
+            'records_deleted': {
+                'sessions_and_updates': sessions_deleted_count,
+                'orphaned_packages': packages_deleted_count
+            }
+        }, status=status.HTTP_200_OK)
