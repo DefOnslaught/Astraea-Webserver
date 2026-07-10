@@ -28,7 +28,7 @@ class BasicUserInfoView(APIView):
 class SessionExtendView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(get, request):
+    def post(self, request):
         refresh_token_str = request.COOKIES.get(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
 
         if not refresh_token_str:
