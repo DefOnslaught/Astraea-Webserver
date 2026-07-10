@@ -13,7 +13,7 @@ import formatLastLogin from "../Administration/utils/formatLastLogin";
 import PasswordResetModal from "./utils/PasswordResetModal";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import AccessForbidden from "../ErrorPages/AccessForbidden";
-import ErrorAlert from "./utils/ErrorAlert";
+import ErrorToast from "../../components/ErrorToast";
 
 const UserInspection = () => {
     const { username } = useParams();
@@ -102,7 +102,7 @@ const UserInspection = () => {
                 Back to Users
             </button>
 
-            {error && <ErrorAlert message={error} onClose={() => setError("")} />}
+            {error && <ErrorToast message={error} onClose={() => setError("")} />}
 
             {/* Header Profile Card */}
             <div className="bg-gray-900/50 border border-white/5 rounded-3xl p-8 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xl">

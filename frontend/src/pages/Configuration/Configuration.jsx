@@ -11,6 +11,7 @@ import AgentSettings from "./utils/AgentSettings";
 import NotificationSettings from "./utils/NotificationSettings";
 import ZabbixSettings from "./utils/ZabbixSettings";
 import AccessForbidden from "../ErrorPages/AccessForbidden";
+import ErrorToast from "../../components/ErrorToast";
 
 const Configuration = () => {
     useDocumentTitle('Configuration | Astraea');
@@ -42,7 +43,6 @@ const Configuration = () => {
     const showError = (msg) => {
         setShowSuccess(false);
         setError(msg);
-        setTimeout(() => setError(""), 3500);
     };
 
     useEffect(() => {
@@ -82,6 +82,7 @@ const Configuration = () => {
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             {showSuccess && <SuccessToast message={successMsg} onClose={() => setShowSuccess(false)} />}
+            {error && <ErrorToast message={error} onClose={() => setError("")} />}
 
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white tracking-tight">Configuration</h1>
@@ -104,12 +105,6 @@ const Configuration = () => {
                     </button>
                 ))}
             </div>
-
-            {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in shake duration-300">
-                    {error}
-                </div>
-            )}
 
             {/* TAB CONTENT AREAS */}
             <div className="mt-4">

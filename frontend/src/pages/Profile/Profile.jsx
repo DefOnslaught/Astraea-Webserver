@@ -18,6 +18,7 @@ import SuccessToast from "../../components/SuccessToast";
 import SectionLoader from "../../components/SectionLoader";
 import { useAuth } from "../../utils/AuthContext";
 import LogoutModal from "../../components/LogoutModal";
+import ErrorToast from "../../components/ErrorToast";
 
 const Profile = () => {
     useDocumentTitle('Profile | Astraea');
@@ -195,11 +196,7 @@ const Profile = () => {
                 ))}
             </div>
 
-            {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in shake duration-300">
-                    {error}
-                </div>
-            )}
+            {error && <ErrorToast message={error} onClose={() => setError("")} />}
 
             {activeTab === "general" ? (
                 /* --- GENERAL TAB --- */

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { Users, ShieldCheck, ExternalLink, Database } from "lucide-react";
+import { Users, ShieldCheck, ExternalLink, Database, AlertCircle, X } from "lucide-react";
 import { useAuth } from "../../utils/AuthContext";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 import UserManagement from "./utils/UserManagement";
 import SuccessToast from "../../components/SuccessToast";
 import AccessForbidden from "../ErrorPages/AccessForbidden";
 import ServerMaintenance from "./utils/ServerMaintenance";
+import ErrorToast from "../../components/ErrorToast";
 
 const Administration = () => {
     useDocumentTitle('Administration | Astraea');
@@ -39,7 +40,6 @@ const Administration = () => {
     const showError = (msg) => {
         setShowSuccess(false);
         setError(msg);
-        setTimeout(() => setError(""), 3000);
     };
 
     useEffect(() => {
@@ -81,6 +81,8 @@ const Administration = () => {
 
             {showSuccess && <SuccessToast message={successMsg} onClose={() => setShowSuccess(false)} />}
 
+            {error && <ErrorToast message={error} onClose={() => setError("")} />}
+
             {/* Header Area */}
             <div className="mb-8 flex justify-between items-end">
                 <div>
@@ -118,12 +120,6 @@ const Administration = () => {
                     </button>
                 ))}
             </div>
-
-            {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in shake duration-300">
-                    {error}
-                </div>
-            )}
 
             {/* Content Area */}
             <div className="mt-4">
