@@ -1,5 +1,4 @@
 Backend:
-    Some logic to store 'Check for updates' since github has a very limited public API cap 
 
 
 Frontend:
@@ -9,15 +8,6 @@ Frontend:
         - About section
 
 General Needs:
-
-    Administration - Server Maintenance
-        - check for updates
-
-        - check for agent updates, have the ability to download the update if new version is found
-
-    Source Agent Auto Update:
-        - Maybe add a feature where we can toggle a check to see if there's a new agent version from github, using releases
-        - Could make this a notification check, run every 24 hours, same logic as self update check
 
 
     Notification

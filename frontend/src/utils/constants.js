@@ -57,6 +57,7 @@ export const API_ENDPOINTS = {
     SYSTEM_STATS: 'api/admin/system_stats/',
     CHECK_FOR_UPDATE: 'api/admin/check_for_update/',
     CHECK_FOR_AGENT_UPDATE: 'api/admin/check_for_agent_update/',
+    TRIGGER_AGENT_UPDATE: 'api/admin/trigger_agent_update',
     SYSTEM_LOGS: 'api/admin/system_logs/',
     PURGE_OLD_PACKAGES: "api/admin/purge_old_packages/",
     DELETE_ALL_REPORTS: 'api/admin/delete_all_reports/',

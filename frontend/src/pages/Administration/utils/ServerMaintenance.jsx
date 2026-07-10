@@ -23,6 +23,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     const [isCheckingForUpdate, setIsCheckingForUpdate] = useState(false);
     const [agentUpdateCheck, setAgentUpdateCheck] = useState(null);
     const [isCheckingForAgentUpdate, setIsCheckingForAgentUpdate] = useState(false);
+    const [isTriggeringDownload, setIsTriggeringDownload] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState(false);
     const [deletingAllReports, setDeletingAllReports] = useState(false);
     const [showDeleteAllReportsConfirm, setShowDeleteAllReportsConfirm] = useState(false);
@@ -170,7 +171,6 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     };
 
     const handleCheckForUpdates = async () => {
-        return; // REMOVE ME WHEN BACKEND IS BUILT :)
         setIsCheckingForUpdate(true);
         try {
             const res = await api.get(API_ENDPOINTS.CHECK_FOR_UPDATE);
@@ -183,7 +183,6 @@ const ServerTools = ({ triggerSuccess, setError }) => {
     };
 
     const handleAgentCheckForUpdates = async () => {
-        return; // REMOVE ME WHEN BACKEND IS BUILT :)
         setIsCheckingForAgentUpdate(true);
         try {
             const res = await api.get(API_ENDPOINTS.CHECK_FOR_AGENT_UPDATE);
@@ -192,6 +191,18 @@ const ServerTools = ({ triggerSuccess, setError }) => {
             setError(err.response?.data?.message || "Failed to check for agent updates.");
         } finally {
             setIsCheckingForAgentUpdate(false);
+        }
+    };
+
+    const handleTriggerAgentDownload = async () => {
+        setIsTriggeringDownload(true);
+        try {
+            await api.get(API_ENDPOINTS.TRIGGER_AGENT_UPDATE);
+            triggerSuccess("Agent update download initiated.");
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to trigger agent download.");
+        } finally {
+            setIsTriggeringDownload(false);
         }
     };
 
@@ -469,10 +480,9 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                                     <p className="text-white font-mono">{agentUpdateCheck.latest_version}</p>
                                 </div>
                             </div>
-                                {/* TODO: If update is found, offer ability to download the newest version */}
                             <div>
                                 {isUpdateAvailable(agentUpdateCheck.current_version, agentUpdateCheck.latest_version) ? (
-                                    <>
+                                    <div className="flex items-center gap-2">
                                         <a
                                             href={AGENT_GITHUB_REPO}
                                             target="_blank"
@@ -481,10 +491,18 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                                         >
                                             View Repo
                                         </a>
+                                        <button
+                                            onClick={handleTriggerAgentDownload}
+                                            disabled={isTriggeringDownload}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-bold uppercase transition-all disabled:opacity-50"
+                                        >
+                                            {isTriggeringDownload ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Download Update"}
+                                        </button>
+
                                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
                                             <AlertTriangle className="w-3 h-3" /> Update Available
                                         </span>
-                                    </>
+                                    </div>
                                 ) : (
                                     <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
                                         <CheckCircle className="w-3 h-3" /> Up to Date

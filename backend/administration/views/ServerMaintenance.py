@@ -1,5 +1,6 @@
-import logging, subprocess, os, zipfile, io, psutil, time
+import logging, subprocess, os, zipfile, io, psutil, time, requests
 from datetime import timedelta
+from packaging import version
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,10 +15,14 @@ from django.utils import timezone
 from django.http import FileResponse, HttpResponse
 from django.db import connections, connection
 
+from administration.models import AgentUpdateCheck, UpdateCheck
+from administration.utils import get_version, normalize_version
 from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
 from reports.tasks import delete_all_reports
 from servers.models import Package, PatchSession
+from configuration.utils import get_agent_version
+from configuration.models import AstraeaAgentInfo
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -413,3 +418,161 @@ class DeletePatchHistoryView(APIView):
                 'orphaned_packages': packages_deleted_count
             }
         }, status=status.HTTP_200_OK)
+
+
+class CheckUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        REPO_OWNER = "DefOnslaught"
+        REPO_NAME = "Astraea-Webserver"
+        RELEASE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+
+        try:
+            update, _ = UpdateCheck.objects.get_or_create(id=1)
+            raw_current = get_version()
+            now = timezone.now()
+            raw_latest = None
+            
+            if update.last_checked_at and (now - update.last_checked_at) < timedelta(hours=1):
+                raw_latest = update.latest_version_on_github
+            else:
+                response = requests.get(RELEASE_URL, timeout=10)
+                response.raise_for_status()
+                release_data = response.json()
+                raw_latest = release_data.get('tag_name')
+
+                update.latest_version_on_github = raw_latest
+                update.last_checked_at = now
+                update.save()
+            
+            current_version = normalize_version(raw_current)
+            latest_version = normalize_version(raw_latest)
+            update_available = version.parse(latest_version) > version.parse(current_version)
+
+            return Response({'current_version': current_version, 'latest_version': latest_version, 'update_available': update_available}, status=status.HTTP_200_OK)
+        
+        except requests.exceptions.RequestException as e:
+            logger.error(f"GitHub API check failed: {str(e)}")
+            return Response({'message': 'Failed to reach GitHub to check for updates.'}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception as e:
+            logger.error(f"Error checking for Astraea Webserver updates: {str(e)}")
+            return Response({'message': 'An internal error occurred while checking for updates.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CheckAgentUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        REPO_OWNER = "DefOnslaught"
+        REPO_NAME = "Astraea-Agent"
+        RELEASE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+
+        try:
+            raw_current = get_agent_version()
+
+            update_status, _ = AgentUpdateCheck.objects.get_or_create(id=1)
+            now = timezone.now()
+            raw_latest = None
+            if update_status.last_checked_at and (now - update_status.last_checked_at) < timedelta(hours=1):
+                raw_latest = update_status.latest_version_on_github
+            else:
+                response = requests.get(RELEASE_URL, timeout=10)
+                response.raise_for_status()
+                release_data = response.json()
+                raw_latest = release_data.get('tag_name')
+
+                update_status.latest_version_on_github = raw_latest
+                update_status.last_checked_at = now
+                update_status.save()
+
+            current_version = normalize_version(raw_current)
+            latest_version = normalize_version(raw_latest)
+            update_available = version.parse(latest_version) > version.parse(current_version)
+
+            return Response({'current_version': current_version, 'latest_version': latest_version, 'update_available': update_available}, status=status.HTTP_200_OK)
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"GitHub API check failed: {str(e)}")
+            return Response({'message': 'Failed to reach GitHub to check for agent updates.'}, status=status.HTTP_502_BAD_GATEWAY)
+        except Exception as e:
+            logger.error(f"Error checking for Astraea Agent updates: {str(e)}")
+            return Response({'message': 'An internal error occurred while checking for agent updates.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UpdateAgentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not checkIsStaff(request.user):
+            return Response({'message': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        REPO_OWNER = "DefOnslaught"
+        REPO_NAME = "Astraea-Agent"
+        RELEASE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+        
+        update_status, _ = AgentUpdateCheck.objects.get_or_create(id=1)
+        now = timezone.now()
+        raw_latest = None
+        release_data = None
+        if update_status.last_checked_at and (now - update_status.last_checked_at) < timedelta(hours=1):
+            raw_latest = update_status.latest_version_on_github
+        else:
+            try:
+                response = requests.get(RELEASE_URL, timeout=10)
+                response.raise_for_status()
+                release_data = response.json()
+                raw_latest = release_data.get('tag_name')
+                
+                update_status.latest_version_on_github = raw_latest
+                update_status.last_checked_at = now
+                update_status.save()
+            except Exception as e:
+                logger.error(f"GitHub API check failed: {str(e)}")
+                return Response({'message': 'Failed to reach GitHub.'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        current_version = normalize_version(get_agent_version())
+        latest_version = normalize_version(raw_latest)
+
+        if version.parse(current_version) >= version.parse(latest_version):
+            return Response({'message': "Up to date"}, status=status.HTTP_200_OK)
+
+        if not release_data:
+             response = requests.get(RELEASE_URL, timeout=10)
+             release_data = response.json()
+
+        STORAGE_DIR = os.path.join(settings.BASE_DIR, 'protected_storage')
+        os.makedirs(STORAGE_DIR, exist_ok=True)
+        AGENT_FILE = 'astraea_agent.tar.gz'
+        AGENT_PATH = os.path.join(STORAGE_DIR, AGENT_FILE)
+
+        try:
+            assets = release_data.get('assets', [])
+            asset = next((a for a in assets if a['name'] == AGENT_FILE), None)
+            if not asset:
+                return Response({'message': 'Asset not found in release'}, status=status.HTTP_404_NOT_FOUND)
+
+            download_url = asset['browser_download_url']
+            file_response = requests.get(download_url, stream=True, timeout=30)
+            file_response.raise_for_status()
+            
+            with open(AGENT_PATH, 'wb') as f:
+                for chunk in file_response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            AstraeaAgentInfo.objects.update_or_create(id=1, defaults={'version': latest_version})
+
+            if settings.DEBUG:
+                logger.info(f"Updated Agent to version {latest_version}")
+            
+            return Response({'message': f"Updated Agent to version {latest_version}"}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Failed to update Astraea Agent. {str(e)}")
+            return Response({'message': 'Failed to update Astraea Agent.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

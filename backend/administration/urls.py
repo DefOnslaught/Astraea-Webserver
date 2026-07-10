@@ -1,7 +1,10 @@
 from django.urls import path
 
 from .views.UserAccountViews import FetchUsers, InspectUser, CreateNewUser
-from .views.ServerMaintenance import RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, SystemStatsView, SystemLogsView, PurgeDatabaseOldPackagesView, DeleteAllReports, ClearAllLogs, DeletePatchHistoryView
+from .views.ServerMaintenance import (RefreshCacheView, CeleryMonitoringView, DatabaseStatsView, 
+                                      SystemStatsView, SystemLogsView, PurgeDatabaseOldPackagesView, 
+                                      DeleteAllReports, ClearAllLogs, DeletePatchHistoryView,
+                                      CheckUpdateView, CheckAgentUpdateView, UpdateAgentView)
 
 
 urlpatterns = [
@@ -18,4 +21,7 @@ urlpatterns = [
     path('delete_all_reports/', DeleteAllReports.as_view(), name='delete_all_reports'),
     path('clear_all_logs/', ClearAllLogs.as_view(), name='clear_all_logs'),
     path('delete_patch_history/<int:days>/', DeletePatchHistoryView.as_view(), name='delete_patch_history'),
+    path('check_for_update/', CheckUpdateView.as_view(), name='check_for_update'),
+    path('check_for_agent_update/', CheckAgentUpdateView.as_view(), name='check_for_agent_update'),
+    path('trigger_agent_update/', UpdateAgentView.as_view(), name='trigger_agent_update'),
 ]
