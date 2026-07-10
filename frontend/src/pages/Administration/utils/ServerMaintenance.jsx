@@ -398,7 +398,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-white">Check For Updates</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea available. - Feature is not available yet</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea available.</p>
                     </div>
                     <button
                         onClick={handleCheckForUpdates}
@@ -455,7 +455,7 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-white">Check For Agent Updates</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea Agent available. - Feature is not available yet</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Checks if there's a new version of Astraea Agent available.</p>
                     </div>
                     <button
                         onClick={handleAgentCheckForUpdates}
