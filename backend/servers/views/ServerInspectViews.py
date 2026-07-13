@@ -50,22 +50,7 @@ class InspectServerInfo(APIView):
             'duration': format_duration(s.duration),
             'uptime': s.uptime,
             'error_log': s.error_log
-        } for s in recent_sessions]
-
-        latest_session = PatchSession.objects.filter(
-            server__server_id=server_id,
-            status='success'
-        ).first()
-
-        if latest_session:
-            updates = latest_session.package_details.select_related('package').all()
-            data['recent_packages'] = [{
-                'name': u.package.name,
-                'version': u.new_version,
-                'last_seen': latest_session.timestamp
-            } for u in updates]
-        else:
-            data['recent_packages'] = []
+        } for s in recent_sessions]    
 
         return Response(data, status=status.HTTP_200_OK)
 
@@ -114,16 +99,15 @@ class ServerPackageInventory(APIView):
         if not server_id:
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # 1. Find the absolute latest successful session for this server
+        # 1. Find the absolute latest session that didn't completely fail
         latest_session = PatchSession.objects.filter(
             server__server_id=server_id,
-            status='success'
-        ).first() # ordering is -timestamp by default in your model
+            status__in=['success', 'partial']
+        ).first()
 
         if not latest_session:
             return Response([])
 
-        # 2. Get only the packages from THAT specific snapshot
         updates = latest_session.package_details.select_related('package').all()
 
         data = [{

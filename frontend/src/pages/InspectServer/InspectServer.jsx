@@ -57,7 +57,6 @@ const InspectServer = () => {
             setServerInfo(res.data);
             setHistory(res.data.recent_history || []);
             setHasMoreHistory(res.data.has_more_history ?? false);
-            if (res.data.recent_packages) setPackages(res.data.recent_packages);
         } catch (err) {
             setError("Critical: Could not connect to Astraea backend.");
         } finally {
