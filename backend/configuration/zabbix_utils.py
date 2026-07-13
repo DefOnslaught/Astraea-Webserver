@@ -21,9 +21,12 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
             {"filter": {"host": hostname}},
             {"filter": {"name": hostname}},
         ]
+
+        attempted_names = [hostname]
         
         if '.' in hostname:
             short_name = hostname.split('.')[0]
+            attempted_names.append(short_name)
             lookups.extend([
                 {"filter": {"host": short_name}},
                 {"filter": {"name": short_name}},
@@ -36,7 +39,8 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
                 break
         
         if not hosts:
-            raise ValueError(f"Host '{hostname}' not found in Zabbix. Ensure exact name match and API user Host Group permissions.")
+            tried_names = " or ".join(f"'{name}'" for name in attempted_names)
+            raise ValueError(f"Host {tried_names} not found in Zabbix. Ensure exact case-sensitive match and API user Host Group permissions.")
         
         host_id = hosts[0]['hostid']
 
