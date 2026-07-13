@@ -13,7 +13,7 @@ from servers.utils import cache_individual_vms
 from servers.serializers import ServerPatchSerializer, ServerInfoSerializer
 from servers.permissions import HasInternalAPIKey
 from configuration.utils import get_sys_config, get_zabbix_config, get_agent_version
-from configuration.zabbix_utils import complete_maintenance_window
+from configuration.zabbix_utils import complete_maintenance_window, schedule_maintenance_window
 from configuration.models import ZabbixMaintenance, AstraeaAgentInfo
 from configuration.tasks import schedule_zabbix_maintenance_task
 
@@ -83,7 +83,10 @@ class ServerPatchingEnableCheck(APIView):
             if zabbix_config.get('enable') and cached_data.get('enable_zabbix'):
                 if zabbix_config.get('api_token'):
                     hostname = cached_data.get('hostname')
-                    schedule_zabbix_maintenance_task.delay(hostname, server_id, zabbix_config)
+                    try:
+                        schedule_maintenance_window(hostname, server_id, zabbix_config)
+                    except Exception as e:
+                        logger.error(f"Failed to set Zabbix maintenance for {hostname}. Proceeding anyway. Error: {e}")
                 else:
                     logger.warning(f"Zabbix enabled but API Token is missing for server {server_id}")
 
@@ -114,7 +117,20 @@ class SaveServerInfo(APIView):
                         'errors': serializer.errors
                     }, status=status.HTTP_400_BAD_REQUEST)
                 
-                serializer.save()
+                instance = serializer.save()
+
+                zabbix_config = get_zabbix_config()
+                if zabbix_config.get('enable') and instance.enable_zabbix:
+                    zabbix_maintenance = ZabbixMaintenance.objects.filter(
+                        server_id=server_uuid
+                    ).order_by('-created_at').first()
+
+                    if zabbix_maintenance:
+                        complete_maintenance_window(zabbix_maintenance.id)
+                        if settings.DEBUG:
+                            logger.info(f"Scheduled Zabbix maintenance removal for {hostname}")
+                    else:
+                        logger.warning(f"No active Zabbix maintenance record found for server {server_uuid}")
                 
                 logger.info(f"Server data synced for: {hostname} | ID: {server_uuid} | Source: {ip_address}")
                 return Response({'message': 'Successfully processed server telemetry'}, status=status.HTTP_200_OK)

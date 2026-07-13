@@ -11,13 +11,33 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
     if not config_dict or not config_dict.get('enable'):
         return None
 
+    hostname = hostname.strip()
+
     try:
         zapi = ZabbixAPI(config_dict['api_url'])
         zapi.login(token=config_dict['api_token'])
 
-        hosts = zapi.host.get(filter={"host": hostname})
+        lookups = [
+            {"filter": {"host": hostname}},
+            {"filter": {"name": hostname}},
+        ]
+        
+        if '.' in hostname:
+            short_name = hostname.split('.')[0]
+            lookups.extend([
+                {"filter": {"host": short_name}},
+                {"filter": {"name": short_name}},
+            ])
+
+        hosts = []
+        for query_params in lookups:
+            hosts = zapi.host.get(**query_params, output=["hostid"])
+            if hosts:
+                break
+        
         if not hosts:
-            raise ValueError(f"Host {hostname} not found in Zabbix.")
+            raise ValueError(f"Host '{hostname}' not found in Zabbix. Ensure exact name match and API user Host Group permissions.")
+        
         host_id = hosts[0]['hostid']
 
         start_date = int(timezone.now().timestamp()) - 30
@@ -25,6 +45,7 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
 
         maintenance = zapi.maintenance.create({
             "name": f"Astraea Patching - {hostname}",
+            "maintenance_type": 1,
             "active_since": start_date,
             "active_till": end_date,
             "hostids": [host_id],
