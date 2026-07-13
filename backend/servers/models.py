@@ -37,7 +37,7 @@ class NetworkInterface(models.Model):
 
 class Package(models.Model):
     """The unique catalog of every package + version combination ever seen."""
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, db_index=True)
     version = models.CharField(max_length=100)
 
     class Meta:
