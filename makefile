@@ -175,6 +175,7 @@ restart-internal:
 	@echo "$(BLUE)Services Restarted.$(RESET)"
 
 initialSetup-internal: setupGunicorn setupNginx frontendSetup virtualenv dbMigrations-internal setupCelery
+	@$(VENV_PYTHON) backend/manage.py make_required_folders
 	@echo "$(GREEN)Setup Complete.$(RESET)"
 
 dbMigrations-internal:
