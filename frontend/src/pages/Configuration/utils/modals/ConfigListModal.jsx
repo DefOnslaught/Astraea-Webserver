@@ -61,8 +61,18 @@ const ConfigListModal = ({ onClose }) => {
         }
     };
 
-    const copyToClipboard = async (uid) => {
-        const url = `${window.location.origin}/api/config/install_script/${uid}/`;
+    const copyToClipboard = async (cfg) => {
+        let baseUrl = window.location.origin;
+        if (
+            cfg.base_url &&
+            String(cfg.base_url).toLowerCase() !== "none" &&
+            String(cfg.base_url).toLowerCase() !== "null" &&
+            String(cfg.base_url).trim() !== ""
+        ) {
+            baseUrl = String(cfg.base_url).replace(/\/$/, "");
+        }
+
+        const url = `${baseUrl}/api/config/install_script/${cfg.uid}/`;
         const text = `curl -sSL ${url} | sudo bash`;
         try {
             if (navigator.clipboard && window.isSecureContext) {
@@ -190,7 +200,7 @@ const ConfigListModal = ({ onClose }) => {
                                                                 <td className="py-4 px-2 text-right sticky right-0 bg-gray-900 group-hover:bg-gray-800 transition-colors">
                                                                     <div className="flex justify-end gap-2">
                                                                         <button
-                                                                            onClick={() => copyToClipboard(cfg.uid)}
+                                                                            onClick={() => copyToClipboard(cfg)}
                                                                             className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg hover:bg-indigo-500 hover:text-white transition-all"
                                                                             title="Copy Installation Command"
                                                                         >

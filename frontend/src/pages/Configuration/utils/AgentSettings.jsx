@@ -175,7 +175,18 @@ const AgentTab = ({ triggerSuccess, setError }) => {
             };
 
             const res = await api.post(API_ENDPOINTS.AGENT_CREATE_CONFIG, payload);
-            setInstallUrl(`${window.location.origin}/api/config/install_script/${res.data.uuid}/`);
+
+            let finalBaseUrl = window.location.origin;
+
+            if (agentConfig.base_url && typeof agentConfig.base_url === 'string' && agentConfig.base_url.trim() !== "") {
+                try {
+                    new URL(agentConfig.base_url);
+                    finalBaseUrl = agentConfig.base_url.trim().replace(/\/$/, "");
+                } catch (e) {
+                    console.warn("Invalid base_url provided, falling back to window.location.origin");
+                }
+            }
+            setInstallUrl(`${finalBaseUrl}/api/config/install_script/${res.data.uuid}/`);
             triggerSuccess("Deployment one-liner generated.");
         } catch (err) {
             setError("Failed to generate install path.");
