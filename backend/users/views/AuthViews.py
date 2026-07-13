@@ -136,7 +136,7 @@ class CustomTokenRefreshView(TokenRefreshView):
 
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         response = Response({"message": "Logged out"}, status=status.HTTP_200_OK)
@@ -147,10 +147,8 @@ class LogoutView(APIView):
                 token = RefreshToken(refresh_token)
                 token.blacklist()
         except (TokenError, Exception) as e:
-            # If the token is invalid/expired, we don't care, we still want to clear cookies
             logger.info(f"Logout cleanup for {request.user}: {str(e)}")
-        
-        # Always clear cookies regardless of blacklist success
+
         response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
         response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
         logger.info(f"Successfully logged out '{request.user}' ")

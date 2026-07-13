@@ -152,6 +152,16 @@ export const AuthProvider = ({ children }) => {
         setHasDismissedWarning(true);
     };
 
+    const logoutUser = async () => {
+        try {
+            await api.post(API_ENDPOINTS.LOGOUT);
+        } catch (error) {
+            console.error("Logout API error:", error);
+        } finally {
+            handleClearingValues();
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -159,6 +169,7 @@ export const AuthProvider = ({ children }) => {
             isAuthorized: !!user,
             loading,
             checkAuth,
+            logoutUser,
             timeLeft: getSecondsLeft(),
             formattedTime: formatTime(),
             showWarningModal,
