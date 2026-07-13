@@ -21,6 +21,7 @@ from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
 from reports.tasks import delete_all_reports
 from servers.models import Package, PatchSession
+from servers.utils import refresh_package_search_index
 from configuration.utils import get_agent_version
 from configuration.models import AstraeaAgentInfo
 
@@ -315,6 +316,9 @@ class PurgeDatabaseOldPackagesView(APIView):
             count = orphaned_packages.count()
             
             orphaned_packages.delete()
+
+            refresh_package_search_index()
+
             if settings.DEBUG:
                 logger.info(f"Database Purge: Removed {count} orphaned packages.")
             

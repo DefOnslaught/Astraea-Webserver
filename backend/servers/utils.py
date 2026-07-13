@@ -303,6 +303,11 @@ def remove_vm_from_index(server_id):
             logger.info(f"Server with ID {server_id} was removed from the cache successfully.")
 
 
+def invalidate_package_search_cache():
+    """Simple invalidation to force refresh on next request."""
+    cache.delete("package_search_index")
+
+
 def refresh_package_search_index():
     """
     Lean aggregation for the searchable index. 

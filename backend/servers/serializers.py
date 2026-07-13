@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.utils import timezone
 from django.db import transaction
 from .models import Server, PackageUpdate, Package, NetworkInterface, PatchSession
-from .utils import cache_individual_vms
+
+from .utils import cache_individual_vms, invalidate_package_search_cache
 from notifications.models import PendingNotification
 from notifications.tasks import process_notification
 
@@ -188,6 +189,7 @@ class ServerPatchSerializer(serializers.ModelSerializer):
                 ))
 
             PackageUpdate.objects.bulk_create(updates_to_create)
+            transaction.on_commit(lambda: invalidate_package_search_cache())
             
             # 5. Creates the notification for celery to send
             msg_body = f"Patching session {session_status} for {server.hostname}."
