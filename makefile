@@ -162,6 +162,7 @@ deploy-internal: test-deploy buildFrontend
 	@sudo systemctl restart nginx
 	@sudo systemctl restart astraea-worker
 	@$(VENV_PYTHON) backend/manage.py setup_periodic_tasks
+	@$(VENV_PYTHON) backend/manage.py make_required_folders
 	@sudo systemctl restart astraea-beat
 	@echo "$(BOLD_GREEN)Deployment Successful!$(RESET)"
 
