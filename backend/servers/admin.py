@@ -24,8 +24,8 @@ class PackageAdmin(admin.ModelAdmin):
 
 @admin.register(PatchSession)
 class PatchSessionAdmin(admin.ModelAdmin):
-    fields = ('server', 'status', 'error_log', 'total_updated', 'duration', 'was_rebooted')
-    list_display = ('server', 'timestamp', 'status', 'error_log', 'total_updated', 'duration', 'was_rebooted')
+    fields = ('server', 'status', 'error_log', 'total_updated', 'duration', 'was_rebooted', 'uptime')
+    list_display = ('server', 'timestamp', 'status', 'error_log', 'total_updated', 'duration', 'was_rebooted', 'uptime')
 
 @admin.register(PackageUpdate)
 class PackageUpdateAdmin(admin.ModelAdmin):

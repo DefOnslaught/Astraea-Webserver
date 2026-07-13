@@ -139,8 +139,8 @@ class ServerPatchSerializer(serializers.ModelSerializer):
         total_updated = validated_data.pop('total_packages_updated', 0)
         run_duration = validated_data.pop('duration', 0)
         session_errors = validated_data.pop('error_log', None)
-        session_uptime = validated_data.pop('uptime', '')
-        was_session_rebooted = validated_data.pop('was_rebooted', False)
+        session_uptime = validated_data.get('uptime', '')
+        was_session_rebooted = validated_data.get('was_rebooted', False)
         
         validated_data['last_patch_date'] = timezone.now()
         
