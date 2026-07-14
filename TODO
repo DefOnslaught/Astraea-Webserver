@@ -3,10 +3,6 @@ Backend:
 
 Frontend:
 
-    - About Page (opened via clicking the version in sidebar)
-        - Version history (no backend, just text on front-end)
-        - About section
-
 General Needs:
 
 

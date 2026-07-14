@@ -159,22 +159,32 @@ function Layout({ children }) {
                 </div>
 
                 {/* Footer with Versioning */}
-                <div className="relative p-4 mt-auto border-t border-white/5 bg-black/20 flex flex-col items-center justify-center gap-2">
+                <Link
+                    to="/about"
+                    className="relative p-4 mt-auto border-t border-white/5 bg-black/20 hover:bg-white/3 flex flex-col items-center justify-center gap-2 transition-all duration-200 group cursor-pointer"
+                >
                     {isSidebarOpen ? (
                         <div className="flex flex-col items-center animate-in fade-in duration-500">
-                            <span className="text-[10px] font-mono tracking-[0.2em] text-gray-600 uppercase">
+                            <span className="text-[10px] font-mono tracking-[0.2em] text-gray-600 uppercase group-hover:text-gray-400 transition-colors">
                                 Astraea System
                             </span>
-                            <span className="mt-1 px-2 py-0.5 rounded-full bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
+                            <span className="mt-1 px-2 py-0.5 rounded-full bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all duration-200">
                                 v{VERSION}
                             </span>
                         </div>
                     ) : (
-                        <span className="px-2 py-0.5 rounded-md bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80">
-                            v{VERSION}
-                        </span>
+                        <>
+                            <span className="px-2 py-0.5 rounded-md bg-gray-900 border border-white/5 text-[9px] font-bold text-indigo-500/80 group-hover:text-indigo-400 group-hover:border-indigo-500/30 transition-all duration-200">
+                                v{VERSION}
+                            </span>
+                            {/* Tooltip for collapsed state */}
+                            <span className="fixed left-20 scale-0 group-hover:scale-100 transition-all duration-200 origin-left 
+                                bg-gray-800 border border-white/10 text-indigo-400 text-xs font-bold px-3 py-2 rounded-lg shadow-2xl z-50">
+                                About Astraea
+                            </span>
+                        </>
                     )}
-                </div>
+                </Link>
             </aside>
 
             {/* MAIN CONTENT AREA */}

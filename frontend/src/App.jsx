@@ -18,6 +18,7 @@ import VerifyLink from "./pages/Verification/VerifyLink";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import ForgotPasswordReset from "./pages/ForgotPassword/ForgotPasswordReset";
 import Reports from "./pages/Reports/Reports";
+import About from "./pages/About/About";
 import NotFound from "./pages/ErrorPages/NotFound";
 
 import { AuthProvider } from "./utils/AuthContext";
@@ -43,6 +44,7 @@ function App() {
               <Route path="/administration" element={<Administration />} />
               <Route path="/administration/users/inspect/:username" element={<UserInspection />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/about" element={<About />} />
               <Route path="/logout" element={<Logout />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
