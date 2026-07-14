@@ -9,12 +9,14 @@ Group=www-data
 WorkingDirectory=/opt/Astraea-Webserver/backend
 # Start the Web Server
 ExecStart=/opt/Astraea-Webserver/backend/venv/bin/gunicorn \
-          --access-logfile - \
+          --access-logfile /dev/null \
+          --error-logfile - \
           --worker-class gevent \
           --workers 4 \
+          --worker-connections 2000 \
+          --timeout 30 \
           --preload \
-          --max-requests 5000 \
-          --max-requests-jitter 100 \
+          --max-requests 0 \
           --bind unix:/run/gunicorn.sock \
           backend.wsgi:application
 
