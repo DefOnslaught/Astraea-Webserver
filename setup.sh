@@ -191,7 +191,7 @@ AGENT_REPO="DefOnslaught/Astraea-Agent"
 DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$AGENT_REPO/releases/latest | grep "browser_download_url" | grep "\.tar\.gz" | cut -d '"' -f 4)
 
 if [ -n "$DOWNLOAD_URL" ]; then
-    sudo curl -L -o "$PROTECTED_PATH/astraea_agent_latest.tar.gz" "$DOWNLOAD_URL"
+    sudo curl -L -o "$PROTECTED_PATH/astraea_agent.tar.gz" "$DOWNLOAD_URL"
     echo "✅ Downloaded latest agent to $PROTECTED_PATH"
 else
     echo "⚠️  Could not automatically fetch the latest agent. You may need to upload it manually via the UI."
