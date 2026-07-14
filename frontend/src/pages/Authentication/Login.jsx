@@ -65,10 +65,15 @@ const Login = () => {
             {showSuccess && <SuccessToast message="Signed In! Redirecting..." />}
 
             <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-                <h2 className="text-center text-2xl/9 font-bold tracking-tight text-gray-400">Sign in to your account</h2>
+                <h1 className="text-center text-4xl font-bold tracking-tight text-indigo-500 mb-2">
+                    Astraea
+                </h1>
+                <h2 className="text-center text-2xl/9 font-bold tracking-tight text-gray-400">
+                    Sign in to your account
+                </h2>
             </div>
 
-            <div className="mt-2 sm:mx-auto sm:w-full sm:max-w-sm relative group">
+            <div className="sm:mx-auto sm:w-full sm:max-w-sm relative group">
 
                 {/* THE LOADING OVERLAY */}
                 {loading && (

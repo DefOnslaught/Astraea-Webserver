@@ -55,6 +55,7 @@ const ForgotPassword = () => {
     return (
         <div className="flex min-h-screen flex-col justify-center items-center px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-sm mb-8 text-center">
+                <h1 className="text-center text-4xl font-bold tracking-tight text-indigo-500 mb-2">Astraea</h1>
                 <h2 className="text-2xl font-bold tracking-tight text-gray-400">Reset your password</h2>
                 <p className="mt-2 text-sm text-gray-500">Enter your account email to receive instructions.</p>
             </div>
