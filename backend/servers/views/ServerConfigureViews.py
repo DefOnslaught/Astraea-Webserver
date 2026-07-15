@@ -10,6 +10,8 @@ from django.db import transaction
 from servers.models import Server
 from servers.utils import cache_individual_vms
 from servers.serializers import ServerUpdateSerializer
+from notifications.models import PendingNotification
+from notifications.tasks import process_notification
 
 logger = logging.getLogger('django')
 
@@ -56,6 +58,21 @@ class UpdateServerInfo(APIView):
                     logger.info(f"Invalid update data, error: {serializer.errors}")
                     return Response({'message': 'Validation failed', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
                 serializer.save()
+
+                msg_body = f"Server configuration modified for {server_instance.hostname}."
+                new_note = PendingNotification.objects.create(
+                    server=server_instance,
+                    msg=msg_body,
+                    status='server_modify',
+                    extra_data={
+                        'server_name': server_instance.hostname,
+                        'action': 'server_modify',
+                        'modified_by': getattr(request.user, 'email', 'System User'),
+                        'change_log': request.data
+                    }
+                )
+                transaction.on_commit(lambda: process_notification.delay(new_note.id))
+
                 logger.info(f"Successfully updated host: {server_instance.hostname}")
                 return Response({'message': 'Successfully updated host'}, status=status.HTTP_200_OK)
         except Exception as e:
@@ -72,9 +89,24 @@ class DeleteServer(APIView):
             return Response({'message': "Missing Server ID"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            server_to_delete = get_object_or_404(Server, server_id=server_id)
-            hostname = server_to_delete.hostname
-            server_to_delete.delete()
+            with transaction.atomic():
+                server_to_delete = get_object_or_404(Server, server_id=server_id)
+                hostname = server_to_delete.hostname
+                msg_body = f"Server {hostname} was successfully deleted."
+                new_note = PendingNotification.objects.create(
+                    server=None, 
+                    msg=msg_body,
+                    status='server_delete',
+                    extra_data={
+                        'server_name': hostname,
+                        'action': 'server_delete',
+                        'modified_by': getattr(request.user, 'email', 'System User'),
+                    }
+                )
+                
+                server_to_delete.delete()
+                transaction.on_commit(lambda: process_notification.delay(new_note.id))
+
             logger.info(f"Successfully deleted server with the hostname: {hostname}")
             return Response({'message': f'Server {hostname} deleted successfully'}, status=status.HTTP_200_OK)
         except Exception as e:

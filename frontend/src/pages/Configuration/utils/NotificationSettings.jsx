@@ -23,7 +23,11 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
         failed: true,
         success: true,
         partial: false,
-        outOfDate: true
+        outOfDate: true,
+        onServerAdd: true,
+        onServerModify: true,
+        onServerDelete: true,
+        siteOutdated: true,
     });
 
     // --- Data Fetching ---
@@ -37,6 +41,10 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                 success: settingsRes.data.success,
                 partial: settingsRes.data.partial,
                 outOfDate: settingsRes.data.out_of_date,
+                onServerAdd: settingsRes.data.on_server_add,
+                onServerModify: settingsRes.data.on_server_modify,
+                onServerDelete: settingsRes.data.on_server_delete,
+                siteOutdated: settingsRes.data.site_outdated,
             });
 
             const servicesRes = await api.get(API_ENDPOINTS.NOTIFY_SERVICES);
@@ -101,6 +109,10 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                     success: notifyTriggers.success,
                     partial: notifyTriggers.partial,
                     out_of_date: notifyTriggers.outOfDate,
+                    on_server_add: notifyTriggers.onServerAdd,
+                    on_server_modify: notifyTriggers.onServerModify,
+                    on_server_delete: notifyTriggers.onServerDelete,
+                    site_outdated: notifyTriggers.siteOutdated,
                 }
             };
             const res = await api.patch(API_ENDPOINTS.NOTIFY_SETTINGS, payload);
@@ -149,7 +161,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                         <div key={key} className="flex flex-col p-4 bg-gray-900/50 rounded-xl border border-white/5 hover:border-indigo-500/30 transition-colors">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                    {key.replace(/([A-Z])/g, ' $1')}
+                                    {key.replace(/([A-Z])/g, ' $1').trim()}
                                 </span>
                                 <button
                                     onClick={() => setNotifyTriggers({ ...notifyTriggers, [key]: !val })}
@@ -163,6 +175,10 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                                 {key === 'success' && "Notify on successful patch."}
                                 {key === 'partial' && "Notify on partial patch."}
                                 {key === 'outOfDate' && "Notify when a system is outdated."}
+                                {key === 'onServerAdd' && "Notify when a new server is added."}
+                                {key === 'onServerModify' && "Notify when a server's configuration is modified."}
+                                {key === 'onServerDelete' && "Notify when a server is removed."}
+                                {key === 'siteOutdated' && "Notify when Astraea is outdated, checks every 24 hours."}
                             </p>
                         </div>
                     ))}

@@ -5,8 +5,16 @@ const About = () => {
 
     const versionHistory = [
         {
+            version: "v1.0.5",
+            date: "July 14, 2026",
+            changes: [
+                "Removed emojis from scripts - Could cause issues",
+                "Expanded Notification Event Triggers to include: Server Add, Delete, Modify, and check for website updates."
+            ]
+        },
+        {
             version: "v1.0.0",
-            date: "July 2026",
+            date: "July 15, 2026",
             changes: [
                 "Initial open-source release.",
                 "Included this About page."
@@ -139,7 +147,6 @@ const About = () => {
                         ))}
                     </div>
                 </div>
-
             </div>
         </div>
     );

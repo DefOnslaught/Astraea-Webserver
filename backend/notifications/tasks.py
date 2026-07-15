@@ -18,6 +18,27 @@ from servers.utils import format_duration
 logger = logging.getLogger('django')
 User = get_user_model()
 
+STATUS_TO_SETTING_MAP = {
+    'success': 'success',
+    'failed': 'failed',
+    'partial': 'partial',
+
+    'server_add': 'on_server_add',
+    'server_added': 'on_server_add',
+    'server_modify': 'on_server_modify',
+    'server_modified': 'on_server_modify',
+    'server_delete': 'on_server_delete',
+    'server_deleted': 'on_server_delete',
+
+    'outdated': 'out_of_date',
+    'out_of_date': 'out_of_date',
+    'site_outdated': 'site_outdated',
+}
+
+PATCHING_STATUSES = {'success', 'failed', 'partial'}
+SERVER_STATUSES = {'server_add', 'server_added', 'server_modify', 'server_modified', 'server_delete', 'server_deleted'}
+UPDATE_STATUSES = {'outdated', 'out_of_date', 'site_outdated'}
+
 @shared_task(bind=True, max_retries=3)
 def process_notification(self, notification_id):
     try:
@@ -31,59 +52,77 @@ def process_notification(self, notification_id):
             notification.save()
 
     except PendingNotification.DoesNotExist:
+        logger.warning(f"Notification with ID {notification_id} does not exist.")
         return
     
 
     if notification.server and not getattr(notification.server, 'enable_notifications', True):
         if settings.DEBUG:
             logger.info(f"Notification {notification_id} suppressed: Notifications disabled for server {notification.server.hostname}.")
-        # Mark as sent
         notification.notifications_sent = True
         notification.save()
         return
 
     n_settings = get_notification_config()
+    status_clean = (notification.status or '').strip().lower()
+    config_field = STATUS_TO_SETTING_MAP.get(status_clean)
 
-    check_field = 'out_of_date' if notification.status == 'outdated' else notification.status
-    is_enabled = n_settings.get(check_field, True)
-
-    if not is_enabled:
+    if not config_field or not n_settings.get(config_field, True):
         if settings.DEBUG:
-            logger.info(f"Notification {notification_id} suppressed by global settings.")
-        # Mark as sent so it doesn't keep showing up in 'unresolved' lists
+            logger.info(f"Notification {notification_id} with status '{notification.status}' suppressed by settings config.")
         notification.notifications_sent = True
         notification.save()
         return
 
-    notification.last_attempt = timezone.now()
-    notification.save()
-    
-    duration_seconds = notification.extra_data.get('duration', 0)
-    readable_duration = format_duration(duration_seconds)
-    
     report_details = {
         'msg': notification.msg,
         'status': notification.status,
         'created_at': notification.created_at,
-        'updates_count': notification.extra_data.get('updates_count', 0),
-        'server_name': notification.extra_data.get('server_name', 'System Cluster'),
-        'duration': readable_duration,
-        'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
+        'server_name': notification.extra_data.get('server_name') or (notification.server.hostname if notification.server else 'System Cluster'),
     }
 
+    if status_clean in PATCHING_STATUSES:
+        duration_seconds = notification.extra_data.get('duration', 0)
+        readable_duration = format_duration(duration_seconds)
+        
+        report_details.update({
+            'category': 'patching',
+            'updates_count': notification.extra_data.get('updates_count', 0),
+            'duration': readable_duration,
+            'was_rebooted': notification.extra_data.get('was_rebooted', False),
+            'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
+        })
+
+    elif status_clean in SERVER_STATUSES:
+        report_details.update({
+            'category': 'server_lifecycle',
+            'action': status_clean,
+            'ip_address': notification.extra_data.get('ip_address', 'N/A'),
+            'modified_by': notification.extra_data.get('user', 'System Automatic Process'),
+            'change_log': notification.extra_data.get('change_log', {})
+        })
+
+    elif status_clean in UPDATE_STATUSES:
+        report_details.update({
+            'category': 'update_check',
+            'current_version': notification.extra_data.get('current_version', 'Unknown'),
+            'target_version': notification.extra_data.get('target_version', 'Unknown'),
+            'download_url': notification.extra_data.get('download_url', '')
+        })
+    
     all_services = get_notification_services()
     if not all_services:
+        logger.warning("No notification channels configured.")
         return
 
-    sent_service_ids = notification.successful_services.values_list('id', flat=True)
-    sent_service_ids_str = {str(sid) for sid in sent_service_ids}
+    sent_service_ids = set(notification.successful_services.values_list('id', flat=True))
+    any_failures = False
 
     for service in all_services:
-
         if not service.get('active', False):
             continue
 
-        if str(service['id']) in sent_service_ids_str:
+        if service['id'] in sent_service_ids:
             continue
 
         s_type = service.get('type', '').lower() 
@@ -112,22 +151,37 @@ def process_notification(self, notification_id):
                 recipient_list = list(set(recipient_list))
                 
                 if recipient_list:
-                    success = send_notification_email(notification, recipient_list)
+                    success = send_notification_email(notification, recipient_list, report_details)
                 else:
+                    logger.warning(f"SMTP Service {service.get('name')} configured, but no recipients found.")
                     success = False
 
             if success:
                 notification.successful_services.add(service['id'])
-                
-        except Exception as e:
-            notification.retry_count += 1
-            service_name = service.get('name', 'Unknown Service')
-            logger.error(f"Error sending to {service_name}: {str(e)}")
+            else:
+                any_failures = True
 
-    notification.notifications_sent = True
-    notification.save()
-    if settings.DEBUG:
-        logger.info(f"Successfully processed notification ID {notification_id}")
+        except Exception as e:
+            any_failures = True
+            service_name = service.get('name', 'Unknown Service')
+            logger.error(f"Error sending dispatch to {service_name}: {str(e)}", exc_info=True)
+
+
+    if any_failures:
+        notification.retry_count += 1
+        notification.save()
+        
+        try:
+            self.retry(countdown=60 * (2 ** self.request.retries)) # Exponential backoff (60s, 120s, 240s)
+        except Exception as exc:
+            logger.error(f"Max retries reached. Notification {notification_id} has unresolved failures. {str(exc)}")
+            notification.notifications_sent = True
+            notification.save()
+    else:
+        notification.notifications_sent = True
+        notification.save()
+        if settings.DEBUG:
+            logger.info(f"Successfully finished processing notification ID {notification_id}")
 
 
 @shared_task(name="notifications.tasks.reconcile_notifications")

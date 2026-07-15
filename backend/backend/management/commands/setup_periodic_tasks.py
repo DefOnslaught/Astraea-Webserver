@@ -9,6 +9,7 @@ class Command(BaseCommand):
         schedule_30m, _ = IntervalSchedule.objects.get_or_create(every=30, period=IntervalSchedule.MINUTES)
         schedule_1h, _ = IntervalSchedule.objects.get_or_create(every=1, period=IntervalSchedule.HOURS)
         schedule_15m, _ = IntervalSchedule.objects.get_or_create(every=15, period=IntervalSchedule.MINUTES)
+        schedule_24h, _ = IntervalSchedule.objects.get_or_create(every=24, period=IntervalSchedule.HOURS)
 
         # 2. Define Crontabs
         cron_daily_10am, _ = CrontabSchedule.objects.get_or_create(hour=10, minute=0)
@@ -20,6 +21,7 @@ class Command(BaseCommand):
             ('check-outdated-servers', 'notifications.tasks.notify_out_of_date', None, cron_daily_10am),
             ('delete-expired-password-resets', 'users.tasks.remove_expired_password_resets', None, cron_daily_12pm),
             ('failsafe-zabbix-cleanup', 'configuration.tasks.failsafe_cleanup_orphans', schedule_15m),
+            ('check-if-site-outdated', 'configuration.tasks.check_if_site_outdated', schedule_24h),
             ('delete-old-reports', 'reports.tasks.delete_old_reports', schedule_30m),
         ]
 

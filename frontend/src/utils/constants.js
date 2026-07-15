@@ -78,6 +78,6 @@ export const API_ENDPOINTS = {
 export const REFRESH_TOKEN_LIFETIME_WARNING = import.meta.env.VITE_REFRESH_TOKEN_LIFETIME_WARNING;
 export const PATCH_THRESHOLD_DAYS = import.meta.env.VITE_PATCH_THRESHOLD_DAYS;
 
-export const VERSION = "1.0.0"
+export const VERSION = "1.0.5"
 export const GITHUB_REPO = "https://github.com/DefOnslaught/Astraea-Webserver"
 export const AGENT_GITHUB_REPO = "https://github.com/DefOnslaught/Astraea-Agent"

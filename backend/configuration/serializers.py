@@ -31,7 +31,7 @@ class NotificationServiceSerializer(serializers.ModelSerializer):
 class NotificationSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationSettings
-        fields = ['failed', 'success', 'partial', 'out_of_date']
+        fields = ['failed', 'success', 'partial', 'out_of_date', 'on_server_add', 'on_server_modify', 'on_server_delete', 'site_outdated']
 
 
 class AgentInstallConfigSerializer(serializers.ModelSerializer):

@@ -14,8 +14,9 @@ from servers.serializers import ServerPatchSerializer, ServerInfoSerializer
 from servers.permissions import HasInternalAPIKey
 from configuration.utils import get_sys_config, get_zabbix_config, get_agent_version
 from configuration.zabbix_utils import complete_maintenance_window, schedule_maintenance_window
-from configuration.models import ZabbixMaintenance, AstraeaAgentInfo
-from configuration.tasks import schedule_zabbix_maintenance_task
+from configuration.models import ZabbixMaintenance
+from notifications.models import PendingNotification
+from notifications.tasks import process_notification
 
 logger = logging.getLogger('django')
 
@@ -29,31 +30,53 @@ class RegisterServer(APIView):
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR')
         hostname = data.get('hostname')
         env_value = data.get('env')
+        
+        if not data or not hostname or not env_value:
+            logger.info(f"Invalid registration received from IP: {ip_address}")
+            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
+
         disable_autoremove = data.get('disable_autoremove')
         enable_apt_release_info_change = data.get('enable_apt_release_info_change')
         reboot_on_success = data.get('reboot_on_success')
         reboot_after_updates = data.get('reboot_after_updates')
         max_allowed_uptime = data.get('max_allowed_uptime')
-        if not data or not hostname or not env_value:
-            logger.info(f"Invalid registration received from IP: {ip_address}")
-            return Response({'message': "Invalid request, missing data"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            server, created = Server.objects.get_or_create(
-                hostname=hostname,
-                env=env_value,
-                disable_autoremove=disable_autoremove,
-                enable_apt_release_info_change=enable_apt_release_info_change,
-                reboot_on_success=reboot_on_success,
-                reboot_after_updates=reboot_after_updates,
-                max_allowed_uptime=max_allowed_uptime
-            )
+            with transaction.atomic():
+                server, created = Server.objects.get_or_create(
+                    hostname=hostname,
+                    env=env_value,
+                    defaults={
+                        'disable_autoremove': disable_autoremove,
+                        'enable_apt_release_info_change': enable_apt_release_info_change,
+                        'reboot_on_success': reboot_on_success,
+                        'reboot_after_updates': reboot_after_updates,
+                        'max_allowed_uptime': max_allowed_uptime
+                    }
+                )
+
+                if created:
+                    notification = PendingNotification.objects.create(
+                        status='add',
+                        msg=f"A new server '{hostname}' was successfully registered in the '{env_value}' environment.",
+                        extra_data={
+                            'category': 'server_lifecycle',
+                            'server_name': hostname,
+                            'modified_by': 'Internal API (Auto-Registration)',
+                        }
+                    )
+                    transaction.on_commit(lambda: process_notification(notification))
+
             logger.info(f"Successfully registered server {hostname}")
             status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
             return Response({'uuid': str(server.server_id)}, status=status_code)
+
         except Exception as e:
             logger.error(f"Failed to register {hostname}: {str(e)}")
-            return Response({'message': f'Internal server error registering server {hostname}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)         
+            return Response(
+                {'message': f'Internal server error registering server {hostname}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ServerPatchingEnableCheck(APIView):

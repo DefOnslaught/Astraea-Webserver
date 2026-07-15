@@ -230,7 +230,11 @@ class NotificationServiceTest(APITestCase):
                 "failed": False,
                 "success": True,
                 "partial": False,
-                "out_of_date": True
+                "out_of_date": True,
+                "on_server_add": True,
+                "on_server_modify": True,
+                "on_server_delete": True,
+                "site_outdated": True,
             }
         }
         response = self.client.patch(self.settings_url, payload, format='json')

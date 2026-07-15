@@ -1,20 +1,9 @@
-Backend:
-
-
 Frontend:
+    About Page
+        - Will need to make the 'Version History' better once there's more history, will need scrollbar
 
 General Needs:
 
-
-    Notification
-        - Add: Notify on Server delete, Add, modify, maybe notification if webserver is out of date?
-
-
-    Make it so user settings for the site are saved in the database - Only send the settings to update when the user signs out or after some time to avoid API hits
-        - User signs in, when we are making their auth cookies, we also make ones for the site
-        - Things to Save: 
-            - Sidebar closed/open
-            - Light mode/Dark Mode (A lot of work)
-
     Docker Support
+        - Currently not tested, need to test and validate
         - Maybe use the docker sock to get system info for the administration server maintenance page

@@ -14,8 +14,8 @@ class SysConfigAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationSettings)
 class NotificationSettingsAdmin(admin.ModelAdmin):
-    fields = ('failed', 'success', 'partial', 'out_of_date')
-    list_display = ('failed', 'success', 'partial', 'out_of_date')
+    fields = ('failed', 'success', 'partial', 'out_of_date', 'on_server_add', 'on_server_modify', 'on_server_delete', 'site_outdated')
+    list_display = ('failed', 'success', 'partial', 'out_of_date', 'on_server_add', 'on_server_modify', 'on_server_delete', 'site_outdated')
 
 @admin.register(NotificationService)
 class NotificationServiceAdmin(admin.ModelAdmin):

@@ -114,7 +114,11 @@ def set_notification_config(config_instance):
         'failed': config_instance.failed,
         'success': config_instance.success,
         'partial': config_instance.partial,
-        'out_of_date': config_instance.out_of_date
+        'out_of_date': config_instance.out_of_date,
+        'on_server_add': config_instance.on_server_add,
+        'on_server_modify': config_instance.on_server_modify,
+        'on_server_delete': config_instance.on_server_delete,
+        'site_outdated': config_instance.site_outdated
     }
 
     cache.set(NOTIFICATION_CONFIG_CACHE_KEY, config_dict, timeout=None)

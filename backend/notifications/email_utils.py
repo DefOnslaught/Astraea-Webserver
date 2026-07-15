@@ -8,31 +8,64 @@ from servers.utils import format_duration
 
 logger = logging.getLogger('django')
 
-def send_notification_email(notification, recipient_list):
+def send_notification_email(notification, recipient_list, report_details=None):
     if not settings.ENABLE_EMAIL:
         return False
 
-    if notification.status == 'outdated':
-        template_name = 'email_outdated_template.html'
-        subject = "Astraea Alert: Servers Require Attention"
-    else:
-        template_name = 'email_patching_template.html'
-        subject = f"Astraea Alert: Patching {notification.status.upper()}"
+    if report_details is None:
+        report_details = {}
 
-    duration_seconds = notification.extra_data.get('duration', 0)
-    readable_duration = format_duration(duration_seconds)
+    status_clean = (notification.status or '').strip().lower()
+    category = report_details.get('category', 'patching')
     
     context = {
         'msg': notification.msg,
-        'status': notification.status,
+        'status': status_clean,
         'created_at': notification.created_at,
-        'updates_count': notification.extra_data.get('updates_count', 0),
-        'server_name': notification.extra_data.get('server_name', 'System Cluster'),
-        'was_rebooted': notification.extra_data.get('was_rebooted', False),
-        'duration': readable_duration,
-        'status_color': '#2ecc71' if notification.status == 'success' else '#e74c3c' if notification.status == 'failed' else '#3498db',
-        'PATCH_THRESHOLD_DAYS': settings.PATCH_THRESHOLD_DAYS
+        'server_name': report_details.get('server_name', 'System Cluster'),
+        'status_color': '#3498db'
     }
+
+    if category == 'update_check':
+        template_name = 'email_update_template.html' 
+        subject = "Astraea Alert: Maintenance / Updates Required"
+        context['status_color'] = '#f39c12'
+        context.update({
+            'current_version': report_details.get('current_version', 'Unknown'),
+            'target_version': report_details.get('target_version', 'Unknown'),
+            'download_url': report_details.get('download_url', ''),
+            'PATCH_THRESHOLD_DAYS': report_details.get('PATCH_THRESHOLD_DAYS', getattr(settings, 'PATCH_THRESHOLD_DAYS', 30))
+        })
+        
+    elif category == 'server_lifecycle':
+        template_name = 'email_server_lifecycle_template.html'
+        subject = f"Astraea Alert: Server {status_clean.replace('_', ' ').title()}"
+        
+        if 'add' in status_clean:
+            context['status_color'] = '#2ecc71'
+        elif 'delete' in status_clean:
+            context['status_color'] = '#e74c3c'
+            
+        context.update({
+            'action': status_clean,
+            'modified_by': report_details.get('modified_by', 'System Automatic Process'),
+            'change_log': report_details.get('change_log', {})
+        })
+        
+    else:
+        template_name = 'email_patching_template.html'
+        subject = f"Astraea Alert: Patching {status_clean.upper()}"
+        
+        if status_clean == 'success':
+            context['status_color'] = '#2ecc71'
+        elif status_clean in ['failed', 'error', 'partial']:
+            context['status_color'] = '#e74c3c'
+            
+        context.update({
+            'updates_count': report_details.get('updates_count', 0),
+            'was_rebooted': report_details.get('was_rebooted', False),
+            'duration': report_details.get('duration', 'N/A')
+        })
 
     try:
         html_content = render_to_string(template_name, context)

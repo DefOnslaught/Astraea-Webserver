@@ -60,6 +60,10 @@ class NotificationSettings(models.Model):
     success = models.BooleanField(default=True)
     partial = models.BooleanField(default=True)
     out_of_date = models.BooleanField(default=True)
+    on_server_add = models.BooleanField(default=True)
+    on_server_modify = models.BooleanField(default=True)
+    on_server_delete = models.BooleanField(default=True)
+    site_outdated = models.BooleanField(default=True)
 
     class Meta:
         verbose_name_plural = "Notification Settings"
