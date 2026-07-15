@@ -420,12 +420,12 @@ const ServerTools = ({ triggerSuccess, setError }) => {
                                 <ArrowRight className="w-4 h-4 text-gray-600" />
                                 <div className="text-xs">
                                     <p className="text-gray-500 uppercase tracking-wider mb-1">Latest</p>
-                                    <p className="text-white font-mono">{updateCheck.version}</p>
+                                    <p className="text-white font-mono">{updateCheck.latest_version}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                {isUpdateAvailable(VERSION, updateCheck.version) ? (
+                                {isUpdateAvailable(VERSION, updateCheck.latest_version) ? (
                                     <>
                                         <a
                                             href={GITHUB_REPO}
