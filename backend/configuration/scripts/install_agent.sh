@@ -26,7 +26,7 @@ fi
 echo "--- Fetching Astraea Agent Package ---"
 mkdir -p $INSTALL_DIR
 if ! curl -f -sSL -H "X-Api-Key: $API_KEY" -o astraea_agent.tar.gz "$BASE_URL/api/config/agent_file/"; then
-    echo "❌ Failed to download the Astraea Agent. Check your API_KEY, BASE_URL, or server logs."
+    echo "Failed to download the Astraea Agent. Check your API_KEY, BASE_URL, or server logs."
     exit 1
 fi
 tar -xzf astraea_agent.tar.gz -C $INSTALL_DIR --strip-components=1
@@ -37,7 +37,7 @@ cd $INSTALL_DIR
 if [ "$EXE_LOGIC" != "standard" ]; then
     echo "--- Downloading Logic Script: $EXE_LOGIC ---"
     if ! curl -f -sSL -o "patching-$EXE_LOGIC.sh" "$BASE_URL/api/config/install_script/$ASTRAEA_UID/?file=logic_script"; then
-        echo "❌ Failed to download the Patching Execution Logic. Check your BASE_URL, or server logs."
+        echo "Failed to download the Patching Execution Logic. Check your BASE_URL, or server logs."
         exit 1
     fi
     chmod +x "patching-$EXE_LOGIC.sh"
@@ -86,7 +86,7 @@ if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
 else
-    echo "❌ Cannot detect OS. Please install dependencies manually."
+    echo "Cannot detect OS. Please install dependencies manually."
     exit 1
 fi
 
@@ -105,7 +105,7 @@ PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.v
 IS_MODERN=$(python3 -c "import sys; print(1 if sys.version_info >= (3, 10) else 0)")
 
 if [ "$IS_MODERN" -ne 1 ]; then
-    echo "❌ Astraea Agent requires Python 3.10 or higher. Found version: $PYTHON_VERSION"
+    echo "Astraea Agent requires Python 3.10 or higher. Found version: $PYTHON_VERSION"
     exit 1
 fi
 
@@ -123,7 +123,7 @@ case $OS in
         ;;
 
     *)
-        echo "❌ Unsupported OS: $OS."
+        echo "Unsupported OS: $OS."
         exit 1
     ;;
 esac

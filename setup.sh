@@ -4,12 +4,12 @@ if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$ID
 else
-    echo "❌ Cannot detect OS. Please install dependencies manually."
+    echo "Cannot detect OS. Please install dependencies manually."
     exit 1
 fi
 
 install_nodejs_v26() {
-    echo "📦 Installing Node.js v26..."
+    echo "Installing Node.js v26..."
     
     if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
         sudo apt-get purge -y nodejs npm
@@ -24,7 +24,7 @@ install_nodejs_v26() {
         sudo dnf install -y nodejs
     fi
     
-    echo "✅ Node.js $(node -v) installed successfully."
+    echo "Node.js $(node -v) installed successfully."
 }
 
 
@@ -60,7 +60,7 @@ case $OS in
         ;;
 
     *)
-        echo "❌ Unsupported OS: $OS."
+        echo "Unsupported OS: $OS."
         exit 1
     ;;
 esac
@@ -68,7 +68,7 @@ esac
 sudo systemctl enable redis-server
 sudo systemctl start redis-server
 
-echo "🔧 Configuring service files and permissions for $TARGET_USER..."
+echo "Configuring service files and permissions for $TARGET_USER..."
 
 SRC_DIR="backend/1_Host_Required_Files"
 DEST_DIR="/etc/systemd/system"
@@ -81,23 +81,23 @@ for SVC in "${SERVICES[@]}"; do
         
         sudo cp "$SRC_DIR/$SVC" "$DEST_DIR/"
 
-        echo "✅ Configured $SVC"
+        echo "Configured $SVC"
     else
-        echo "⚠️  Warning: $SVC not found in $SRC_DIR"
+        echo "Warning: $SVC not found in $SRC_DIR"
     fi
 done
 
 if [ -f "$SRC_DIR/gunicorn.socket" ]; then
     sudo cp "$SRC_DIR/gunicorn.socket" "$DEST_DIR/"
-    echo "✅ Configured gunicorn.socket"
+    echo "Configured gunicorn.socket"
 else
-    echo "⚠️  Warning: gunicorn.socket not found in $SRC_DIR"
+    echo "Warning: gunicorn.socket not found in $SRC_DIR"
 fi
 
-echo "🔄 Reloading systemd daemon..."
+echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload
 
-echo "🌐 Configuring Nginx..."
+echo "Configuring Nginx..."
 
 read -p "Enter the Domain or IP for this server (e.g. astraea.lan 192.168.1.50) [astraea.lan localhost]: " SRV_NAME
 SRV_NAME=${SRV_NAME:-"astraea.lan localhost"}
@@ -141,50 +141,50 @@ if [ -f "$NGINX_CONF_SRC" ]; then
         sudo rm /etc/nginx/sites-enabled/default
     fi
 
-    echo "🔍 Verifying Nginx configuration..."
+    echo "Verifying Nginx configuration..."
     if sudo nginx -t; then
-        echo "✅ Nginx configuration is valid."
+        echo "Nginx configuration is valid."
     else
-        echo "❌ Nginx configuration test failed! Check $NGINX_DEST for errors."
+        echo "Nginx configuration test failed! Check $NGINX_DEST for errors."
     fi
 else
-    echo "❌ Error: nginx_configuration source file not found!"
+    echo "Error: nginx_configuration source file not found!"
 fi
 
-echo "📝 Setting up environment files..."
+echo "Setting up environment files..."
 
 if [ -f "backend/.env_example" ]; then
     if [ ! -f "backend/.env" ]; then
         cp "backend/.env_example" "backend/.env"
-        echo "✅ Created backend/.env"
+        echo "Created backend/.env"
     else
-        echo "ℹ️  backend/.env already exists, skipping copy."
+        echo "backend/.env already exists, skipping copy."
     fi
 else
-    echo "⚠️  Warning: backend/.env_example not found."
+    echo "Warning: backend/.env_example not found."
 fi
 
 if [ -f "frontend/.env_example" ]; then
     if [ ! -f "frontend/.env" ]; then
         cp "frontend/.env_example" "frontend/.env"
-        echo "✅ Created frontend/.env"
+        echo "Created frontend/.env"
     else
-        echo "ℹ️  frontend/.env already exists, skipping copy."
+        echo "frontend/.env already exists, skipping copy."
     fi
 else
-    echo "⚠️  Warning: frontend/.env_example not found."
+    echo "Warning: frontend/.env_example not found."
 fi
 
 PROJECT_ROOT=$(pwd)
 
 PROTECTED_PATH="$PROJECT_ROOT/protected_storage"
 if [ ! -d "$PROTECTED_PATH" ]; then
-    echo "📂 Creating protected storage directory..."
+    echo "Creating protected storage directory..."
     sudo mkdir -p "$PROTECTED_PATH"
-    echo "✅ Protected storage directory ready."
+    echo "Protected storage directory ready."
 fi
 
-echo "⬇️  Fetching the latest Astraea Agent..."
+echo "Fetching the latest Astraea Agent..."
 
 AGENT_REPO="DefOnslaught/Astraea-Agent"
 
@@ -192,19 +192,19 @@ DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$AGENT_REPO/releases/latest 
 
 if [ -n "$DOWNLOAD_URL" ]; then
     sudo curl -L -o "$PROTECTED_PATH/astraea_agent.tar.gz" "$DOWNLOAD_URL"
-    echo "✅ Downloaded latest agent to $PROTECTED_PATH"
+    echo "Downloaded latest agent to $PROTECTED_PATH"
 else
-    echo "⚠️  Could not automatically fetch the latest agent. You may need to upload it manually via the UI."
+    echo "Could not automatically fetch the latest agent. You may need to upload it manually via the UI."
     echo "Get the latest here: https://github.com/DefOnslaught/Astraea-Agent"
 fi
 
-echo "📂 Setting permissions for $PROJECT_ROOT..."
+echo "Setting permissions for $PROJECT_ROOT..."
 sudo usermod -a -G $TARGET_USER www-data
 sudo chown -R $TARGET_USER:www-data "$PROJECT_ROOT"
 sudo chmod -R 750 "$PROJECT_ROOT"
 
 echo "-------------------------------------------------------"
-echo "✅ Setup Complete!"
+echo "Setup Complete!"
 echo "1. Ensure your database 'astraea' is created."
 echo "2. Edit your .env files. (backend/.env & frontend/.env)"
 echo "3. Run 'make initialSetup' to finish the deployment."
