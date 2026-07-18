@@ -135,6 +135,12 @@ DATABASES = {
     }
 }
 
+MYSQL_CONF_PATH = os.getenv("MYSQL_LOCAL_CONF")
+if MYSQL_CONF_PATH and MYSQL_CONF_PATH.strip():
+    DATABASES['default']['OPTIONS'] = {
+        'read_default_file': MYSQL_CONF_PATH.strip(),
+    }
+
 AUTH_USER_MODEL = 'users.User'
 
 # Password validation
