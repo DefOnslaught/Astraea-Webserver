@@ -5,8 +5,15 @@ const About = () => {
 
     const versionHistory = [
         {
+            version: "v1.0.6",
+            date: "July 16, 2026",
+            changes: [
+                "Improved the error output of the command 'wait_for_db' to hopefully make the initial setup process easier."
+            ]
+        },
+        {
             version: "v1.0.5",
-            date: "July 14, 2026",
+            date: "July 15, 2026",
             changes: [
                 "Removed emojis from scripts - Could cause issues",
                 "Expanded Notification Event Triggers to include: Server Add, Delete, Modify, and check for website updates."
@@ -14,7 +21,7 @@ const About = () => {
         },
         {
             version: "v1.0.0",
-            date: "July 15, 2026",
+            date: "July 14, 2026",
             changes: [
                 "Initial open-source release.",
                 "Included this About page."
