@@ -257,8 +257,8 @@ const InspectServer = () => {
             </div>
 
             {/* Main Content Tabs */}
-            <div className="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
-                <div className="flex border-b border-slate-800 bg-slate-900/80">
+            <div className="bg-slate-900/50 rounded-xl border border-slate-800">
+                <div className="flex border-b border-slate-800 bg-slate-900/80 rounded-t-xl">
                     <TabBtn active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} label="Overview" icon={<Server className="w-4 h-4" />} />
                     <TabBtn active={activeTab === 'history'} onClick={() => handleTabChange('history')} label="Patch History" icon={<Clock className="w-4 h-4" />} />
                     <TabBtn active={activeTab === 'packages'} onClick={() => { setActiveTab('packages'); fetchPackages(); }} label="Packages" icon={<Package className="w-4 h-4" />} />
@@ -365,7 +365,6 @@ const InspectServer = () => {
 
                                 <HistorySearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
                             </div>
-                            <HistorySearchGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
                             <HistoryTable
                                 history={history}

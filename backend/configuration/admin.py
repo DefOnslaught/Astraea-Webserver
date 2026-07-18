@@ -24,8 +24,8 @@ class NotificationServiceAdmin(admin.ModelAdmin):
 
 @admin.register(AgentInstallConfig)
 class AgentInstallConfigAdmin(admin.ModelAdmin):
-    fields = ('label', 'api_key', 'base_url', 'exe_logic', 'environment', 'cron', 'patching_schedule')
-    list_display = ('label', 'api_key', 'base_url', 'uid', 'exe_logic', 'environment', 'cron', 'patching_schedule', 'created_at')
+    fields = ('label', 'api_key', 'base_url', 'exe_logic', 'environment', 'disable_autoremove', 'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime', 'cron', 'patching_schedule')
+    list_display = ('label', 'api_key', 'base_url', 'uid', 'exe_logic', 'environment', 'disable_autoremove', 'enable_apt_release_info_change', 'reboot_on_success', 'reboot_after_updates', 'max_allowed_uptime', 'cron', 'patching_schedule', 'created_at')
 
 @admin.register(AstraeaAgentInfo)
 class AstraeaAgentInfoAdmin(admin.ModelAdmin):
