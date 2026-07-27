@@ -8,6 +8,13 @@ const About = () => {
 
     const versionHistory = [
         {
+            version: "v1.0.8",
+            date: "July 27, 2026",
+            changes: [
+                "Fixed a bug with registering a server not sending notifications.",
+            ]
+        },
+        {
             version: "v1.0.7",
             date: "July 18, 2026",
             changes: [

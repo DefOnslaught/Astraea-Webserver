@@ -57,7 +57,7 @@ class RegisterServer(APIView):
 
                 if created:
                     notification = PendingNotification.objects.create(
-                        status='add',
+                        status='server_add',
                         msg=f"A new server '{hostname}' was successfully registered in the '{env_value}' environment.",
                         extra_data={
                             'category': 'server_lifecycle',
@@ -65,7 +65,7 @@ class RegisterServer(APIView):
                             'modified_by': 'Internal API (Auto-Registration)',
                         }
                     )
-                    transaction.on_commit(lambda: process_notification(notification))
+                    transaction.on_commit(lambda: process_notification.delay(notification.id))
 
             logger.info(f"Successfully registered server {hostname}")
             status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK

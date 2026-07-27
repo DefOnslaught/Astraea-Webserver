@@ -97,7 +97,6 @@ def process_notification(self, notification_id):
         report_details.update({
             'category': 'server_lifecycle',
             'action': status_clean,
-            'ip_address': notification.extra_data.get('ip_address', 'N/A'),
             'modified_by': notification.extra_data.get('user', 'System Automatic Process'),
             'change_log': notification.extra_data.get('change_log', {})
         })
