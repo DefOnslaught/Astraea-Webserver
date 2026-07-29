@@ -1,5 +1,0 @@
-General Needs:
-
-    Docker Support
-        - Currently not tested, need to test and validate
-        - Maybe use the docker sock to get system info for the administration server maintenance page

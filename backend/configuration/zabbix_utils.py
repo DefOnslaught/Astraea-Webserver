@@ -17,6 +17,9 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
         zapi = ZabbixAPI(config_dict['api_url'])
         zapi.login(token=config_dict['api_token'])
 
+        api_version = zapi.apiinfo.version()
+        major_version = int(api_version.split('.')[0])
+
         lookups = [
             {"filter": {"host": hostname}},
             {"filter": {"name": hostname}},
@@ -47,12 +50,18 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
         start_date = int(timezone.now().timestamp()) - 30
         end_date = start_date + 3630 
 
+        host_payload = (
+            {"hosts": [{"hostid": host_id}]} 
+            if major_version >= 7 
+            else {"hostids": [host_id]}
+        )
+
         maintenance = zapi.maintenance.create({
             "name": f"Astraea Patching - {hostname}",
             "maintenance_type": 1,
             "active_since": start_date,
             "active_till": end_date,
-            "hostids": [host_id],
+            **host_payload,
             "timeperiods": [{"timeperiod_type": 0, "period": 3600, "start_date": start_date}]
         })
 
@@ -66,7 +75,7 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
         )
 
         if settings.DEBUG:
-            logger.info(f"Successfully created maintenance window for host `{hostname}`")
+            logger.info(f"Successfully created maintenance window for host `{hostname}` (Zabbix v{api_version})")
         
         return m_record.id
 

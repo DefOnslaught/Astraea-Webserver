@@ -156,13 +156,20 @@ backend/venv/bin/python backend/manage.py createsuperuser
 
 ---
 
-## 🐳 Containerized Deployment (Docker) - WORK IN PROGRESS NOT TESTED
+## 🐳 Containerized Deployment (Docker)
 
-For rapid deployment using Docker Compose, Astraea provides a pre-configured multi-container stack including the Web Server, Celery Worker, Celery Beat, Redis, and MySQL.
+For rapid deployment using Docker Compose, Astraea provides a fully configured multi-container stack including the Web Server (`web`), Celery Worker (`worker`), Celery Scheduler (`beat`), Redis, MySQL, and an Nginx reverse proxy.
+
+While Astraea is intended to be deployed as a Bare-Metal Web Server, we do provide Docker support.
 
 ### 1. Configure Environment
 
-Update your `backend/.env` to use Docker's internal networking. In Docker, services communicate using their service names defined in `docker-compose.yml`.
+Ensure your configuration files are initialized from their examples:
+
+1. **Backend:** Copy `backend/.env_example` to `backend/.env`
+2. **Frontend:** Copy `frontend/.env_example` to `frontend/.env`
+
+Update your `backend/.env` to point to Docker's internal networking services:
 
 ```env
 # Database - Matches the 'db' service in compose
@@ -177,7 +184,7 @@ REDIS_URL=redis://redis:6379/0
 CELERY_REDIS_URL=redis://redis:6379/1
 ```
 
-Update your `frontend/.env` to use Dockers internal networking.
+Update your `frontend/.env` for internal routing:
 
 ```env
 VITE_API_URL=web
@@ -185,29 +192,39 @@ VITE_API_URL=web
 
 ### 2. Launch the Stack
 
-Run the following command from the root directory:
+Use the provided `start-docker.sh` startup script to build and launch the containerized stack:
 
 ```bash
-docker compose up -d --build
+chmod +x start-docker.sh
+./start-docker.sh
 ```
 
-### 3. Access & Health
+### 3. Automated Boot Sequence & Health
 
-Once the containers are healthy:
+On initial startup, the entrypoint script automatically replicates the bare-metal initialization workflow:
+
+* Waits for TCP connectivity to MySQL and Redis.
+* Runs database schema migrations (`migrate`).
+* Sets up required storage folders and syncs periodic Celery tasks.
+* Automatically downloads the latest **Astraea Agent** release package directly into `protected_storage`.
+* Bootstraps the initial superuser (`admin@astraea.local` / `AstraeaAdmin123!`) if one does not exist.
+* Warms the Redis cache and boots Gunicorn.
+
+> [!IMPORTANT]
+> **Default Admin Account Management:** The bootstrap script creates `admin@astraea.local` only if it does not already exist. Make sure to **Disable** the default admin account rather than deleting it from the database if you create a custom administrator account; deleting it will cause the entrypoint script to recreate it on subsequent container restarts.
+
+Once running, access the dashboard at:
 
 * **Web UI:** [http://localhost](http://localhost)
-* **Default Admin:** `admin@astraea.local` / `AstraeaAdmin123!`
-
-**Note:** On the first boot, the `web` container automatically handles database migrations, superuser creation, and static file collection.
 
 ### 4. Container Management
 
 | Action | Command |
 | :--- | :--- |
-| **View Logs** | `docker-compose logs -f` |
-| **Stop Stack** | `docker-compose down` |
-| **Restart Worker** | `docker-compose restart worker` |
-| **Shell Access** | `docker-compose exec web bash` |
+| **View Logs** | `docker compose logs -f` |
+| **Stop Stack** | `docker compose down` |
+| **Restart Worker** | `docker compose restart worker` |
+| **Shell Access** | `docker compose exec web bash` |
 
 ---
 

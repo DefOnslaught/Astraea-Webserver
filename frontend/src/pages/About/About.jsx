@@ -1,4 +1,6 @@
-import { Github, Code, GitBranch, ExternalLink, ShieldAlert, Heart, Server, Terminal } from "lucide-react";
+import { Code, GitBranch, ExternalLink, ShieldAlert, Heart, Server, Terminal } from "lucide-react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGithub } from '@fortawesome/free-brands-svg-icons';
 import { GITHUB_REPO, AGENT_GITHUB_REPO, VERSION } from "../../utils/constants";
 import useDocumentTitle from "../../utils/useDocumentTitle";
 
@@ -7,6 +9,16 @@ const About = () => {
     useDocumentTitle('About | Astraea');
 
     const versionHistory = [
+        {
+            version: "v1.0.9",
+            date: "July 29, 2026",
+            changes: [
+                "Correctly supporting Zabbix Server 6.x and 7.x.",
+                "Fixed the docker deployment configuration.",
+                "Implemented the 'update-docker.sh' script to handle update releases.",
+                "Updated dependencies used by both Django and React."
+            ]
+        },
         {
             version: "v1.0.8",
             date: "July 27, 2026",
@@ -88,7 +100,7 @@ const About = () => {
 
                     <div className="bg-gray-800/30 border border-white/5 p-6 rounded-2xl relative overflow-hidden">
                         <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <Github className="w-4 h-4 text-gray-400" />
+                            <FontAwesomeIcon icon={faGithub} style={{ width: '20px', height: '20px' }} />
                             Community & Support
                         </h2>
 

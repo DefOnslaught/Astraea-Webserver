@@ -1,4 +1,4 @@
-import logging, subprocess, os, zipfile, io, psutil, time, requests
+import logging, subprocess, os, zipfile, io, psutil, time, requests, json, http.client, socket
 from datetime import timedelta
 from packaging import version
 from rest_framework.views import APIView
@@ -16,7 +16,7 @@ from django.http import FileResponse, HttpResponse
 from django.db import connections, connection
 
 from administration.models import AgentUpdateCheck, UpdateCheck
-from administration.utils import get_version, normalize_version
+from administration.utils import get_version, normalize_version, is_container
 from users.permissions import checkIsStaff
 from administration.tasks import run_cache_refresh_task
 from reports.tasks import delete_all_reports
@@ -204,6 +204,17 @@ class DatabaseStatsView(APIView):
         return Response(stats, status=status.HTTP_200_OK)
 
 
+class UnixHTTPConnection(http.client.HTTPConnection):
+    """Helper class to allow http.client to communicate over a Unix socket."""
+    def __init__(self, unix_socket_path):
+        super().__init__('localhost')
+        self.unix_socket_path = unix_socket_path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.connect(self.unix_socket_path)
+
+
 class SystemStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -249,9 +260,35 @@ class SystemStatsView(APIView):
                 'load_averages': [load_1, load_5, load_15]
             }
         }
-        for service in ['nginx', 'gunicorn', 'redis-server', 'astraea-beat', 'astraea-worker']:
-            res = subprocess.run(['systemctl', 'is-active', service], capture_output=True, text=True)
-            stats['services'][service] = res.stdout.strip()
+
+        is_docker = is_container()
+
+        if is_docker and os.path.exists('/var/run/docker.sock'):
+            try:
+                conn = UnixHTTPConnection('/var/run/docker.sock')
+                conn.request('GET', '/containers/json?all=1')
+                res = conn.getresponse()
+                if res.status == 200:
+                    containers = json.loads(res.read().decode())
+                    target_services = ['nginx', 'web', 'redis', 'worker', 'beat', 'db']
+                    container_states = {}
+                    
+                    for c in containers:
+                        labels = c.get('Labels', {})
+                        service_name = labels.get('com.docker.compose.service')
+                        state = c.get('State', 'unknown')
+                        if service_name in target_services:
+                            container_states[service_name] = 'active' if state == 'running' else state
+                    
+                    for service in target_services:
+                        stats['services'][service] = container_states.get(service, 'inactive')
+            except Exception:
+                for service in ['nginx', 'web', 'redis', 'worker', 'beat', 'db']:
+                    stats['services'][service] = 'unknown'
+        else:
+            for service in ['nginx', 'gunicorn', 'redis-server', 'astraea-beat', 'astraea-worker']:
+                res = subprocess.run(['systemctl', 'is-active', service], capture_output=True, text=True)
+                stats['services'][service] = res.stdout.strip()
 
         out = io.StringIO()
         call_command('showmigrations', stdout=out)

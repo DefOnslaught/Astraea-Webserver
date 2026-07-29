@@ -1,62 +1,87 @@
 #!/bin/bash
 set -e
 
-# Function to wait for services
+DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-3306}
+REDIS_HOST=${REDIS_HOST:-redis}
+REDIS_PORT=${REDIS_PORT:-6379}
+
 wait_for_port() {
     local host=$1
     local port=$2
-    echo "Waiting for $host:$port..."
+    echo "Waiting for TCP connection on $host:$port..."
     while ! nc -z $host $port; do
-      sleep 0.1
+      sleep 0.5
     done
-    echo "$host:$port is ready!"
+    echo "Connection established to $host:$port."
 }
 
-# Wait for essential services
-wait_for_port db 3306
-wait_for_port redis 6379
+wait_for_port $DB_HOST $DB_PORT
+wait_for_port $REDIS_HOST $REDIS_PORT
 
-# Only run migrations and admin setup if we are starting the 'web' container
 if [ "$1" = "web" ]; then
-    echo "Refreshing static files..."
+    echo "Synchronizing static assets..."
     python backend/manage.py collectstatic --noinput --clear
+    chmod -R +rX /app/backend/staticfiles
 
-    echo "Running Database Migrations..."
+    echo "Executing Database Schema Migrations..."
     python backend/manage.py migrate --noinput
 
-    echo "Ensuring Superuser exists..."
+    echo "Setting up required folders..."
+    python backend/manage.py make_required_folders
+
+    echo "Setting up periodic tasks..."
+    python backend/manage.py setup_periodic_tasks
+
+    echo "Fetching the latest Astraea Agent..."
+    PROTECTED_PATH="/app/protected_storage"
+    AGENT_REPO="DefOnslaught/Astraea-Agent"
+    DOWNLOAD_URL=$(curl -s https://api.github.com/repos/$AGENT_REPO/releases/latest | grep "browser_download_url" | grep "\.tar\.gz" | cut -d '"' -f 4)
+    if [ -n "$DOWNLOAD_URL" ]; then
+        curl -L -o "$PROTECTED_PATH/astraea_agent.tar.gz" "$DOWNLOAD_URL"
+        echo "Downloaded latest agent to $PROTECTED_PATH"
+    else
+        echo "Could not automatically fetch the latest agent."
+    fi
+
+    echo "Validating Administrative Access..."
     python backend/manage.py shell <<EOF
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(email='admin@astraea.local').exists():
-    User.objects.create_superuser('admin', 'admin@astraea.local', 'AstraeaAdmin123!')
+    User.objects.create_superuser(
+        username='admin',
+        email='admin@astraea.local',
+        password='AstraeaAdmin123!'
+    )
+    print("Initial bootstrap superuser created successfully.")
 EOF
 
-    echo "Warming cache..."
-    python backend/manage.py warm_cache || true 
+    echo "Executing predictive cache warming..."
+    python backend/manage.py warm_cache || echo "Non-fatal: Cache warming deferred."
 
-    echo "Starting Gunicorn (Web Server)..."
+    echo "Initializing Gunicorn WSGI Server..."
     exec gunicorn backend.wsgi:application \
         --bind 0.0.0.0:8000 \
         --worker-class gevent \
         --workers 4 \
+        --worker-connections 2000 \
+        --timeout 30 \
         --preload \
-        --max-requests 5000 \
-        --max-requests-jitter 100
+        --max-requests 0 \
+        --access-logfile - \
+        --error-logfile -
 fi
 
 if [ "$1" = "worker" ]; then
-    echo "Starting Celery Worker..."
-    # Note: Using 'multi' in Docker is usually discouraged. 
-    # Just run the worker process in the foreground so Docker can monitor it.
-    exec celery -A backend worker --loglevel=INFO
+    echo "Initializing Celery Distributed Task Worker..."
+    exec celery -A backend worker --loglevel=INFO --concurrency=4
 fi
 
 if [ "$1" = "beat" ]; then
-    echo "Starting Celery Beat..."
+    echo "Initializing Celery Periodic Task Scheduler..."
     rm -f /tmp/celerybeat.pid
     exec celery -A backend beat --loglevel=INFO --pidfile=/tmp/celerybeat.pid
 fi
 
-# Fallback to whatever was passed (like /bin/bash)
 exec "$@"

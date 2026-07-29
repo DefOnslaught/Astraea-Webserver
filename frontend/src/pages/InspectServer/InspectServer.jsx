@@ -270,17 +270,21 @@ const InspectServer = () => {
                             <section>
                                 <h3 className="text-lg font-semibold mb-4 text-slate-200">Network Interfaces</h3>
                                 <div className="space-y-3">
-                                    {serverInfo.interfaces.map(iface => (
-                                        <div key={iface.mac} className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50 flex justify-between items-center">
-                                            <div>
-                                                <p className="font-bold text-indigo-400">{iface.name}</p>
-                                                <p className="text-xs text-slate-500 font-mono">{iface.mac}</p>
+                                    {serverInfo?.interfaces?.length > 0 ? (
+                                        serverInfo.interfaces.map(iface => (
+                                            <div key={iface.mac} className="p-4 bg-slate-800/40 rounded-lg border border-slate-700/50 flex justify-between items-center">
+                                                <div>
+                                                    <p className="font-bold text-indigo-400">{iface.name}</p>
+                                                    <p className="text-xs text-slate-500 font-mono">{iface.mac}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-slate-200 font-mono">{iface.ip}</p>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-slate-200 font-mono">{iface.ip}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        <p className="text-slate-500 text-sm">No network interfaces recorded for this server yet.</p>
+                                    )}
                                 </div>
                             </section>
 
