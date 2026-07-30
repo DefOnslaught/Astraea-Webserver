@@ -94,16 +94,23 @@ if [[ "$RUN_DEPLOY" =~ ^[Yy]$ ]]; then
         exit 1
     fi
     
-    echo "Building and restarting Docker containers..."
-    if ! docker compose up -d --build; then
+    if [ -f "./start-docker.sh" ]; then
+        chmod +x ./start-docker.sh
+    else
+        echo "Error: start-docker.sh script not found!"
+        exit 1
+    fi
+
+    echo "Executing start-docker.sh..."
+    if ! ./start-docker.sh; then
         echo "Docker build and deployment failed!"
         read -p "Would you like to rollback the code changes to the previous commit? (y/N) " DO_ROLLBACK
         
         if [[ "$DO_ROLLBACK" =~ ^[Yy]$ ]]; then
             echo "Rolling back Git repository..."
             git reset --hard HEAD@{1}
-            echo "Code rolled back. Restarting containers with previous code..."
-            docker compose up -d --build
+            echo "Code rolled back. Restarting containers with previous code via start-docker.sh..."
+            ./start-docker.sh
             echo "Rollback complete."
         else
             echo "Update aborted in a potentially broken state. Please fix the container or configuration manually."
@@ -127,5 +134,5 @@ if [[ "$RUN_DEPLOY" =~ ^[Yy]$ ]]; then
         echo "Skipping Docker cleanup."
     fi
 else
-    echo "Skipping container restart. Run 'docker compose up -d --build' manually when ready."
+    echo "Skipping container restart. Run './start-docker.sh' manually when ready."
 fi

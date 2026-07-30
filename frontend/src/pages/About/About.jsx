@@ -10,6 +10,13 @@ const About = () => {
 
     const versionHistory = [
         {
+            version: "v1.0.10",
+            date: "July 29, 2026",
+            changes: [
+                "Forgot to add 'start-docker.sh' in the 'update-docker.sh' script."
+            ]
+        },
+        {
             version: "v1.0.9",
             date: "July 29, 2026",
             changes: [
