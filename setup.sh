@@ -27,6 +27,40 @@ install_nodejs_v26() {
     echo "Node.js $(node -v) installed successfully."
 }
 
+configure_redis() {
+    echo "Configuring Redis..."
+
+    local REDIS_CONF=""
+    local REDIS_SVC=""
+
+    if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+        REDIS_SVC="redis-server"
+        REDIS_CONF="/etc/redis/redis.conf"
+    elif [[ "$OS" == "fedora" || "$OS" == "centos" || "$OS" == "rhel" ]]; then
+        REDIS_SVC="redis"
+        if [ -f "/etc/redis/redis.conf" ]; then
+            REDIS_CONF="/etc/redis/redis.conf"
+        else
+            REDIS_CONF="/etc/redis.conf"
+        fi
+    fi
+
+    sudo mkdir -p /var/lib/redis
+    sudo chown -R redis:redis /var/lib/redis
+    sudo chmod 770 /var/lib/redis
+
+    if [ -f "$REDIS_CONF" ]; then
+        if grep -q "^dir ./" "$REDIS_CONF"; then
+            echo "Updating Redis working directory in $REDIS_CONF..."
+            sudo sed -i 's|^dir ./|dir /var/lib/redis|g' "$REDIS_CONF"
+        fi
+    fi
+
+    sudo systemctl enable "$REDIS_SVC"
+    sudo systemctl restart "$REDIS_SVC"
+    echo "Redis ($REDIS_SVC) configured and started."
+}
+
 
 echo "-------------------------------------------------------"
 echo "Astraea Bare Metal Setup"
@@ -65,8 +99,7 @@ case $OS in
     ;;
 esac
 
-sudo systemctl enable redis-server
-sudo systemctl start redis-server
+configure_redis
 
 echo "Configuring service files and permissions for $TARGET_USER..."
 

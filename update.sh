@@ -19,6 +19,7 @@ echo "Starting Astraea Update Process for user: $TARGET_USER"
 
 SETTINGS_FILE="backend/backend/settings.py"
 SETTINGS_CHANGED=false
+PRE_HASH=""
 
 if [ -f "$SETTINGS_FILE" ]; then
     PRE_HASH=$(md5sum "$SETTINGS_FILE" | awk '{print $1}')
@@ -60,6 +61,8 @@ else
         fi
     fi
 
+    PRE_COMMIT=$(git rev-parse HEAD)
+
     echo "Pulling latest changes..."
     git pull || { echo "'git pull' failed. Please resolve conflicts manually."; exit 1; }
 fi
@@ -78,12 +81,12 @@ if [ -f "$SETTINGS_FILE" ]; then
 fi
 
 if [ "$SETTINGS_CHANGED" = true ]; then
-        echo "-------------------------------------------------------"
-        echo "   REMINDER: settings.py was updated by the repo!"
-        echo "   Please compare your backup with the new version."
-        echo "   Do not run 'make deploy' until validating."
-        echo "-------------------------------------------------------"
-    fi
+    echo "-------------------------------------------------------"
+    echo "   REMINDER: settings.py was updated by the repo!"
+    echo "   Please compare your backup with the new version."
+    echo "   Do not run 'make deploy' until validating."
+    echo "-------------------------------------------------------"
+fi
 
 echo "-------------------------------------------------------"
 read -p "Update complete. Would you like to run 'make deploy' now? (y/N) " RUN_DEPLOY
@@ -104,7 +107,11 @@ if [[ "$RUN_DEPLOY" =~ ^[Yy]$ ]]; then
         
         if [[ "$DO_ROLLBACK" =~ ^[Yy]$ ]]; then
             echo "Rolling back Git repository..."
-            git reset --hard HEAD@{1}
+            if [ -n "$PRE_COMMIT" ]; then
+                git reset --hard "$PRE_COMMIT"
+            else
+                git reset --hard HEAD@{1}
+            fi
             echo "Code rolled back. IMPORTANT: If migrations partially applied, you may need to manually rollback the database."
         else
             echo "Update aborted in a potentially broken state. Please fix the migration manually."
@@ -112,7 +119,7 @@ if [[ "$RUN_DEPLOY" =~ ^[Yy]$ ]]; then
         exit 1
     fi
     
-    echo "⚙️  Deploying application..."
+    echo "Deploying application..."
     make deploy
     
     sudo chown -R "$TARGET_USER:$TARGET_GROUP" .

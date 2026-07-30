@@ -10,6 +10,14 @@ const About = () => {
 
     const versionHistory = [
         {
+            version: "v1.0.11",
+            date: "July 30, 2026",
+            changes: [
+                "Modified redis configuration file on 'setup.sh'.",
+                "Improved how 'update.sh' handles roll-backs."
+            ]
+        },
+        {
             version: "v1.0.10",
             date: "July 29, 2026",
             changes: [
