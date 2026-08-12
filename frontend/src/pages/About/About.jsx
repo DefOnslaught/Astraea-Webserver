@@ -13,7 +13,7 @@ const About = () => {
             version: "v1.0.12",
             date: "August 12, 2026",
             changes: [
-                "Fixed an error with stale connection Redis connections on the admin page.",
+                "Fixed an error with stale Redis connections on the admin page.",
                 "Increased the Maintenance window of Zabbix from 3 minutes to 10 to avoid false alerts from Zabbix."
             ]
         },
