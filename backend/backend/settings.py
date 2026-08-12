@@ -236,6 +236,14 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_ENABLE_UTC = False
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'health_check_interval': 15,
+    'socket_timeout': 5,          
+    'socket_connect_timeout': 5,
+}
+CELERY_REDIS_BACKEND_TRANSPORT_OPTIONS = {
+    'health_check_interval': 15,
+}
 
 
 # Static files (CSS, JavaScript, Images)

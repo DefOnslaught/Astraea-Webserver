@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from celery import current_app
+from redis.exceptions import ConnectionError
 from django_celery_beat.models import PeriodicTask
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -71,8 +72,13 @@ class CeleryMonitoringView(APIView):
             return Response(data)
 
         inspector = current_app.control.inspect(timeout=0.5)
-        stats = inspector.stats() or {}
-        active_tasks_dict = inspector.active() or {}
+        try:
+            stats = inspector.stats() or {}
+            active_tasks_dict = inspector.active() or {}
+        except ConnectionError:
+            inspector = current_app.control.inspect(timeout=0.5)
+            stats = inspector.stats() or {}
+            active_tasks_dict = inspector.active() or {}
         
         active_tasks_list = []
         for worker, tasks in active_tasks_dict.items():

@@ -86,11 +86,12 @@ def schedule_maintenance_window(hostname, server_id, config_dict):
 
 def complete_maintenance_window(tracking_id):
     """
-    Schedule a Zabbix maintenance window deletion in 3 minutes.
-    This allows for the server to reboot
+    Schedule a Zabbix maintenance window deletion in 10.5 minutes (630s).
+    This safely covers Zabbix's default 10-minute service uptime triggers 
+    (e.g., PostgreSQL by Zabbix agent 2) without modifying stock templates.
     """
     from .tasks import remove_zabbix_maintenance
-    remove_zabbix_maintenance.apply_async(args=[tracking_id], countdown=180)
+    remove_zabbix_maintenance.apply_async(args=[tracking_id], countdown=630)
 
 
 def test_zabbix_connection(config_dict):
