@@ -3,85 +3,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGithub } from '@fortawesome/free-brands-svg-icons';
 import { GITHUB_REPO, AGENT_GITHUB_REPO, VERSION } from "../../utils/constants";
 import useDocumentTitle from "../../utils/useDocumentTitle";
+import VersionHistory from "./utils/VersionHistory";
 
 const About = () => {
 
     useDocumentTitle('About | Astraea');
-
-    const versionHistory = [
-        {
-            version: "v1.0.12",
-            date: "August 12, 2026",
-            changes: [
-                "Fixed an error with stale Redis connections on the admin page.",
-                "Increased the Maintenance window of Zabbix from 3 minutes to 10 to avoid false alerts from Zabbix."
-            ]
-        },
-        {
-            version: "v1.0.11",
-            date: "July 30, 2026",
-            changes: [
-                "Modified redis configuration file on 'setup.sh'.",
-                "Improved how 'update.sh' handles roll-backs."
-            ]
-        },
-        {
-            version: "v1.0.10",
-            date: "July 29, 2026",
-            changes: [
-                "Forgot to add 'start-docker.sh' in the 'update-docker.sh' script."
-            ]
-        },
-        {
-            version: "v1.0.9",
-            date: "July 29, 2026",
-            changes: [
-                "Correctly supporting Zabbix Server 6.x and 7.x.",
-                "Fixed the docker deployment configuration.",
-                "Implemented the 'update-docker.sh' script to handle update releases.",
-                "Updated dependencies used by both Django and React."
-            ]
-        },
-        {
-            version: "v1.0.8",
-            date: "July 27, 2026",
-            changes: [
-                "Fixed a bug with registering a server not sending notifications.",
-            ]
-        },
-        {
-            version: "v1.0.7",
-            date: "July 18, 2026",
-            changes: [
-                "Ensured the Django Admin Panel included all available options.",
-                "Tidied up this Version history section.",
-                "Improved the 'Search Guide' within Patch History of a server."
-            ]
-        },
-        {
-            version: "v1.0.6",
-            date: "July 16, 2026",
-            changes: [
-                "Improved the error output of the command 'wait_for_db' to hopefully make the initial setup process easier."
-            ]
-        },
-        {
-            version: "v1.0.5",
-            date: "July 15, 2026",
-            changes: [
-                "Removed emojis from scripts - Could cause issues",
-                "Expanded Notification Event Triggers to include: Server Add, Delete, Modify, and check for website updates."
-            ]
-        },
-        {
-            version: "v1.0.0",
-            date: "July 14, 2026",
-            changes: [
-                "Initial open-source release.",
-                "Included this About page."
-            ]
-        }
-    ];
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -207,7 +133,7 @@ const About = () => {
                     <div className="overflow-y-auto pr-4 flex-1 scrollbar-thin [scrollbar-color:rgba(255,255,255,0.1)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
 
                         <div className="ml-2 border-l border-white/10 space-y-8 pb-4">
-                            {versionHistory.map((release, index) => (
+                            {VersionHistory.map((release, index) => (
                                 <div key={release.version} className="relative pl-8">
 
                                     <div className="absolute -left-1.25 top-6 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-gray-900 z-10" />

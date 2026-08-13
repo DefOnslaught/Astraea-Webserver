@@ -199,6 +199,8 @@ const ServerTools = ({ triggerSuccess, setError }) => {
         try {
             await api.get(API_ENDPOINTS.TRIGGER_AGENT_UPDATE);
             triggerSuccess("Agent update download initiated.");
+
+            setAgentUpdateCheck(null);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to trigger agent download.");
         } finally {
