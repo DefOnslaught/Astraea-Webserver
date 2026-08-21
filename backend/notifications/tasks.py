@@ -102,12 +102,18 @@ def process_notification(self, notification_id):
         })
 
     elif status_clean in UPDATE_STATUSES:
-        report_details.update({
-            'category': 'update_check',
-            'current_version': notification.extra_data.get('current_version', 'Unknown'),
-            'target_version': notification.extra_data.get('target_version', 'Unknown'),
-            'download_url': notification.extra_data.get('download_url', '')
-        })
+        if notification.extra_data.get('category') == 'update_check':
+            report_details.update({
+                'category': 'update_check',
+                'current_version': notification.extra_data.get('current_version', 'Unknown'),
+                'target_version': notification.extra_data.get('target_version', 'Unknown'),
+                'download_url': notification.extra_data.get('download_url', '')
+            })
+        else:
+            report_details.update({
+                'category': 'outdated',
+                'PATCH_THRESHOLD_DAYS': getattr(settings, 'PATCH_THRESHOLD_DAYS', 30)
+            })
     
     all_services = get_notification_services()
     if not all_services:

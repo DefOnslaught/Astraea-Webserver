@@ -9,7 +9,7 @@ from django.utils import timezone
 from .models import ZabbixMaintenance
 from .zabbix_utils import schedule_maintenance_window
 from .utils import get_notification_config
-from administration.models import UpdateCheck
+from administration.models import UpdateCheck, AgentUpdateCheck
 from administration.utils import get_version, normalize_version
 from notifications.models import PendingNotification
 from notifications.tasks import process_notification
@@ -70,21 +70,43 @@ def check_if_site_outdated():
     """
     Checks if the site is outdated and dispatches an alert if a new version exists.
     """
-    
     n_settings = get_notification_config()
-    is_enabled = n_settings.get("site_outdated", True)
-    
-    if not is_enabled:
+    if not n_settings.get("site_outdated", True):
         if settings.DEBUG:
             logger.info("Skipping task 'check_if_site_outdated' per site configuration")
         return
     
-    REPO_OWNER = "DefOnslaught"
-    REPO_NAME = "Astraea-Webserver"
-    RELEASE_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+    repo_owner = "DefOnslaught"
 
     try:
-        update, _ = UpdateCheck.objects.get_or_create(id=1)
+        _handle_github_update_check(
+            model_class=UpdateCheck,
+            repo_owner=repo_owner,
+            repo_name="Astraea-Webserver",
+            component_name="Webserver",
+            action_msg="Please schedule maintenance."
+        )
+
+        _handle_github_update_check(
+            model_class=AgentUpdateCheck,
+            repo_owner=repo_owner,
+            repo_name="Astraea-Agent",
+            component_name="Agent",
+            action_msg="Please upload updated Agent."
+        )
+
+    except Exception as e:
+        logger.error(f"Error checking for Astraea updates in Celery task: {str(e)}")
+
+
+def _handle_github_update_check(model_class, repo_owner, repo_name, component_name, action_msg):
+    """
+    A universal checker for GitHub releases.
+    """
+    release_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+    
+    try:
+        update, _ = model_class.objects.get_or_create(id=1)
         raw_current = get_version()
         now = timezone.now()
         raw_latest = None
@@ -92,7 +114,7 @@ def check_if_site_outdated():
         if update.last_checked_at and (now - update.last_checked_at) < timedelta(hours=1):
             raw_latest = update.latest_version_on_github
         else:
-            response = requests.get(RELEASE_URL, timeout=10)
+            response = requests.get(release_url, timeout=10)
             response.raise_for_status()
             release_data = response.json()
             raw_latest = release_data.get('tag_name')
@@ -102,7 +124,7 @@ def check_if_site_outdated():
             update.save()
         
         if not raw_latest:
-            logger.warning("Could not determine latest version from GitHub.")
+            logger.warning(f"Could not determine latest {component_name} version from GitHub.")
             return
         
         current_version = normalize_version(raw_current)
@@ -110,11 +132,11 @@ def check_if_site_outdated():
         update_available = version.parse(latest_version) > version.parse(current_version)
 
         if update_available:
-            download_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/tag/{raw_latest}"
+            download_url = f"https://github.com/{repo_owner}/{repo_name}/releases/tag/{raw_latest}"
             
             notification = PendingNotification.objects.create(
                 status='outdated',
-                msg=f"Astraea Webserver version {latest_version} has been released. Please schedule maintenance.",
+                msg=f"Astraea {component_name} version {latest_version} has been released. {action_msg}",
                 extra_data={
                     'category': 'update_check',
                     'server_name': 'Astraea Central Instance',
@@ -125,12 +147,10 @@ def check_if_site_outdated():
             )
             
             process_notification(notification)
-            logger.info(f"Dispatched update notification for Astraea Version {latest_version}")
+            logger.info(f"Dispatched update notification for Astraea {component_name} version {latest_version}")
         else:
             if settings.DEBUG:
-                logger.info(f"Astraea is up to date (Version {current_version}).")
+                logger.info(f"Astraea {component_name} is up to date (Version {current_version}).")
                 
     except requests.exceptions.RequestException as e:
-        logger.error(f"GitHub API check failed in Celery task: {str(e)}")
-    except Exception as e:
-        logger.error(f"Error checking for Astraea Webserver updates in Celery task: {str(e)}")
+        logger.error(f"GitHub API check failed for {component_name} check: {str(e)}")

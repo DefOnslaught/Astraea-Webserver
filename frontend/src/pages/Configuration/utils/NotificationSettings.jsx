@@ -27,7 +27,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
         onServerAdd: true,
         onServerModify: true,
         onServerDelete: true,
-        siteOutdated: true,
+        systemOutdated: true,
     });
 
     // --- Data Fetching ---
@@ -44,7 +44,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                 onServerAdd: settingsRes.data.on_server_add,
                 onServerModify: settingsRes.data.on_server_modify,
                 onServerDelete: settingsRes.data.on_server_delete,
-                siteOutdated: settingsRes.data.site_outdated,
+                systemOutdated: settingsRes.data.site_outdated,
             });
 
             const servicesRes = await api.get(API_ENDPOINTS.NOTIFY_SERVICES);
@@ -112,7 +112,7 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                     on_server_add: notifyTriggers.onServerAdd,
                     on_server_modify: notifyTriggers.onServerModify,
                     on_server_delete: notifyTriggers.onServerDelete,
-                    site_outdated: notifyTriggers.siteOutdated,
+                    site_outdated: notifyTriggers.systemOutdated,
                 }
             };
             const res = await api.patch(API_ENDPOINTS.NOTIFY_SETTINGS, payload);
@@ -174,11 +174,11 @@ const NotificationSettings = ({ triggerSuccess, setError }) => {
                                 {key === 'failed' && "Notify on patching failure."}
                                 {key === 'success' && "Notify on successful patch."}
                                 {key === 'partial' && "Notify on partial patch."}
-                                {key === 'outOfDate' && "Notify when a system is outdated."}
+                                {key === 'outOfDate' && "Notify when a server is outdated."}
                                 {key === 'onServerAdd' && "Notify when a new server is added."}
                                 {key === 'onServerModify' && "Notify when a server's configuration is modified."}
                                 {key === 'onServerDelete' && "Notify when a server is removed."}
-                                {key === 'siteOutdated' && "Notify when Astraea is outdated, checks every 24 hours."}
+                                {key === 'systemOutdated' && "Notify when Astraea or Agent is outdated, checks every 24 hours."}
                             </p>
                         </div>
                     ))}

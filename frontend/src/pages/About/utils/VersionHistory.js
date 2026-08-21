@@ -1,5 +1,14 @@
 const VersionHistory = [
     {
+        version: "v1.0.14",
+        date: "August 21, 2026",
+        changes: [
+            "Created a missing email templated that was forgotten.",
+            "Notification setting 'System Outdated' will also work for Agent checks.",
+            "The 'install_agent.sh' script configures cron to log into Agent log directory."
+        ]
+    },
+    {
         version: "v1.0.13",
         date: "August 13, 2026",
         changes: [

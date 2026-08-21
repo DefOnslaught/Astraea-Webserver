@@ -33,8 +33,7 @@ def send_notification_email(notification, recipient_list, report_details=None):
         context.update({
             'current_version': report_details.get('current_version', 'Unknown'),
             'target_version': report_details.get('target_version', 'Unknown'),
-            'download_url': report_details.get('download_url', ''),
-            'PATCH_THRESHOLD_DAYS': report_details.get('PATCH_THRESHOLD_DAYS', getattr(settings, 'PATCH_THRESHOLD_DAYS', 30))
+            'download_url': report_details.get('download_url', '')
         })
         
     elif category == 'server_lifecycle':
@@ -50,6 +49,15 @@ def send_notification_email(notification, recipient_list, report_details=None):
             'action': status_clean,
             'modified_by': report_details.get('modified_by', 'System Automatic Process'),
             'change_log': report_details.get('change_log', {})
+        })
+
+    elif category == 'outdated':
+        template_name = 'email_outdated_template.html'
+        subject = "Astraea Alert: Server Patching Threshold Exceeded"
+
+        context['status_color'] = '#e67e22' 
+        context.update({
+            'PATCH_THRESHOLD_DAYS': report_details.get('PATCH_THRESHOLD_DAYS', 30)
         })
         
     else:
