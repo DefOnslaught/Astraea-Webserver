@@ -46,15 +46,34 @@ if [ "$1" = "web" ]; then
 
     echo "Validating Administrative Access..."
     python backend/manage.py shell <<EOF
+import os
+import secrets
 from django.contrib.auth import get_user_model
+
 User = get_user_model()
-if not User.objects.filter(email='admin@astraea.local').exists():
-    User.objects.create_superuser(
-        username='admin',
-        email='admin@astraea.local',
-        password='AstraeaAdmin123!'
-    )
-    print("Initial bootstrap superuser created successfully.")
+admin_username = os.environ.get('ASTRAEA_ADMIN_USER', 'admin')
+admin_email = os.environ.get('ASTRAEA_ADMIN_EMAIL', 'admin@astraea.local')
+admin_password = os.environ.get('ASTRAEA_ADMIN_PASSWORD')
+
+# Check if the superuser already exists
+if not User.objects.filter(username=admin_username).exists():
+    if admin_password:
+        # Create user with environment variable password
+        User.objects.create_superuser(username=admin_username, email=admin_email, password=admin_password)
+        print(f"Superuser '{admin_username}' created successfully via environment variables.")
+    else:
+        # No password provided in env vars, generate a secure one dynamically
+        generated_password = secrets.token_urlsafe(16)
+        User.objects.create_superuser(username=admin_username, email=admin_email, password=generated_password)
+        
+        print("\n" + "="*65)
+        print("ASTRAEA FIRST RUN INITIALIZATION")
+        print(f"Admin Username: {admin_username}")
+        print(f"Admin Password: {generated_password}")
+        print("Please copy this password. You can change it in the dashboard.")
+        print("="*65 + "\n")
+else:
+    print("Admin user already exists. Skipping initialization.")
 EOF
 
     echo "Executing predictive cache warming..."

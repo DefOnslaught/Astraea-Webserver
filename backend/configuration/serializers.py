@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 
 from .models import APIKey, SysConfig, NotificationService, NotificationSettings, AgentInstallConfig, ZabbixConfiguration
@@ -34,6 +35,10 @@ class NotificationSettingsSerializer(serializers.ModelSerializer):
         fields = ['failed', 'success', 'partial', 'out_of_date', 'on_server_add', 'on_server_modify', 'on_server_delete', 'site_outdated']
 
 
+CRON_REGEX = re.compile(
+    r'^((?:[0-9\*\/\,\-]+)\s+){4}(?:[0-9\*\/\,\-]+)$'
+)
+
 class AgentInstallConfigSerializer(serializers.ModelSerializer):
     # Mapping 'apiKeyName' (React) to 'api_key' (Model) via SlugRelatedField
     apiKeyName = serializers.SlugRelatedField(
@@ -64,6 +69,15 @@ class AgentInstallConfigSerializer(serializers.ModelSerializer):
         """Custom validation to ensure the key is actually active."""
         if not value.is_active:
             raise serializers.ValidationError("This API Key is disabled.")
+        return value
+
+    def validate_schedule(self, value):
+        """Ensure schedule is a valid 5-part cron expression to prevent shell injection."""
+        value = value.strip()
+        if not CRON_REGEX.match(value):
+            raise serializers.ValidationError(
+                "Invalid schedule format. Must be a valid 5-part cron expression (e.g., '0 2 * * *')."
+            )
         return value
 
 

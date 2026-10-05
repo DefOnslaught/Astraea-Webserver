@@ -1,4 +1,4 @@
-import logging, os, tarfile, io, zipfile
+import logging, os, tarfile, io, zipfile, shlex
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -84,7 +84,7 @@ class AgentInstallScriptView(APIView):
         context = Context({
             'API_KEY': config.api_key.key,
             'ENVIRONMENT': config.environment,
-            'CRON': config.cron,
+            'CRON_SHELL': shlex.quote(config.cron),
             'PATCHING_SCHEDULE': config.patching_schedule,
             'EXE_LOGIC': config.exe_logic,
             'BASE_URL': config.base_url or f"{request.scheme}://{request.get_host()}",
@@ -94,7 +94,7 @@ class AgentInstallScriptView(APIView):
             'REBOOT_ON_SUCCESS': config.reboot_on_success,
             'REBOOT_AFTER_UPDATES': config.reboot_after_updates,
             'MAX_ALLOWED_UPTIME_DAYS': config.max_allowed_uptime
-        })
+        }, autoescape=False)
         
         rendered_script = template.render(context)
         
@@ -130,7 +130,10 @@ class AgentFileHandlerView(APIView):
 class AgentUploadHandlerView(APIView):
     permission_classes = [IsAuthenticated]
 
-    MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit
+    MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit for compressed upload
+    MAX_UNCOMPRESSED_SIZE = 50 * 1024 * 1024  # 50MB max extracted limit
+    MAX_FILE_COUNT = 1000  # Max files allowed in archive
+
     ALLOWED_EXTENSIONS = ('.zip', '.tar', '.tar.gz')
     STORAGE_DIR = os.path.join(settings.BASE_DIR, 'protected_storage')
     AGENT_FILE = 'astraea_agent.tar.gz'
@@ -169,7 +172,6 @@ class AgentUploadHandlerView(APIView):
         filename = uploaded_file.name.lower()
         if not filename.endswith(self.ALLOWED_EXTENSIONS):
             return Response({'message': "Invalid file type. Please upload .zip or .tar."}, status=status.HTTP_400_BAD_REQUEST)
-        
 
         extracted_version = _extract_version_from_archive(uploaded_file, filename)
         
@@ -177,10 +179,7 @@ class AgentUploadHandlerView(APIView):
             return Response({'message': "Uploaded file does not contain a valid version.txt"}, status=400)
 
         if extracted_version != version:
-            return Response({
-                'message': f"Version mismatch! Form says {version}, but archive says {extracted_version}."
-            }, status=400)
-
+            return Response({'message': f"Version mismatch! Form says {version}, but archive says {extracted_version}."}, status=400)
         
         os.makedirs(self.STORAGE_DIR, exist_ok=True)
 
@@ -189,14 +188,9 @@ class AgentUploadHandlerView(APIView):
 
         def _is_forbidden_file(filename):
             parts = os.path.normpath(filename).split(os.sep)
-            
-            if '.git' in parts:
-                return True
-            
+            if '.git' in parts: return True
             forbidden_files = {'.env', '.DS_Store', '.gitignore'}
-            if os.path.basename(filename) in forbidden_files:
-                return True
-                
+            if os.path.basename(filename) in forbidden_files: return True
             return False
         
         def _is_safe_path(basedir, path):
@@ -206,18 +200,29 @@ class AgentUploadHandlerView(APIView):
         def _get_normalized_name(name):
             if name in ['Astraea Agent/', 'Astraea_Agent/', 'Astraea-Agent/']:
                 return None
-            
             for prefix in ['Astraea Agent/', 'Astraea_Agent/']:
                 if name.startswith(prefix):
                     return name.replace(prefix, 'Astraea-Agent/', 1)
             return name
 
         uploaded_file.seek(0)
+        
+        total_extracted_size = 0
+        total_files = 0
+
         try:
             with tarfile.open(temp_path, "w:gz") as tar_out:
                 if filename.endswith('.zip'):
                     with zipfile.ZipFile(uploaded_file) as zip_in:
                         for member in zip_in.infolist():
+                            total_files += 1
+                            if total_files > self.MAX_FILE_COUNT:
+                                raise ValueError("Archive contains too many files.")
+                                
+                            total_extracted_size += member.file_size
+                            if total_extracted_size > self.MAX_UNCOMPRESSED_SIZE:
+                                raise ValueError("Archive compression ratio exceeded limit (Zip Bomb protection).")
+
                             if _is_forbidden_file(member.filename): continue
                             
                             new_name = _get_normalized_name(member.filename)
@@ -225,14 +230,23 @@ class AgentUploadHandlerView(APIView):
                             if not _is_safe_path(self.STORAGE_DIR, new_name): continue
 
                             if not member.is_dir():
-                                data = zip_in.read(member.filename)
-                                tarinfo = tarfile.TarInfo(name=new_name)
-                                tarinfo.size = len(data)
-                                tar_out.addfile(tarinfo, io.BytesIO(data))
+                                # Stream the file instead of loading entirely into memory
+                                with zip_in.open(member) as f:
+                                    tarinfo = tarfile.TarInfo(name=new_name)
+                                    tarinfo.size = member.file_size
+                                    tar_out.addfile(tarinfo, f)
                 
                 else: # Tar/Tar.gz
                     with tarfile.open(fileobj=uploaded_file, mode="r:*") as tar_in:
                         for member in tar_in.getmembers():
+                            total_files += 1
+                            if total_files > self.MAX_FILE_COUNT:
+                                raise ValueError("Archive contains too many files.")
+                                
+                            total_extracted_size += member.size
+                            if total_extracted_size > self.MAX_UNCOMPRESSED_SIZE:
+                                raise ValueError("Archive compression ratio exceeded limit (Tar Bomb protection).")
+
                             if _is_forbidden_file(member.name): continue
                             
                             new_name = _get_normalized_name(member.name)
@@ -252,21 +266,27 @@ class AgentUploadHandlerView(APIView):
                 info.version = version
                 info.save()
             
-            return Response({
-                'message': f"Astraea Agent updated to {version}"
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            return Response({'message': f"Astraea Agent updated to {version}"}, status=status.HTTP_200_OK)
             
+        except ValueError as e:
+            if os.path.exists(temp_path): os.remove(temp_path)
+            logger.warning(f"Archive rejected due to limits: {str(e)}")
+            return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            if os.path.exists(temp_path): os.remove(temp_path)
             logger.error(f"Error saving agent upload: {str(e)}")
-            return Response({'message': f"Internal error during processing: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'message': "Internal error during processing."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 def _extract_version_from_archive(uploaded_file, filename):
     """Peek inside the tar/zip to find the version.txt file."""
     uploaded_file.seek(0)
     prefixes = ['', 'Astraea Agent/', 'Astraea_Agent/', 'Astraea-Agent/']
+    
+    # Only read the first 1024 bytes to prevent memory exhaustion
+    MAX_READ_BYTES = 1024 
+
     if filename.endswith('.zip'):
         with zipfile.ZipFile(uploaded_file) as z:
             namelist = z.namelist()
@@ -274,7 +294,8 @@ def _extract_version_from_archive(uploaded_file, filename):
                 path = f"{prefix}version.txt"
                 if path in namelist:
                     with z.open(path) as f:
-                        return f.read().decode().strip().split('=')[-1].strip("'\"")
+                        content = f.read(MAX_READ_BYTES).decode(errors='ignore').strip()
+                        return content.split('=')[-1].strip("'\"")
     else:
         with tarfile.open(fileobj=uploaded_file, mode="r:*") as t:
             for prefix in prefixes:
@@ -282,7 +303,8 @@ def _extract_version_from_archive(uploaded_file, filename):
                 try:
                     f = t.extractfile(path)
                     if f:
-                        return f.read().decode().strip().split('=')[-1].strip("'\"")
+                        content = f.read(MAX_READ_BYTES).decode(errors='ignore').strip()
+                        return content.split('=')[-1].strip("'\"")
                 except (KeyError, tarfile.ReadError):
                     continue
     return None

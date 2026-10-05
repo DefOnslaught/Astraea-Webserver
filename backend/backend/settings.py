@@ -10,29 +10,27 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1").split(",")
+IS_SECURE_ENV = os.getenv("AUTH_COOKIE_SECURE", "True").lower() == "true"
+
+ALLOWED_HOSTS = [x.strip() for x in os.getenv("ALLOWED_HOSTS", "127.0.0.1").split(",") if x.strip()]
 
 CORS_ALLOW_CREDENTIALS = True # Update for prod
 CORS_ALLOW_ALL_ORIGINS = False  # Switch to False to use the specific list below
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
+CORS_ALLOWED_ORIGINS = [x.strip() for x in os.getenv("CORS_ORIGINS", "").split(",") if x.strip()]
 
 # Only send cookies over HTTPS
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
+SESSION_COOKIE_SECURE = IS_SECURE_ENV
+CSRF_COOKIE_SECURE = IS_SECURE_ENV
 
 CSRF_COOKIE_HTTPONLY = False  # Must be False so JS can read it
-CSRF_COOKIE_SAMESITE = 'Strict'  # Prevent cross-site cookie sending
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+CSRF_COOKIE_SAMESITE = 'Lax'  # Prevent cross-site cookie sending
+CSRF_TRUSTED_ORIGINS = [x.strip() for x in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if x.strip()]
 
 # Prevent the site from being rendered in an <iframe> (Prevents Clickjacking)
 X_FRAME_OPTIONS = 'DENY'
@@ -129,7 +127,7 @@ DATABASES = {
         'ENGINE': os.getenv("DB_ENGINE"),
         'NAME': os.getenv("DB_NAME"),
         "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "PORT": os.getenv("DB_PORT", ""),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
     }
@@ -166,7 +164,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        #'rest_framework_simplejwt.authentication.JWTAuthentication',
         'users.authenticate.CustomJWTAuthentication',
     ),
 }
@@ -182,7 +179,7 @@ SIMPLE_JWT = {
     # --- COOKIE SETTINGS ---
     "AUTH_COOKIE": "access_token",       # Cookie name for access token
     "AUTH_COOKIE_REFRESH": "refresh_token", # Cookie name for refresh token
-    "AUTH_COOKIE_SECURE": os.getenv("AUTH_COOKIE_SECURE", "True").lower() == "true",          # Only send over HTTPS
+    "AUTH_COOKIE_SECURE": IS_SECURE_ENV,          # Only send over HTTPS
     "AUTH_COOKIE_HTTP_ONLY": True,       # Prevent JS access (XSS protection)
     "AUTH_COOKIE_PATH": "/",             # Available to all paths
     "AUTH_COOKIE_SAMESITE": "Lax",       # CSRF protection

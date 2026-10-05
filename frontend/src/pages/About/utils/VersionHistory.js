@@ -1,5 +1,16 @@
 const VersionHistory = [
     {
+        version: "v1.0.15",
+        date: "October 5, 2026",
+        changes: [
+            "Increased the security of the backend API authentication.",
+            "Improved how HTTPS is selected in the .env & settings.py file.",
+            "Improved how the CRON Schedule is parsed into 'install_agent.sh'.",
+            "Added protection from zip bombs.",
+            "Improved security on the docker default admin account."
+        ]
+    },
+    {
         version: "v1.0.14",
         date: "August 21, 2026",
         changes: [

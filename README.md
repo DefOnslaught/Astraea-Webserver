@@ -182,6 +182,12 @@ DB_PASSWORD=secretpassword
 # Using separate DB indexes (0 and 1) to isolate Cache from Task Broker
 REDIS_URL=redis://redis:6379/0
 CELERY_REDIS_URL=redis://redis:6379/1
+
+# Initial Administrator (Optional)
+# If ASTRAEA_ADMIN_PASSWORD is left blank, a secure random password is automatically generated.
+ASTRAEA_ADMIN_USER=admin
+ASTRAEA_ADMIN_EMAIL=admin@astraea.local
+ASTRAEA_ADMIN_PASSWORD=
 ```
 
 Update your `frontend/.env` for internal routing:
@@ -211,7 +217,9 @@ On initial startup, the entrypoint script automatically replicates the bare-meta
 * Warms the Redis cache and boots Gunicorn.
 
 > [!IMPORTANT]
-> **Default Admin Account Management:** The bootstrap script creates `admin@astraea.local` only if it does not already exist. Make sure to **Disable** the default admin account rather than deleting it from the database if you create a custom administrator account; deleting it will cause the entrypoint script to recreate it on subsequent container restarts.
+> **First Run Credentials:** If you left `ASTRAEA_ADMIN_PASSWORD` blank in your `.env` file, a password was randomly generated for you to ensure your application remains secure. You can retrieve it by checking your container logs:
+>
+> `docker compose logs web | grep -A 5 "ASTRAEA FIRST RUN INITIALIZATION"`
 
 Once running, access the dashboard at:
 
