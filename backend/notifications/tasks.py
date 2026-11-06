@@ -8,12 +8,11 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 
 from servers.models import Server
-from configuration.models import NotificationService, NotificationSettings
 from configuration.utils import get_notification_config, get_notification_services
 from .models import PendingNotification
 from .discord_utils import send_msg
 from .email_utils import send_notification_email
-from servers.utils import format_duration
+from servers.utils import format_duration, refresh_dashboard_stats
 
 logger = logging.getLogger('django')
 User = get_user_model()
@@ -224,7 +223,6 @@ def notify_out_of_date():
     days = int(settings.PATCH_THRESHOLD_DAYS)
     time_threshold = timezone.now() - timedelta(days=days)
 
-    # servers that haven't been patched in 'X' days OR have never been patched (null)
     outdated_servers = Server.objects.filter(
         Q(last_patch_date__lt=time_threshold) | Q(last_patch_date__isnull=True)
     )
@@ -237,3 +235,5 @@ def notify_out_of_date():
             msg += " ..."
          
         PendingNotification.objects.create(msg=msg, status="outdated")
+
+        refresh_dashboard_stats()
