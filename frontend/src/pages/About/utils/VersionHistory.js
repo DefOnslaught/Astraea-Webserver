@@ -1,5 +1,13 @@
 const VersionHistory = [
     {
+        version: "v1.0.16",
+        date: "November 6, 2026",
+        changes: [
+            "Ensured the dashboard cache is properly updated for outdated servers.",
+            "Fixed the frontend version mismatch, visual bug only."
+        ]
+    },
+    {
         version: "v1.0.15",
         date: "October 5, 2026",
         changes: [
